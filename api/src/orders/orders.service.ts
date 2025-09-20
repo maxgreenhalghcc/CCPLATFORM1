@@ -1,45 +1,76 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCheckoutDto } from './dto/create-checkout.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
+
+interface NormalizedRecipeBody {
+  ingredients?: unknown;
+  method?: unknown;
+  glassware?: unknown;
+  garnish?: unknown;
+  warnings?: unknown;
+}
 
 @Injectable()
 export class OrdersService {
-  createCheckout(orderId: string, dto: CreateCheckoutDto) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService
+  ) {}
+
+  async createCheckout(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true }
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const baseUrl =
+      this.configService.get<string>('NEXT_PUBLIC_FRONTEND_URL') ??
+      this.configService.get<string>('NEXTAUTH_URL') ??
+      'http://localhost:3000';
+
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
     return {
-      orderId,
-      checkoutUrl: `${dto.successUrl}?session=mock_checkout_session`
+      checkout_url: `${normalizedBase}/receipt?orderId=${orderId}`
     };
   }
 
-  getRecipe(orderId: string) {
-    return {
-      orderId,
-      status: 'paid',
-      recipe: {
-        id: `recipe_${orderId}`,
-        name: 'Deterministic Sunset',
-        method: 'Shake all ingredients with ice and strain into a chilled coupe.',
-        glassware: 'Coupe',
-        garnish: 'Dehydrated orange wheel',
-        ingredients: [
-          { name: 'Gin', amount: '45ml' },
-          { name: 'Aperol', amount: '20ml' },
-          { name: 'Fresh lemon juice', amount: '15ml' }
-        ]
+  async getRecipe(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        recipe: true
       }
-    };
-  }
+    });
 
-  listOrders(barId: string, status?: string) {
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (!order.recipe) {
+      throw new NotFoundException('Recipe not found for order');
+    }
+
+    const body = (order.recipe.body as NormalizedRecipeBody) ?? {};
+
+    const ingredients = Array.isArray(body.ingredients) ? body.ingredients : [];
+    const method = typeof body.method === 'string' ? body.method : '';
+    const glassware = typeof body.glassware === 'string' ? body.glassware : '';
+    const garnish = typeof body.garnish === 'string' ? body.garnish : '';
+    const warnings = Array.isArray(body.warnings) ? body.warnings : [];
+
     return {
-      items: [
-        {
-          id: 'order_1',
-          barId,
-          customerName: 'Alex',
-          status: status ?? 'pending',
-          createdAt: new Date().toISOString()
-        }
-      ]
+      name: order.recipe.name,
+      description: order.recipe.description,
+      ingredients,
+      method,
+      glassware,
+      garnish,
+      warnings
     };
   }
 }
