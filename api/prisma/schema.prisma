@@ -1,0 +1,122 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Bar {
+  id         String    @id @default(cuid())
+  slug       String    @unique
+  name       String
+  location   String?
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  settings   BarSettings?
+  orders     Order[]
+  quizSessions QuizSession[]
+}
+
+model BarSettings {
+  id           String  @id @default(cuid())
+  barId        String  @unique
+  introText    String?
+  outroText    String?
+  theme        Json
+  pricingCents Int     @default(1200)
+  bar          Bar     @relation(fields: [barId], references: [id])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      UserRole
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  barId     String?
+  bar       Bar?     @relation(fields: [barId], references: [id])
+}
+
+enum UserRole {
+  admin
+  staff
+  customer
+}
+
+model QuizSession {
+  id        String    @id @default(cuid())
+  barId     String
+  userId    String?
+  status    QuizStatus @default(in_progress)
+  createdAt DateTime   @default(now())
+  bar       Bar       @relation(fields: [barId], references: [id])
+  answers   QuizAnswer[]
+  order     Order?
+}
+
+enum QuizStatus {
+  in_progress
+  submitted
+}
+
+model QuizAnswer {
+  id         String   @id @default(cuid())
+  sessionId  String
+  questionId String
+  value      Json
+  createdAt  DateTime @default(now())
+  session    QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model Recipe {
+  id        String   @id @default(cuid())
+  barId     String
+  sessionId String
+  name      String
+  method    String
+  glassware String
+  garnish   String
+  ingredients Json
+  createdAt DateTime @default(now())
+  bar       Bar      @relation(fields: [barId], references: [id])
+  session   QuizSession @relation(fields: [sessionId], references: [id])
+  order     Order?
+}
+
+model Order {
+  id         String    @id @default(cuid())
+  barId      String
+  sessionId  String
+  recipeId   String?
+  priceCents Int
+  status     OrderStatus @default(pending)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  bar        Bar         @relation(fields: [barId], references: [id])
+  session    QuizSession @relation(fields: [sessionId], references: [id])
+  recipe     Recipe?     @relation(fields: [recipeId], references: [id])
+  payments   Payment[]
+}
+
+enum OrderStatus {
+  pending
+  paid
+  fulfilled
+  cancelled
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  orderId    String
+  provider   String
+  intentId   String
+  amountCents Int
+  status     String
+  payload    Json
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields: [orderId], references: [id])
+}
