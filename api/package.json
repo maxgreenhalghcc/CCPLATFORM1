@@ -10,7 +10,8 @@
     "lint": "eslint 'src/**/*.ts' --max-warnings=0",
     "format": "prettier --write \"src/**/*.ts\"",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "seed": "ts-node src/seed.ts"
   },
   "dependencies": {
     "@nestjs/axios": "3.0.2",
