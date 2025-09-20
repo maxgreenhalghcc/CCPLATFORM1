@@ -7,99 +7,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Bar {
-  id         String    @id @default(cuid())
-  slug       String    @unique
-  name       String
-  location   String?
-  active     Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  settings   BarSettings?
-  orders     Order[]
-  quizSessions QuizSession[]
-}
-
-model BarSettings {
-  id           String  @id @default(cuid())
-  barId        String  @unique
-  introText    String?
-  outroText    String?
-  theme        Json
-  pricingCents Int     @default(1200)
-  bar          Bar     @relation(fields: [barId], references: [id])
-}
-
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  role      UserRole
-  password  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  barId     String?
-  bar       Bar?     @relation(fields: [barId], references: [id])
-}
-
 enum UserRole {
   admin
   staff
   customer
-}
-
-model QuizSession {
-  id        String    @id @default(cuid())
-  barId     String
-  userId    String?
-  status    QuizStatus @default(in_progress)
-  createdAt DateTime   @default(now())
-  bar       Bar       @relation(fields: [barId], references: [id])
-  answers   QuizAnswer[]
-  order     Order?
-}
-
-enum QuizStatus {
-  in_progress
-  submitted
-}
-
-model QuizAnswer {
-  id         String   @id @default(cuid())
-  sessionId  String
-  questionId String
-  value      Json
-  createdAt  DateTime @default(now())
-  session    QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-}
-
-model Recipe {
-  id        String   @id @default(cuid())
-  barId     String
-  sessionId String
-  name      String
-  method    String
-  glassware String
-  garnish   String
-  ingredients Json
-  createdAt DateTime @default(now())
-  bar       Bar      @relation(fields: [barId], references: [id])
-  session   QuizSession @relation(fields: [sessionId], references: [id])
-  order     Order?
-}
-
-model Order {
-  id         String    @id @default(cuid())
-  barId      String
-  sessionId  String
-  recipeId   String?
-  priceCents Int
-  status     OrderStatus @default(pending)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  bar        Bar         @relation(fields: [barId], references: [id])
-  session    QuizSession @relation(fields: [sessionId], references: [id])
-  recipe     Recipe?     @relation(fields: [recipeId], references: [id])
-  payments   Payment[]
 }
 
 enum OrderStatus {
@@ -109,14 +20,128 @@ enum OrderStatus {
   cancelled
 }
 
+enum QuizSessionStatus {
+  in_progress
+  submitted
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      UserRole
+  barId     String?
+  createdAt DateTime @default(now())
+
+  bar Bar? @relation(fields: [barId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+}
+
+model Bar {
+  id       String   @id @default(cuid())
+  name     String
+  slug     String   @unique
+  location String?
+  active   Boolean  @default(true)
+
+  settings   BarSettings?
+  users      User[]
+  whitelist  BarIngredientWhitelist[]
+  sessions   QuizSession[]
+  recipes    Recipe[]
+  orders     Order[]
+}
+
+model BarSettings {
+  barId        String  @id
+  theme        Json
+  introText    String?
+  outroText    String?
+  pricingCents Int     @default(1000)
+
+  bar Bar @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Ingredient {
+  id            String                  @id @default(cuid())
+  name          String                  @unique
+  allergenFlags Json
+  active        Boolean                 @default(true)
+
+  bars BarIngredientWhitelist[]
+}
+
+model BarIngredientWhitelist {
+  barId        String
+  ingredientId String
+
+  bar        Bar        @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([barId, ingredientId])
+}
+
+model QuizSession {
+  id        String            @id @default(cuid())
+  barId     String
+  status    QuizSessionStatus @default(in_progress)
+  createdAt DateTime          @default(now())
+
+  bar     Bar          @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  answers QuizAnswer[]
+  orders  Order[]
+  recipes Recipe[]
+}
+
+model QuizAnswer {
+  id         String      @id @default(cuid())
+  sessionId  String
+  questionId String
+  value      Json
+
+  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([sessionId])
+}
+
+model Recipe {
+  id          String     @id @default(cuid())
+  barId       String
+  sessionId   String
+  name        String
+  description String
+  body        Json
+  abvEstimate Float?
+
+  bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  orders  Order[]
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  barId      String
+  sessionId  String
+  recipeId   String?
+  priceCents Int
+  status     OrderStatus @default(pending)
+  createdAt  DateTime    @default(now())
+
+  bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  recipe  Recipe?     @relation(fields: [recipeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  payments Payment[]
+
+  @@index([barId, status])
+}
+
 model Payment {
-  id         String   @id @default(cuid())
-  orderId    String
-  provider   String
-  intentId   String
+  id          String   @id @default(cuid())
+  orderId     String
+  provider    String   @default("stripe")
+  intentId    String?
   amountCents Int
-  status     String
-  payload    Json
-  createdAt  DateTime @default(now())
-  order      Order    @relation(fields: [orderId], references: [id])
+  status      String
+  raw         Json
+  createdAt   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
