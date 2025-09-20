@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --bg: hsl(0 0% 100%);
+  --fg: hsl(224 71.4% 4.1%);
   --background: 0 0% 100%;
   --foreground: 224 71.4% 4.1%;
   --muted: 220 14.3% 95.9%;
@@ -21,9 +23,10 @@
   --card: 0 0% 100%;
   --card-foreground: 224 71.4% 4.1%;
   --radius: 0.75rem;
-}
 
 [data-theme='dark'] {
+  --bg: hsl(224 71.4% 4.1%);
+  --fg: hsl(0 0% 98%);
   --background: 224 71.4% 4.1%;
   --foreground: 0 0% 98%;
   --muted: 215 27.9% 16.9%;
@@ -48,8 +51,8 @@
 }
 
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: var(--bg, hsl(var(--background)));
+  color: var(--fg, hsl(var(--foreground)));
 }
 
 @layer base {
