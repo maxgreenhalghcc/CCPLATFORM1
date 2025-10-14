@@ -1,0 +1,42 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp*
+.pnp.js
+.pnp.cjs
+
+# Next.js
+.next/
+out/
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.venv/
+.venv/
+venv/
+
+# Prisma
+prisma/migrations/
+
+# Docker
+*.pid
+
+# Misc
+.DS_Store
+.idea/
+.vscode/
