@@ -1,0 +1,125 @@
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { OrderStatus, Prisma } from '@prisma/client';
+import Stripe from 'stripe';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class WebhooksService {
+  private readonly logger = new Logger(WebhooksService.name);
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService
+  ) {}
+
+  private stripeClient?: Stripe;
+
+  private getStripe(): Stripe {
+    if (this.stripeClient) {
+      return this.stripeClient;
+    }
+
+    const secretKey = this.configService.get<string>('stripe.secretKey');
+
+    if (!secretKey) {
+      throw new InternalServerErrorException('Stripe secret key is not configured');
+    }
+
+    this.stripeClient = new Stripe(secretKey, {
+      apiVersion: '2023-10-16'
+    });
+
+    return this.stripeClient;
+  }
+
+  async handleStripe(signature: string | undefined, payload: Buffer) {
+    const webhookSecret = this.configService.get<string>('stripe.webhookSecret');
+    let event: Stripe.Event;
+
+    if (webhookSecret && signature) {
+      try {
+        event = this.getStripe().webhooks.constructEvent(payload, signature, webhookSecret);
+      } catch (error) {
+        this.logger.error(`Stripe webhook signature verification failed: ${error}`);
+        throw new BadRequestException('Invalid Stripe signature');
+      }
+    } else {
+      this.logger.warn('Stripe webhook secret is not configured. Parsing payload without verification.');
+      try {
+        event = JSON.parse(payload.toString('utf-8')) as Stripe.Event;
+      } catch (error) {
+        throw new BadRequestException('Unable to parse webhook payload');
+      }
+    }
+
+    await this.processEvent(event);
+
+    return {
+      received: true
+    };
+  }
+
+  private async processEvent(event: Stripe.Event) {
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const orderId = session.metadata?.orderId;
+
+      if (!orderId) {
+        this.logger.warn('Checkout session completed without order metadata.');
+        return;
+      }
+
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, amountCents: true }
+      });
+
+      if (!order) {
+        this.logger.warn(`Order ${orderId} not found for Stripe webhook.`);
+        return;
+      }
+
+      const amountCents = session.amount_total ?? order.amountCents;
+      const paymentStatus = session.payment_status ?? 'unknown';
+      const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+      const intentReference = paymentIntentId ?? event.id;
+
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.paid }
+      });
+
+      const existing = await this.prisma.payment.findFirst({
+        where: { intentId: intentReference }
+      });
+
+      if (existing) {
+        await this.prisma.payment.update({
+          where: { id: existing.id },
+          data: {
+            amountCents,
+            status: paymentStatus,
+            raw: event as unknown as Prisma.JsonValue
+          }
+        });
+        return;
+      }
+
+      await this.prisma.payment.create({
+        data: {
+          orderId,
+          intentId: intentReference,
+          amountCents,
+          status: paymentStatus,
+          raw: event as unknown as Prisma.JsonValue
+        }
+      });
+    }
+  }
+}
