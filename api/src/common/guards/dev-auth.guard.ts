@@ -18,7 +18,7 @@ export class DevAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const headerName = this.configService.get<string>('authGuard.header') ?? 'x-dev-auth';
+    const headerName = this.configService.get<string>('authGuard.header') ?? 'x-staff-token';
     const expectedToken = this.configService.get<string>('authGuard.token') ?? '';
 
     if (!expectedToken) {

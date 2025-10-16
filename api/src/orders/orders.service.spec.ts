@@ -44,6 +44,7 @@ describe('OrdersService.listForBar', () => {
         "status" TEXT NOT NULL DEFAULT 'created',
         "stripeSessionId" TEXT,
         "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "fulfilledAt" DATETIME,
         FOREIGN KEY ("barId") REFERENCES "Bar"("id") ON DELETE CASCADE ON UPDATE CASCADE
       );
     `);
@@ -103,6 +104,19 @@ describe('OrdersService.listForBar', () => {
         createdAt: new Date('2024-01-01T09:30:00.000Z')
       }
     });
+
+    await prisma.order.create({
+      data: {
+        id: 'order_fulfilled',
+        barId: bar.id,
+        sessionId: 'session_fulfilled',
+        amount: new Prisma.Decimal('15.00'),
+        currency: 'gbp',
+        status: OrderStatus.fulfilled,
+        fulfilledAt: new Date('2024-01-01T12:00:00.000Z'),
+        createdAt: new Date('2024-01-01T08:00:00.000Z')
+      }
+    });
   });
 
   afterAll(async () => {
@@ -114,8 +128,12 @@ describe('OrdersService.listForBar', () => {
     expect(result.items.map((item) => item.id)).toEqual([
       'order_paid',
       'order_created',
-      'order_cancelled'
+      'order_cancelled',
+      'order_fulfilled'
     ]);
+
+    const fulfilled = result.items.find((item) => item.id === 'order_fulfilled');
+    expect(fulfilled?.fulfilledAt).toBeTruthy();
   });
 
   it('supports filtering by order status', async () => {
@@ -127,6 +145,32 @@ describe('OrdersService.listForBar', () => {
   it('accepts a bar identifier', async () => {
     const bar = await prisma.bar.findFirstOrThrow({ where: { slug: 'demo-bar' } });
     const result = await service.listForBar(bar.id);
-    expect(result.items).toHaveLength(3);
+    expect(result.items).toHaveLength(4);
+  });
+
+  describe('updateStatus', () => {
+    it('fulfills a paid order and sets fulfilledAt', async () => {
+      const result = await service.updateStatus('order_paid', 'fulfilled');
+      expect(result.status).toBe(OrderStatus.fulfilled);
+      expect(result.fulfilledAt).toBeTruthy();
+
+      const reloaded = await prisma.order.findUniqueOrThrow({ where: { id: 'order_paid' } });
+      expect(reloaded.status).toBe(OrderStatus.fulfilled);
+      expect(reloaded.fulfilledAt).toBeInstanceOf(Date);
+    });
+
+    it('rejects invalid transitions', async () => {
+      await expect(service.updateStatus('order_created', 'fulfilled')).rejects.toThrow(
+        'Only paid orders can be fulfilled'
+      );
+    });
+
+    it('is idempotent for already fulfilled orders', async () => {
+      await service.updateStatus('order_paid', 'fulfilled');
+      const second = await service.updateStatus('order_paid', 'fulfilled');
+
+      expect(second.status).toBe(OrderStatus.fulfilled);
+      expect(second.fulfilledAt).toBeTruthy();
+    });
   });
 });

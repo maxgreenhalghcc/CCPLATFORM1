@@ -11,7 +11,7 @@ export const validationSchema = Joi.object({
   STRIPE_SECRET_KEY: Joi.string().allow(''),
   STRIPE_WEBHOOK_SECRET: Joi.string().allow(''),
   AUTH_GUARD_ENABLED: Joi.boolean().default(false),
-  AUTH_GUARD_HEADER: Joi.string().default('x-dev-auth'),
+  AUTH_GUARD_HEADER: Joi.string().default('x-staff-token'),
   AUTH_GUARD_TOKEN: Joi.string().allow(''),
   RECIPE_SERVICE_URL: Joi.string().uri().default('http://localhost:5000'),
   RECIPE_SERVICE_JWT_SECRET: Joi.string().allow(''),
