@@ -6,9 +6,9 @@ import { UpdateBarSettingsDto } from './dto/update-bar-settings.dto';
 @Injectable()
 export class BarsService {
   private readonly demoTheme = {
-    'background': '0 0% 100%',
-    'foreground': '224 71.4% 4.1%',
-    'primary': '25 95% 53%',
+    background: '0 0% 100%',
+    foreground: '224 71.4% 4.1%',
+    primary: '25 95% 53%',
     'primary-foreground': '26 83% 14%'
   };
 
@@ -61,7 +61,7 @@ export class BarsService {
       introText: 'Discover your perfect cocktail with our nine-question quiz.',
       outroText: 'Thanks for visiting our bar! Share your creation on socials.',
       theme: this.demoTheme,
-      pricingCents: 1200
+      pricingPounds: 12
     };
   }
 

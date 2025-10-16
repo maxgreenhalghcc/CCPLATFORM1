@@ -77,7 +77,7 @@ export class WebhooksService {
 
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
-        select: { id: true, amountCents: true }
+        select: { id: true, amount: true }
       });
 
       if (!order) {
@@ -85,7 +85,10 @@ export class WebhooksService {
         return;
       }
 
-      const amountCents = session.amount_total ?? order.amountCents;
+      const amount =
+        session.amount_total != null
+          ? new Prisma.Decimal(session.amount_total).dividedBy(100)
+          : order.amount;
       const paymentStatus = session.payment_status ?? 'unknown';
       const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
       const intentReference = paymentIntentId ?? event.id;
@@ -103,7 +106,7 @@ export class WebhooksService {
         await this.prisma.payment.update({
           where: { id: existing.id },
           data: {
-            amountCents,
+            amount,
             status: paymentStatus,
             raw: event as unknown as Prisma.JsonValue
           }
@@ -115,7 +118,7 @@ export class WebhooksService {
         data: {
           orderId,
           intentId: intentReference,
-          amountCents,
+          amount,
           status: paymentStatus,
           raw: event as unknown as Prisma.JsonValue
         }
