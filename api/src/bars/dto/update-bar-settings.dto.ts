@@ -14,6 +14,6 @@ export class UpdateBarSettingsDto {
   theme?: Record<string, string>;
 
   @IsOptional()
-  @IsNumber()
-  pricingCents?: number;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  pricingPounds?: number;
 }

@@ -1,12 +1,15 @@
-import { IsString, IsUrl } from 'class-validator';
+import { IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class CreateCheckoutDto {
+  @IsOptional()
   @IsUrl()
-  successUrl!: string;
+  successUrl?: string;
 
+  @IsOptional()
   @IsUrl()
-  cancelUrl!: string;
+  cancelUrl?: string;
 
+  @IsOptional()
   @IsString()
-  currency: string = 'gbp';
+  currency?: string;
 }

@@ -1,78 +1,44 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buildGuardHeaders, getApiBaseUrl } from '@/app/lib/api';
+import StaffOrdersClient from './staff-orders-client';
+
+type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
 
 interface OrderSummary {
   id: string;
-  customerName: string;
-  status: 'pending' | 'paid' | 'fulfilled' | 'cancelled';
+  status: OrderStatus;
   createdAt: string;
+  fulfilledAt: string | null;
 }
 
 async function fetchOrders(): Promise<OrderSummary[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
-  const res = await fetch(`${baseUrl}/v1/bars/sample-bar/orders`, { cache: 'no-store' });
+  const baseUrl = getApiBaseUrl();
+  const barSlug = process.env.NEXT_PUBLIC_STAFF_BAR_SLUG ?? 'sample-bar';
+  const headers = buildGuardHeaders();
+  const res = await fetch(`${baseUrl}/v1/bars/${barSlug}/orders`, {
+    cache: 'no-store',
+    headers
+  });
   if (!res.ok) {
     return [];
   }
-  const payload = (await res.json()) as { items: OrderSummary[] };
-  return payload.items;
-}
-
-function formatStatus(status: OrderSummary['status']) {
-  switch (status) {
-    case 'pending':
-      return 'Awaiting payment';
-    case 'paid':
-      return 'Ready to mix';
-    case 'fulfilled':
-      return 'Served';
-    case 'cancelled':
-      return 'Cancelled';
-  }
+  const payload = (await res.json()) as {
+    items: Array<{
+      id: string;
+      status: OrderStatus;
+      createdAt: string;
+      fulfilledAt?: string | null;
+    }>;
+  };
+  return payload.items.map((item) => ({
+    ...item,
+    fulfilledAt: item.fulfilledAt ?? null
+  }));
 }
 
 async function StaffOrdersTable() {
   const orders = await fetchOrders();
-
-  if (orders.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
-      </p>
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-xl border">
-      <table className="min-w-full divide-y divide-border text-left text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="px-4 py-3 font-semibold">Order ID</th>
-            <th className="px-4 py-3 font-semibold">Customer</th>
-            <th className="px-4 py-3 font-semibold">Status</th>
-            <th className="px-4 py-3 font-semibold">Created</th>
-            <th className="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border bg-card">
-          {orders.map((order) => (
-            <tr key={order.id}>
-              <td className="px-4 py-3 font-mono text-xs">{order.id}</td>
-              <td className="px-4 py-3">{order.customerName ?? 'Customer'}</td>
-              <td className="px-4 py-3 capitalize text-muted-foreground">{formatStatus(order.status)}</td>
-              <td className="px-4 py-3">{new Date(order.createdAt).toLocaleString()}</td>
-              <td className="px-4 py-3 text-right">
-                <Button asChild size="sm">
-                  <Link href={`/staff/orders/${order.id}`}>Open</Link>
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <StaffOrdersClient initialOrders={orders} />;
 }
 
 export default function StaffDashboardPage() {

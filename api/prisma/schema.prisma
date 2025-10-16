@@ -14,7 +14,7 @@ enum UserRole {
 }
 
 enum OrderStatus {
-  pending
+  created
   paid
   fulfilled
   cancelled
@@ -51,11 +51,11 @@ model Bar {
 }
 
 model BarSettings {
-  barId        String  @id
-  theme        Json
-  introText    String?
-  outroText    String?
-  pricingCents Int     @default(1000)
+  barId         String  @id
+  theme         Json
+  introText     String?
+  outroText     String?
+  pricingPounds Decimal @default(12.0) @db.Decimal(10, 2)
 
   bar Bar @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
@@ -80,10 +80,11 @@ model BarIngredientWhitelist {
 }
 
 model QuizSession {
-  id        String            @id @default(cuid())
-  barId     String
-  status    QuizSessionStatus @default(in_progress)
-  createdAt DateTime          @default(now())
+  id           String            @id @default(cuid())
+  barId        String
+  status       QuizSessionStatus @default(in_progress)
+  answerRecord Json?
+  createdAt    DateTime          @default(now())
 
   bar     Bar          @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   answers QuizAnswer[]
@@ -100,6 +101,7 @@ model QuizAnswer {
   session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([sessionId])
+  @@unique([sessionId, questionId])
 }
 
 model Recipe {
@@ -117,13 +119,16 @@ model Recipe {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  barId      String
-  sessionId  String
-  recipeId   String?
-  priceCents Int
-  status     OrderStatus @default(pending)
-  createdAt  DateTime    @default(now())
+  id              String        @id @default(cuid())
+  barId           String
+  sessionId       String
+  recipeId        String?
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("gbp")
+  status          OrderStatus   @default(created)
+  stripeSessionId String?
+  createdAt       DateTime      @default(now())
+  fulfilledAt     DateTime?
 
   bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -131,17 +136,20 @@ model Order {
   payments Payment[]
 
   @@index([barId, status])
+  @@unique([stripeSessionId])
 }
 
 model Payment {
-  id          String   @id @default(cuid())
-  orderId     String
-  provider    String   @default("stripe")
-  intentId    String?
-  amountCents Int
-  status      String
-  raw         Json
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  orderId   String
+  provider  String   @default("stripe")
+  intentId  String?
+  amount    Decimal  @db.Decimal(10, 2)
+  status    String
+  raw       Json
+  createdAt DateTime @default(now())
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([intentId])
 }

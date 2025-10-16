@@ -10,6 +10,7 @@ interface BarSettingsResponse {
   introText?: string | null;
   outroText?: string | null;
   theme: Record<string, string>;
+  pricingPounds?: number | null;
 }
 
 interface BarPageProps {

@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsObject, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested
+} from 'class-validator';
 
 class QuizAnswerValueDto {
   @IsString()
@@ -8,7 +15,7 @@ class QuizAnswerValueDto {
 
 class QuizAnswerDto {
   @IsString()
-  question_id!: string;
+  questionId!: string;
 
   @IsObject()
   @ValidateNested()
@@ -17,13 +24,15 @@ class QuizAnswerDto {
 }
 
 export class SubmitQuizDto {
-  @IsString()
-  session_id!: string;
+  @IsOptional()
+  @IsBoolean()
+  final?: boolean;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => QuizAnswerDto)
-  answers!: QuizAnswerDto[];
+  answers?: QuizAnswerDto[];
 }
 
 export { QuizAnswerDto, QuizAnswerValueDto };

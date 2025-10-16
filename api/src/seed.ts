@@ -3,6 +3,11 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  const introCopy =
+    'Welcome to Demo Bar. Answer a few questions and we will craft a cocktail just for you.';
+  const outroCopy =
+    'Thanks for trying the Demo Bar experience! Visit the bar to enjoy your custom cocktail.';
+
   const demoBar = await prisma.bar.upsert({
     where: { slug: 'demo-bar' },
     update: {
@@ -16,9 +21,9 @@ async function main() {
               background: '#0b0b12',
               foreground: '#ffffff',
             },
-            introText: 'Welcome to Demo Bar. Answer a few questions and we will craft a cocktail just for you.',
-            outroText: 'Thanks for trying the Demo Bar experience! Visit the bar to enjoy your custom cocktail.',
-            pricingCents: 1200,
+            introText: introCopy,
+            outroText: outroCopy,
+            pricingPounds: 12,
           },
           create: {
             theme: {
@@ -26,9 +31,9 @@ async function main() {
               background: '#0b0b12',
               foreground: '#ffffff',
             },
-            introText: 'Welcome to Demo Bar. Answer a few questions and we will craft a cocktail just for you.',
-            outroText: 'Thanks for trying the Demo Bar experience! Visit the bar to enjoy your custom cocktail.',
-            pricingCents: 1200,
+            introText: introCopy,
+            outroText: outroCopy,
+            pricingPounds: 12,
           },
         },
       },
@@ -44,9 +49,9 @@ async function main() {
             background: '#0b0b12',
             foreground: '#ffffff',
           },
-          introText: 'Welcome to Demo Bar. Answer a few questions and we will craft a cocktail just for you.',
-          outroText: 'Thanks for trying the Demo Bar experience! Visit the bar to enjoy your custom cocktail.',
-          pricingCents: 1200,
+          introText: introCopy,
+          outroText: outroCopy,
+          pricingPounds: 12,
         },
       },
     },
@@ -77,8 +82,8 @@ async function main() {
           active: true,
           allergenFlags: [],
         },
-      }),
-    ),
+      })
+    )
   );
 
   console.info('Seed data created. Demo bar id:', demoBar.id);

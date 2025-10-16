@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+
+class RecordAnswerValueDto {
+  @IsString()
+  choice!: string;
+}
 
 export class RecordAnswerDto {
   @IsString()
@@ -6,5 +12,10 @@ export class RecordAnswerDto {
   questionId!: string;
 
   @IsOptional()
-  value?: unknown;
+  @IsObject()
+  @ValidateNested()
+  @Type(() => RecordAnswerValueDto)
+  value?: RecordAnswerValueDto;
 }
+
+export { RecordAnswerValueDto };

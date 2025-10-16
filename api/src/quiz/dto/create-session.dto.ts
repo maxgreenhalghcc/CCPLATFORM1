@@ -1,6 +1,7 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CreateSessionDto {
+  @IsOptional()
   @IsString()
-  bar_slug!: string;
+  source?: string | null;
 }
