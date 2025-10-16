@@ -1,7 +1,9 @@
-import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { OrderStatus as PrismaOrderStatus } from '@prisma/client';
 import { OrdersService } from './orders.service';
+import { DevAuthGuard } from '../common/guards/dev-auth.guard';
 
+@UseGuards(DevAuthGuard)
 @Controller('bars')
 export class BarOrdersController {
   private readonly allowedStatuses = new Set<string>(Object.values(PrismaOrderStatus));

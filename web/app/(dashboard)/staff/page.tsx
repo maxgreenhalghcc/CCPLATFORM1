@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { buildGuardHeaders, getApiBaseUrl } from '@/app/lib/api';
 
 type OrderStatus = 'created' | 'paid' | 'cancelled';
 
@@ -11,9 +12,13 @@ interface OrderSummary {
 }
 
 async function fetchOrders(): Promise<OrderSummary[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+  const baseUrl = getApiBaseUrl();
   const barSlug = process.env.NEXT_PUBLIC_STAFF_BAR_SLUG ?? 'sample-bar';
-  const res = await fetch(`${baseUrl}/v1/bars/${barSlug}/orders`, { cache: 'no-store' });
+  const headers = buildGuardHeaders();
+  const res = await fetch(`${baseUrl}/v1/bars/${barSlug}/orders`, {
+    cache: 'no-store',
+    headers
+  });
   if (!res.ok) {
     return [];
   }

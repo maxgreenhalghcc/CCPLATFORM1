@@ -77,6 +77,13 @@ export class OrdersService {
     if (order.stripeSessionId) {
       try {
         const existing = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+        if (existing.currency && existing.currency !== order.currency) {
+          await this.prisma.order.update({
+            where: { id: order.id },
+            data: { currency: existing.currency.toLowerCase() }
+          });
+        }
+
         if (existing.url && existing.status !== 'expired') {
           return { checkout_url: existing.url };
         }
@@ -85,11 +92,11 @@ export class OrdersService {
       }
     }
 
-    const successUrl = dto?.successUrl ?? this.resolveFrontendUrl(`/receipt?orderId=${order.id}`);
-    const cancelUrl = dto?.cancelUrl ?? this.resolveFrontendUrl(
-      `/b/${order.bar.slug}/quiz?sessionId=${order.sessionId}`
-    );
-    const currency = dto?.currency ?? order.currency;
+    const successUrl =
+      dto?.successUrl ?? this.resolveFrontendUrl(`/checkout/success?orderId=${order.id}`);
+    const cancelUrl =
+      dto?.cancelUrl ?? this.resolveFrontendUrl(`/checkout/cancel?orderId=${order.id}`);
+    const currency = (dto?.currency ?? order.currency).toLowerCase();
     const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
 
     const session = await stripe.checkout.sessions.create({
@@ -118,7 +125,10 @@ export class OrdersService {
 
     await this.prisma.order.update({
       where: { id: order.id },
-      data: { stripeSessionId: session.id }
+      data: {
+        stripeSessionId: session.id,
+        currency: (session.currency ?? currency).toLowerCase()
+      }
     });
 
     if (!session.url) {

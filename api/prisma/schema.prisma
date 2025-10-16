@@ -134,6 +134,7 @@ model Order {
   payments Payment[]
 
   @@index([barId, status])
+  @@unique([stripeSessionId])
 }
 
 model Payment {
@@ -147,4 +148,6 @@ model Payment {
   createdAt DateTime @default(now())
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([intentId])
 }

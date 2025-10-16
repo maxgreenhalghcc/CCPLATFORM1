@@ -12,6 +12,11 @@ export default () => ({
     secretKey: process.env.STRIPE_SECRET_KEY ?? '',
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? ''
   },
+  authGuard: {
+    enabled: (process.env.AUTH_GUARD_ENABLED ?? 'false').toLowerCase() === 'true',
+    header: process.env.AUTH_GUARD_HEADER ?? 'x-dev-auth',
+    token: process.env.AUTH_GUARD_TOKEN ?? ''
+  },
   recipeService: {
     url: process.env.RECIPE_SERVICE_URL ?? 'http://localhost:5000',
     secret: process.env.RECIPE_SERVICE_JWT_SECRET ?? '',
