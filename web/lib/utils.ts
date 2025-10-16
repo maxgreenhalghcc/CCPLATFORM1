@@ -23,7 +23,8 @@ export function getApiUrl(): string {
   if (!baseUrl) {
     throw new Error('NEXT_PUBLIC_API_URL is not configured');
   }
-  return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  return normalized.endsWith('/v1') ? normalized : `${normalized}/v1`;
 }
 
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {

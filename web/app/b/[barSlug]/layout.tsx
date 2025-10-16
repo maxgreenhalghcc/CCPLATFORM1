@@ -6,6 +6,7 @@ interface BarSettingsResponse {
   name: string;
   slug: string;
   theme: Record<string, string>;
+  pricingPounds?: number | null;
 }
 
 interface BarLayoutProps {

@@ -1,16 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateBarDto } from './dto/create-bar.dto';
 import { UpdateBarDto } from './dto/update-bar.dto';
 import { UpdateBarSettingsDto } from './dto/update-bar-settings.dto';
 
 @Injectable()
 export class BarsService {
-  private readonly demoTheme = {
-    'background': '0 0% 100%',
-    'foreground': '224 71.4% 4.1%',
-    'primary': '25 95% 53%',
-    'primary-foreground': '26 83% 14%'
-  };
+  constructor(private readonly prisma: PrismaService) {}
 
   findAll() {
     return {
@@ -53,15 +49,32 @@ export class BarsService {
     };
   }
 
-  findSettings(id: string) {
+  async findSettings(identifier: string) {
+    const bar = await this.prisma.bar.findFirst({
+      where: {
+        OR: [{ slug: identifier }, { id: identifier }]
+      },
+      include: {
+        settings: true
+      }
+    });
+
+    if (!bar || !bar.settings) {
+      throw new NotFoundException('Bar settings not found');
+    }
+
+    const pricing = typeof bar.settings.pricingPounds === 'number'
+      ? bar.settings.pricingPounds
+      : bar.settings.pricingPounds.toNumber();
+
     return {
-      name: 'Sample Bar',
-      slug: id,
-      location: 'London',
-      introText: 'Discover your perfect cocktail with our nine-question quiz.',
-      outroText: 'Thanks for visiting our bar! Share your creation on socials.',
-      theme: this.demoTheme,
-      pricingCents: 1200
+      name: bar.name,
+      slug: bar.slug,
+      location: bar.location ?? null,
+      introText: bar.settings.introText ?? null,
+      outroText: bar.settings.outroText ?? null,
+      theme: bar.settings.theme,
+      pricingPounds: Number.isNaN(pricing) ? 0 : pricing
     };
   }
 

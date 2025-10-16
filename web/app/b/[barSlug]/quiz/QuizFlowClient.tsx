@@ -14,24 +14,22 @@ interface QuizFlowProps {
 }
 
 interface CreateSessionResponse {
-  session_id: string;
-  bar_id: string;
+  sessionId: string;
 }
 
 interface SubmitQuizResponse {
-  order_id: string;
+  orderId: string;
 }
 
 interface QuizAnswerPayload {
-  question_id: string;
+  questionId: string;
   value: { choice: string };
 }
 
 function resolveCheckoutPath(checkoutUrl: string, orderId: string): string {
   try {
     const parsed = new URL(checkoutUrl);
-    const path = `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    return path || `/receipt?orderId=${orderId}`;
+    return parsed.toString() || `/receipt?orderId=${orderId}`;
   } catch (error) {
     if (checkoutUrl.startsWith('/')) {
       return checkoutUrl;
@@ -59,12 +57,11 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
       setIsLoadingSession(true);
       setError(null);
       try {
-        const response = await fetch(`${apiUrl}/quiz/sessions`, {
+        const response = await fetch(`${apiUrl}/bars/${barSlug}/quiz/sessions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ bar_slug: barSlug })
+          }
         });
 
         if (!response.ok) {
@@ -73,7 +70,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
 
         const data = (await response.json()) as CreateSessionResponse;
         if (!cancelled) {
-          setSessionId(data.session_id);
+          setSessionId(data.sessionId);
         }
       } catch (sessionError) {
         if (!cancelled) {
@@ -140,23 +137,40 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
     setError(null);
 
     const answerPayload: QuizAnswerPayload[] = QUIZ_QUESTIONS.map((question) => ({
-      question_id: question.id,
-      value: { choice: answers[question.id] }
+      questionId: question.id,
+      value: { choice: answers[question.id] ?? '' }
     }));
 
     answerPayload.push({
-      question_id: CONTACT_QUESTION_ID,
+      questionId: CONTACT_QUESTION_ID,
       value: { choice: contact.trim() }
     });
 
     try {
-      const submitResponse = await fetch(`${apiUrl}/quiz/submit`, {
+      for (const answer of answerPayload) {
+        const answerResponse = await fetch(`${apiUrl}/quiz/sessions/${sessionId}/answers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            questionId: answer.questionId,
+            value: answer.value
+          })
+        });
+
+        if (!answerResponse.ok) {
+          throw new Error(`Failed to record answer ${answer.questionId}`);
+        }
+      }
+
+      const submitResponse = await fetch(`${apiUrl}/quiz/sessions/${sessionId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          session_id: sessionId,
+          final: true,
           answers: answerPayload
         })
       });
@@ -166,7 +180,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
       }
 
       const submitData = (await submitResponse.json()) as SubmitQuizResponse;
-      const orderId = submitData.order_id;
+      const orderId = submitData.orderId;
 
       const checkoutResponse = await fetch(`${apiUrl}/orders/${orderId}/checkout`, {
         method: 'POST',
@@ -181,7 +195,12 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
 
       const checkoutData = (await checkoutResponse.json()) as { checkout_url: string };
       const redirectPath = resolveCheckoutPath(checkoutData.checkout_url, orderId);
-      router.push(redirectPath);
+
+      if (redirectPath.startsWith('http')) {
+        window.location.href = redirectPath;
+      } else {
+        router.push(redirectPath);
+      }
     } catch (submitError) {
       setError('We hit a snag mixing your cocktail. Please try again.');
     } finally {

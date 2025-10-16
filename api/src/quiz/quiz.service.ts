@@ -6,12 +6,13 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, QuizSessionStatus } from '@prisma/client';
+import { OrderStatus, Prisma, QuizSessionStatus } from '@prisma/client';
 import { lastValueFrom } from 'rxjs';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSessionDto } from './dto/create-session.dto';
-import { QuizAnswerDto, SubmitQuizDto } from './dto/submit-quiz.dto';
+import { SubmitQuizDto } from './dto/submit-quiz.dto';
+import { RecordAnswerDto } from './dto/record-answer.dto';
 import { signJwtHS256 } from '../common/jwt';
 
 interface RecipeEngineResponse {
@@ -25,6 +26,11 @@ interface RecipeEngineResponse {
   abv_estimate?: number | null;
 }
 
+interface NormalizedAnswer {
+  questionId: string;
+  value: { choice: string };
+}
+
 @Injectable()
 export class QuizService {
   private readonly logger = new Logger(QuizService.name);
@@ -35,15 +41,13 @@ export class QuizService {
     private readonly configService: ConfigService
   ) {}
 
-  async createSession(dto: CreateSessionDto) {
+  async createSession(slug: string, _dto: CreateSessionDto) {
     const bar = await this.prisma.bar.findFirst({
       where: {
-        slug: dto.bar_slug,
+        slug,
         active: true
       },
-      select: {
-        id: true
-      }
+      select: { id: true }
     });
 
     if (!bar) {
@@ -57,14 +61,33 @@ export class QuizService {
     });
 
     return {
-      session_id: session.id,
-      bar_id: bar.id
+      sessionId: session.id
     };
   }
 
-  async submit(dto: SubmitQuizDto) {
+  async recordAnswer(sessionId: string, dto: RecordAnswerDto) {
     const session = await this.prisma.quizSession.findUnique({
-      where: { id: dto.session_id },
+      where: { id: sessionId },
+      select: { id: true, answerRecord: true }
+    });
+
+    if (!session) {
+      throw new NotFoundException('Quiz session not found');
+    }
+
+    const answer: NormalizedAnswer = {
+      questionId: dto.questionId,
+      value: this.normalizeAnswerValue(dto.value?.choice)
+    };
+
+    await this.persistAnswers(session, [answer]);
+
+    return { status: 'recorded' };
+  }
+
+  async submit(sessionId: string, dto: SubmitQuizDto) {
+    const session = await this.prisma.quizSession.findUnique({
+      where: { id: sessionId },
       include: {
         bar: {
           include: {
@@ -78,26 +101,46 @@ export class QuizService {
       throw new NotFoundException('Quiz session not found');
     }
 
+    if (dto.answers?.length) {
+      const normalized = dto.answers.map((answer) => ({
+        questionId: answer.questionId,
+        value: this.normalizeAnswerValue(answer.value.choice)
+      }));
+
+      await this.persistAnswers(
+        { id: session.id, answerRecord: session.answerRecord ?? null },
+        normalized
+      );
+    }
+
     const existingOrder = await this.prisma.order.findFirst({
       where: { sessionId: session.id },
       select: { id: true }
     });
 
     if (existingOrder) {
-      return { order_id: existingOrder.id };
+      return { orderId: existingOrder.id };
     }
 
-    const answers = dto.answers ?? [];
+    const storedAnswers = await this.prisma.quizAnswer.findMany({
+      where: { sessionId: session.id }
+    });
 
-    await this.replaceAnswers(session.id, answers);
+    const normalizedAnswers: NormalizedAnswer[] = storedAnswers.map((entry) => ({
+      questionId: entry.questionId,
+      value: this.normalizeStoredAnswer(entry.value)
+    }));
 
-    const priceCents = session.bar.settings?.pricingCents ?? 1000;
+    const defaultPrice = new Prisma.Decimal(12);
+    const amount = session.bar.settings?.pricingPounds ?? defaultPrice;
 
     const order = await this.prisma.order.create({
       data: {
         barId: session.barId,
         sessionId: session.id,
-        priceCents
+        amount,
+        currency: 'gbp',
+        status: OrderStatus.created
       }
     });
 
@@ -106,7 +149,7 @@ export class QuizService {
       const recipeResponse = await this.requestRecipe(
         session.barId,
         session.id,
-        answers,
+        normalizedAnswers,
         ingredientWhitelist
       );
 
@@ -137,7 +180,7 @@ export class QuizService {
         data: { status: QuizSessionStatus.submitted }
       });
 
-      return { order_id: order.id };
+      return { orderId: order.id };
     } catch (error) {
       await this.prisma.order
         .delete({ where: { id: order.id } })
@@ -167,25 +210,79 @@ export class QuizService {
     }
   }
 
-  private async replaceAnswers(sessionId: string, answers: QuizAnswerDto[]) {
-    await this.prisma.quizAnswer.deleteMany({ where: { sessionId } });
+  private normalizeAnswerValue(choice?: string) {
+    if (typeof choice === 'string') {
+      return { choice: choice.trim() };
+    }
 
+    return { choice: '' };
+  }
+
+  private normalizeStoredAnswer(value: Prisma.JsonValue): { choice: string } {
+    if (typeof value === 'string') {
+      return { choice: value.trim() };
+    }
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const candidate = (value as Record<string, unknown>).choice;
+      if (typeof candidate === 'string') {
+        return { choice: candidate.trim() };
+      }
+    }
+
+    return { choice: '' };
+  }
+
+  private mergeAnswerRecord(
+    existing: Prisma.JsonValue | null,
+    answers: NormalizedAnswer[]
+  ): Prisma.JsonObject {
+    const base: Record<string, unknown> =
+      existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? { ...(existing as Record<string, unknown>) }
+        : {};
+
+    for (const answer of answers) {
+      base[answer.questionId] = { ...answer.value };
+    }
+
+    return base as Prisma.JsonObject;
+  }
+
+  private async persistAnswers(
+    session: { id: string; answerRecord: Prisma.JsonValue | null },
+    answers: NormalizedAnswer[]
+  ) {
     if (!answers.length) {
       return;
     }
 
-    const normalizedAnswers = answers.map((answer) => ({
-      question_id: answer.question_id,
-      value: { ...answer.value }
-    }));
+    const updatedRecord = this.mergeAnswerRecord(session.answerRecord ?? null, answers);
 
-    await this.prisma.quizAnswer.createMany({
-      data: normalizedAnswers.map((answer) => ({
-        sessionId,
-        questionId: answer.question_id,
-        value: answer.value as unknown as Prisma.JsonValue
-      }))
-    });
+    await this.prisma.$transaction([
+      ...answers.map((answer) =>
+        this.prisma.quizAnswer.upsert({
+          where: {
+            sessionId_questionId: {
+              sessionId: session.id,
+              questionId: answer.questionId
+            }
+          },
+          create: {
+            sessionId: session.id,
+            questionId: answer.questionId,
+            value: answer.value as unknown as Prisma.JsonValue
+          },
+          update: {
+            value: answer.value as unknown as Prisma.JsonValue
+          }
+        })
+      ),
+      this.prisma.quizSession.update({
+        where: { id: session.id },
+        data: { answerRecord: updatedRecord }
+      })
+    ]);
   }
 
   private async loadIngredientWhitelist(barId: string): Promise<string[]> {
@@ -220,7 +317,7 @@ export class QuizService {
   private async requestRecipe(
     barId: string,
     sessionId: string,
-    answers: QuizAnswerDto[],
+    answers: NormalizedAnswer[],
     ingredientWhitelist: string[]
   ): Promise<RecipeEngineResponse> {
     const recipeUrl =
@@ -264,7 +361,7 @@ export class QuizService {
     );
 
     const payloadAnswers = answers.map((answer) => ({
-      question_id: answer.question_id,
+      question_id: answer.questionId,
       value: { ...answer.value }
     }));
 
