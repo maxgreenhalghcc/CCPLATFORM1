@@ -131,14 +131,15 @@ export class QuizService {
       value: this.normalizeStoredAnswer(entry.value)
     }));
 
-    const amountCents = session.bar.settings?.pricingCents ?? 1000;
+    const defaultPrice = new Prisma.Decimal(12);
+    const amount = session.bar.settings?.pricingPounds ?? defaultPrice;
 
     const order = await this.prisma.order.create({
       data: {
         barId: session.barId,
         sessionId: session.id,
-        amountCents,
-        currency: 'usd',
+        amount,
+        currency: 'gbp',
         status: OrderStatus.created
       }
     });

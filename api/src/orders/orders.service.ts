@@ -88,6 +88,7 @@ export class OrdersService {
       `/b/${order.bar.slug}/quiz?sessionId=${order.sessionId}`
     );
     const currency = dto?.currency ?? order.currency;
+    const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -102,7 +103,7 @@ export class OrdersService {
           quantity: 1,
           price_data: {
             currency,
-            unit_amount: order.amountCents,
+            unit_amount: amountInMinorUnits,
             product_data: {
               name: `${order.bar.name} custom cocktail`
             }
