@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OrderStatus as PrismaOrderStatus } from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
@@ -158,6 +160,44 @@ export class OrdersService {
       glassware,
       garnish,
       warnings
+    };
+  }
+
+  async listForBar(barIdentifier: string, status?: PrismaOrderStatus) {
+    const bar = await this.prisma.bar.findFirst({
+      where: {
+        OR: [{ id: barIdentifier }, { slug: barIdentifier }]
+      }
+    });
+
+    if (!bar) {
+      throw new NotFoundException('Bar not found');
+    }
+
+    if (status && !Object.values(PrismaOrderStatus).includes(status)) {
+      throw new BadRequestException('Invalid status filter');
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where: {
+        barId: bar.id,
+        ...(status ? { status } : {})
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        status: true,
+        createdAt: true
+      }
+    });
+
+    return {
+      items: orders.map((order) => ({
+        id: order.id,
+        status: order.status,
+        createdAt: order.createdAt.toISOString()
+      }))
     };
   }
 }

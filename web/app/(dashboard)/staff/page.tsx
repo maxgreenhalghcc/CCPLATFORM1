@@ -2,16 +2,18 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
+type OrderStatus = 'created' | 'paid' | 'cancelled';
+
 interface OrderSummary {
   id: string;
-  customerName: string;
-  status: 'pending' | 'paid' | 'fulfilled' | 'cancelled';
+  status: OrderStatus;
   createdAt: string;
 }
 
 async function fetchOrders(): Promise<OrderSummary[]> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
-  const res = await fetch(`${baseUrl}/v1/bars/sample-bar/orders`, { cache: 'no-store' });
+  const barSlug = process.env.NEXT_PUBLIC_STAFF_BAR_SLUG ?? 'sample-bar';
+  const res = await fetch(`${baseUrl}/v1/bars/${barSlug}/orders`, { cache: 'no-store' });
   if (!res.ok) {
     return [];
   }
@@ -19,14 +21,12 @@ async function fetchOrders(): Promise<OrderSummary[]> {
   return payload.items;
 }
 
-function formatStatus(status: OrderSummary['status']) {
+function formatStatus(status: OrderStatus) {
   switch (status) {
-    case 'pending':
+    case 'created':
       return 'Awaiting payment';
     case 'paid':
       return 'Ready to mix';
-    case 'fulfilled':
-      return 'Served';
     case 'cancelled':
       return 'Cancelled';
   }
@@ -59,7 +59,7 @@ async function StaffOrdersTable() {
           {orders.map((order) => (
             <tr key={order.id}>
               <td className="px-4 py-3 font-mono text-xs">{order.id}</td>
-              <td className="px-4 py-3">{order.customerName ?? 'Customer'}</td>
+              <td className="px-4 py-3">Guest</td>
               <td className="px-4 py-3 capitalize text-muted-foreground">{formatStatus(order.status)}</td>
               <td className="px-4 py-3">{new Date(order.createdAt).toLocaleString()}</td>
               <td className="px-4 py-3 text-right">
