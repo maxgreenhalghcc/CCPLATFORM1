@@ -22,10 +22,10 @@ Staff and admin APIs can be protected with a lightweight header-based guard so y
 ```
 AUTH_GUARD_ENABLED=true
 AUTH_GUARD_TOKEN=<shared-dev-token>
-AUTH_GUARD_HEADER=x-dev-auth # optional override
+AUTH_GUARD_HEADER=x-staff-token # optional override
 ```
 
-When the guard is enabled, clients (including the Next.js dashboards) must send the configured header and token. The web app reads `NEXT_PUBLIC_API_GUARD_HEADER` and `NEXT_PUBLIC_API_GUARD_TOKEN` to attach that header automatically.
+When the guard is enabled, clients (including the Next.js dashboards) must send the configured header and token. The staff UI reads `NEXT_PUBLIC_STAFF_GUARD_HEADER` (default `x-staff-token`) and `NEXT_PUBLIC_STAFF_TOKEN` to attach that header automatically.
 
 ### Bar theming tokens
 Bar-specific styles are injected via CSS variables exposed on the `<body>` element. Each bar can configure:

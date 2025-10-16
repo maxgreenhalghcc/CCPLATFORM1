@@ -16,6 +16,7 @@ enum UserRole {
 enum OrderStatus {
   created
   paid
+  fulfilled
   cancelled
 }
 
@@ -127,6 +128,7 @@ model Order {
   status          OrderStatus   @default(created)
   stripeSessionId String?
   createdAt       DateTime      @default(now())
+  fulfilledAt     DateTime?
 
   bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)

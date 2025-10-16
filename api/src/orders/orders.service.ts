@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException
@@ -163,6 +164,9 @@ export class OrdersService {
     const warnings = Array.isArray(body.warnings) ? body.warnings : [];
 
     return {
+      orderId: order.id,
+      status: order.status,
+      fulfilledAt: order.fulfilledAt ? order.fulfilledAt.toISOString() : null,
       name: order.recipe.name,
       description: order.recipe.description,
       ingredients,
@@ -198,7 +202,8 @@ export class OrdersService {
       select: {
         id: true,
         status: true,
-        createdAt: true
+        createdAt: true,
+        fulfilledAt: true
       }
     });
 
@@ -206,8 +211,80 @@ export class OrdersService {
       items: orders.map((order) => ({
         id: order.id,
         status: order.status,
-        createdAt: order.createdAt.toISOString()
+        createdAt: order.createdAt.toISOString(),
+        fulfilledAt: order.fulfilledAt?.toISOString() ?? null
       }))
+    };
+  }
+
+  async updateStatus(orderId: string, status: 'fulfilled') {
+    if (status !== 'fulfilled') {
+      throw new BadRequestException('Unsupported status transition');
+    }
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true,
+        fulfilledAt: true
+      }
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status === PrismaOrderStatus.fulfilled) {
+      if (!order.fulfilledAt) {
+        const updated = await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            fulfilledAt: new Date()
+          },
+          select: {
+            id: true,
+            status: true,
+            fulfilledAt: true
+          }
+        });
+        return {
+          id: updated.id,
+          status: updated.status,
+          fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+        };
+      }
+
+      return {
+        id: order.id,
+        status: order.status,
+        fulfilledAt: order.fulfilledAt?.toISOString() ?? null
+      };
+    }
+
+    if (order.status !== PrismaOrderStatus.paid) {
+      throw new ConflictException('Only paid orders can be fulfilled');
+    }
+
+    const fulfilledAt = new Date();
+
+    const updated = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: PrismaOrderStatus.fulfilled,
+        fulfilledAt
+      },
+      select: {
+        id: true,
+        status: true,
+        fulfilledAt: true
+      }
+    });
+
+    return {
+      id: updated.id,
+      status: updated.status,
+      fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
     };
   }
 }

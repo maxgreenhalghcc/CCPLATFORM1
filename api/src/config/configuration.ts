@@ -14,7 +14,7 @@ export default () => ({
   },
   authGuard: {
     enabled: (process.env.AUTH_GUARD_ENABLED ?? 'false').toLowerCase() === 'true',
-    header: process.env.AUTH_GUARD_HEADER ?? 'x-dev-auth',
+    header: process.env.AUTH_GUARD_HEADER ?? 'x-staff-token',
     token: process.env.AUTH_GUARD_TOKEN ?? ''
   },
   recipeService: {
