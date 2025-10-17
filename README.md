@@ -74,19 +74,22 @@ Configure the following secrets on the `staging` and `production` environments b
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `EMAIL_FROM`
 - `EMAIL_SERVER`
-- `SENTRY_DSN`
+- `FEATURE_ENABLE_PAYMENT`
+- `FEATURE_SHOW_BETA_BADGE`
+- `SENTRY_DSN_API`
+- `SENTRY_DSN_RECIPE`
 - `SENTRY_ENVIRONMENT`
-- `SENTRY_TRACES_SAMPLE_RATE`
-- `SENTRY_PROFILES_SAMPLE_RATE`
 - `NEXT_PUBLIC_SENTRY_DSN`
 - `NEXT_PUBLIC_SENTRY_ENVIRONMENT`
 - `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`
+- `NEXT_PUBLIC_FEATURE_ENABLE_PAYMENT`
+- `NEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE`
 - `MYSQL_ROOT_PASSWORD`
 - `MYSQL_DATABASE`
 - `MYSQL_USER`
 - `MYSQL_PASSWORD`
 
-(You can set empty strings for optional Sentry values if you are not using them yet.)
+(Set empty strings for optional Sentry or feature-flag values if you are not using them yet.)
 
 ## Deploying to staging / production
 GitHub Actions contains two workflows:
@@ -99,17 +102,18 @@ To deploy the current commit to staging:
 ```bash
 gh workflow run deploy.yml \
   -R <owner>/<repo> \
-  -f environment=staging
+  -f environment=staging \
+  -f tag=v1.0.1-rc.1
 ```
 
 The workflow will:
-1. Pull the images published by CI for the current commit (`ghcr.io/<owner>/<repo>-{api,web,recipe}:<sha>`).
+1. Pull the images published by CI for the selected tag (`ghcr.io/<owner>/<repo>-{api,web,recipe}:<tag>`).
 2. Materialise `.env.production` from environment secrets.
 3. Launch the stack with `infra/compose.prod.yml` (`mysql`, `api`, `recipe`, `web`).
 4. Run `npx prisma migrate deploy` inside the API container.
-5. Output container health so you can verify `/v1/health`.
+5. Output container health so you can verify `/v1/status`.
 
-For rollbacks, re-run the workflow against the desired commit SHA (the CI job publishes an image per SHA, so no retagging is required).
+For rollbacks, re-run the workflow against the desired tag or commit SHA (the CI job publishes an image per SHA, so no retagging is required). The optional `tag` input lets you promote historical builds without editing the workflow.
 
 ## Production runbook
 
@@ -127,15 +131,14 @@ Follow this checklist when promoting a build to staging or production:
 4. After the workflow completes, run the smoke test helper against the deployed stack:
    ```bash
    API_URL=https://<api-domain>/v1 \
-   RECIPE_URL=https://<recipe-domain> \
-   WEB_URL=https://<web-domain> \
    BAR_SLUG=demo-bar \
-   ./scripts/smoke.sh
+   EXPECTED_VERSION=v1.0.1-rc.1 \
+   ./scripts/smoke.sh "$API_URL" "$BAR_SLUG" "$EXPECTED_VERSION"
    ```
-   The script checks service health endpoints and validates that bar settings are being served; finish the checklist by completing a quiz, verifying Stripe webhook processing, and fulfilling the order via the staff dashboard.
-5. Once the smoke test is clean, tag and publish the release (for example `v1.0.0`) and re-run the deployment workflow with the released tag to promote the exact build to production. Capture highlights and operational notes in the [release notes](docs/releases/v1.0.0.md) so future rollouts understand the change surface.
+   The script now checks `/v1/status` (verifying Sentry is enabled and that versions align), fetches bar settings, and fails fast if any step is unhealthy. Finish the checklist by completing a quiz, verifying Stripe webhook processing, and fulfilling the order via the staff dashboard.
+5. Once the smoke test is clean, tag and publish the release (for example `v1.0.1-rc.1`) and re-run the deployment workflow with the released tag to promote the exact build to production. Capture highlights and operational notes in the [release notes](docs/releases/v1.0.1-rc.1.md) so future rollouts understand the change surface.
 
-Keep a history of successful tags so that rerunning `deploy.yml` with an older tag performs a controlled rollback.
+Keep a history of successful tags so that rerunning `deploy.yml` with an older tag performs a controlled rollback. If the smoke script fails repeatedly or the health endpoints degrade, raise an incident using the template linked from [docs/SLO.md](docs/SLO.md) and follow the alerting guidance captured there.
 
 ### Stripe live-mode checklist
 - Switch publishable/secret keys to live mode in GitHub environment secrets.
@@ -149,6 +152,7 @@ Keep a history of successful tags so that rerunning `deploy.yml` with an older t
 - Basic in-memory rate limiting is configured via `express-rate-limit` (defaults to 180 req/min in development). Tune via `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS`.
 - CORS is locked down via the `CORS_ORIGINS` allow-list; set multiple origins by comma separating values.
 - Centralised error tracking is wired through Sentry for the API, recipe service, and Next.js app. Provide the DSNs and sampling rates via the SENTRY/NEXT_PUBLIC_SENTRY variables in staging/production; leave them unset locally to disable reporting. Every request includes an `x-request-id` header that is echoed in responses, attached as a Sentry tag, and written to logs so traces, logs, and incidents can be correlated quickly.
+- `/v1/status` exposes version, commit, uptime, and Sentry enablement for the API; `scripts/smoke.sh` calls it automatically. The recipe service mirrors `/status` so infra health checks and monitors can watch for regressions.
 - The recipe engine refuses to boot without `RECIPE_JWT_SECRET`, and every `/generate` request requires a short-lived HS256 token issued by the API.
 
 ## Database operations
@@ -168,6 +172,8 @@ Refer to `infra/db/README.md` for mysqldump backup/restore steps and Prisma migr
 - `APISPEC.md` – REST API contract for the NestJS service.
 - `AI_RULES.md` – Contribution guardrails for AI-assisted development.
 - `docs/releases/v1.0.0.md` – Notes for the `v1.0.0` production release.
+- `docs/releases/v1.0.1-rc.1.md` – Release candidate notes for the beta hardening drop.
+- `docs/SLO.md` – Availability, latency, and incident response expectations.
 
 ## Roadmap highlights
 - Switch the email transport to production-ready SMTP (and configure DMARC/SPF).

@@ -16,9 +16,14 @@ jobs:
         env:
           BASE_URL: ${{ secrets.MONITOR_API_BASE_URL }}
           BAR_SLUG: ${{ secrets.MONITOR_BAR_SLUG }}
+          EXPECTED_VERSION: ${{ secrets.MONITOR_EXPECTED_VERSION }}
         run: |
           chmod +x scripts/smoke.sh
-          ./scripts/smoke.sh "$BASE_URL" "$BAR_SLUG"
+          if [ -n "$EXPECTED_VERSION" ]; then
+            ./scripts/smoke.sh "$BASE_URL" "$BAR_SLUG" "$EXPECTED_VERSION"
+          else
+            ./scripts/smoke.sh "$BASE_URL" "$BAR_SLUG"
+          fi
 
       - if: failure()
         name: Open incident issue
