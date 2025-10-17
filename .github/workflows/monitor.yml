@@ -1,0 +1,33 @@
+name: monitor
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run smoke against API
+        env:
+          BASE_URL: ${{ secrets.MONITOR_API_BASE_URL }}
+          BAR_SLUG: ${{ secrets.MONITOR_BAR_SLUG }}
+        run: |
+          chmod +x scripts/smoke.sh
+          ./scripts/smoke.sh "$BASE_URL" "$BAR_SLUG"
+
+      - if: failure()
+        name: Open incident issue
+        uses: actions-ecosystem/action-create-issue@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Production smoke failed ❌"
+          body: |
+            The scheduled smoke checks failed.
+            - Workflow: ${{ github.workflow }}
+            - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            - Time (UTC): ${{ github.run_started_at }}
