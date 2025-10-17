@@ -10,28 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # ---- API ----
-      - name: API | Use Node 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: API | Install
-        run: npm ci
+          cache: 'npm'
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - name: Install API dependencies
+        run: npm install
         working-directory: api
-      - name: API | Lint
+      - name: Install web dependencies
+        run: npm install
+        working-directory: web
+      - name: Lint API
         run: npm run lint
         working-directory: api
-
-      # ---- Web ----
-      - name: Web | Use Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Web | Install
-        run: npm ci
-        working-directory: web
-      - name: Web | Lint
+      - name: Lint web
         run: npm run lint
         working-directory: web
         continue-on-error: true
