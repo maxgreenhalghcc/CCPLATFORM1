@@ -11,7 +11,7 @@ export class RecipesService {
 
   constructor(private readonly http: HttpService, private readonly configService: ConfigService) {}
 
-  async generate(dto: GenerateRecipeDto) {
+  async generate(dto: GenerateRecipeDto, requestId?: string) {
     const url = this.configService.get<string>('recipeService.url') ?? 'http://localhost:5000';
 
     const payload = {
@@ -21,7 +21,13 @@ export class RecipesService {
       quiz: dto.quiz ?? {}
     };
 
-    const response$ = this.http.post(`${url}/generate`, payload).pipe(
+    const headers: Record<string, string> = {};
+
+    if (requestId) {
+      headers['x-request-id'] = requestId;
+    }
+
+    const response$ = this.http.post(`${url}/generate`, payload, { headers }).pipe(
       map((response) => response.data),
       catchError((error) => {
         this.logger.error('Recipe generation failed', error?.message ?? error);

@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/app/lib/api';
 import { cn, getApiUrl, themeToCssVars } from '@/lib/utils';
 
 interface BarDetail {
@@ -48,7 +49,7 @@ function mergeTheme(theme?: Record<string, string>): Record<ThemeField, string> 
 }
 
 async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init);
+  const response = await apiFetch(input, init);
   if (!response.ok) {
     let message = response.statusText || 'Request failed';
     try {
