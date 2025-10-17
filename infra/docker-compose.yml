@@ -13,6 +13,11 @@ services:
       - mysql-data:/var/lib/mysql
     ports:
       - '3306:3306'
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   api:
     build:
@@ -21,11 +26,19 @@ services:
       - ../.env
     environment:
       DATABASE_URL: ${DATABASE_URL:-mysql://custom:custom@mysql:3306/custom_cocktails}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
     depends_on:
-      - mysql
-      - recipe
+      mysql:
+        condition: service_healthy
+      recipe:
+        condition: service_healthy
     ports:
       - '4000:4000'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4000/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
   recipe:
     build:
@@ -34,6 +47,11 @@ services:
       - ../.env
     ports:
       - '5000:5000'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:5000/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
   web:
     build:
@@ -41,12 +59,18 @@ services:
     env_file:
       - ../.env
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
-      NEXT_PUBLIC_API_URL: http://localhost:4000/v1
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/v1}
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - '3000:3000'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000 || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
 volumes:
   mysql-data:

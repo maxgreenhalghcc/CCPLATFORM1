@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { auth } from '@/auth';
 
 const cards = [
   {
@@ -19,7 +21,12 @@ const cards = [
   }
 ];
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const session = await auth();
+  if (!session || session.user.role !== 'admin') {
+    redirect(`/login?callbackUrl=${encodeURIComponent('/admin')}`);
+  }
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-16">
       <header className="space-y-2">

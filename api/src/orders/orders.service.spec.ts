@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, Prisma, UserRole } from '@prisma/client';
+import { ForbiddenException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -148,6 +149,25 @@ describe('OrdersService.listForBar', () => {
     expect(result.items).toHaveLength(4);
   });
 
+  it('blocks staff from accessing orders for a different bar', async () => {
+    const otherBar = await prisma.bar.create({
+      data: {
+        id: 'bar_2',
+        name: 'Second Bar',
+        slug: 'second-bar',
+        active: true
+      }
+    });
+
+    await expect(
+      service.listForBar(otherBar.slug, undefined, {
+        sub: 'user_staff',
+        role: UserRole.staff,
+        barId: 'bar_1'
+      })
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   describe('updateStatus', () => {
     it('fulfills a paid order and sets fulfilledAt', async () => {
       const result = await service.updateStatus('order_paid', 'fulfilled');
@@ -157,6 +177,36 @@ describe('OrdersService.listForBar', () => {
       const reloaded = await prisma.order.findUniqueOrThrow({ where: { id: 'order_paid' } });
       expect(reloaded.status).toBe(OrderStatus.fulfilled);
       expect(reloaded.fulfilledAt).toBeInstanceOf(Date);
+    });
+
+    it('prevents staff from updating an order for another bar', async () => {
+      await prisma.bar.create({
+        data: {
+          id: 'bar_3',
+          name: 'Third Bar',
+          slug: 'third-bar',
+          active: true
+        }
+      });
+
+      await prisma.order.create({
+        data: {
+          id: 'order_other_bar',
+          barId: 'bar_3',
+          sessionId: 'session_other_bar',
+          amount: new Prisma.Decimal('9.00'),
+          currency: 'gbp',
+          status: OrderStatus.paid
+        }
+      });
+
+      await expect(
+        service.updateStatus('order_other_bar', 'fulfilled', {
+          sub: 'user_staff',
+          role: UserRole.staff,
+          barId: 'bar_1'
+        })
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('rejects invalid transitions', async () => {

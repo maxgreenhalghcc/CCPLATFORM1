@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { buildGuardHeaders, getApiBaseUrl, patchJson } from '@/app/lib/api';
+import { getApiBaseUrl, patchJson } from '@/app/lib/api';
+import { useSession } from 'next-auth/react';
 import type { OrderStatus } from '../staff-orders-client';
 
 interface IngredientEntry {
@@ -80,10 +81,16 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
   const [pending, setPending] = useState(false);
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
-  const headers = useMemo(() => buildGuardHeaders(), []);
+  const { data: session } = useSession();
 
   const markServed = async () => {
     if (!window.confirm('Confirm this cocktail has been served?')) {
+      return;
+    }
+
+    const token = session?.apiToken;
+    if (!token) {
+      setError('Session expired. Please refresh the page to sign in again.');
       return;
     }
 
@@ -99,7 +106,7 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
       const result = await patchJson<UpdateStatusResponse>(
         `${baseUrl}/v1/orders/${initialOrder.orderId}/status`,
         { status: 'fulfilled' },
-        { headers }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setStatus(result.status);
       setFulfilledAt(result.fulfilledAt);

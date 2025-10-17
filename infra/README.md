@@ -2,29 +2,36 @@
 
 This directory contains container orchestration files and operational notes for the Custom Cocktails monorepo.
 
-## docker-compose
+## Docker Compose projects
 
-The `docker-compose.yml` file spins up the development stack:
-
-- **mysql** – Persistent MySQL instance for Prisma migrations.
-- **api** – NestJS service exposed on port `4000`.
-- **recipe** – FastAPI microservice exposed on port `5000`.
-- **web** – Next.js frontend exposed on port `3000`.
+| File | Purpose |
+| --- | --- |
+| `docker-compose.yml` | Development stack with live-reload friendly defaults and local image builds. |
+| `compose.prod.yml` | Production/staging stack that consumes GHCR images and hardened settings. |
 
 ### Prerequisites
 - Docker Engine 24+
 - Docker Compose plugin 2.20+
 
-### Usage
+### Development usage
 ```bash
-cp .env.example .env          # adjust values as needed
+cp .env.development .env
 cd infra
 docker compose up --build
 ```
 
-Services share the same `.env` file. The compose file mounts a named volume `mysql-data` for persistent database storage.
+Services read from the root `.env` file (copied from `.env.development`) and share a named `mysql-data` volume for persistence.
 
-## Next Steps
-- Add GitHub Actions workflows for linting, testing, and building containers.
-- Define IaC (Terraform/Ansible) once hosting environment is confirmed.
-- Harden recipe service networking by restricting ingress to the API container.
+### Production usage (via GitHub Actions)
+The `deploy.yml` workflow writes `.env.production` from GitHub environment secrets and executes:
+```bash
+docker compose -f infra/compose.prod.yml up -d --remove-orphans
+docker compose -f infra/compose.prod.yml exec api npx prisma migrate deploy
+```
+
+You can run the same commands manually on a target VM once the secrets file has been provisioned.
+
+## Follow-ups
+- Layer in IaC (Terraform/Ansible) after hosting environment is finalised.
+- Harden networking (e.g. Traefik/Caddy reverse proxy with TLS) if the stack is exposed directly to the public internet.
+- Attach observability agents (Sentry, OTEL collectors) to the Compose project when promoting to production.

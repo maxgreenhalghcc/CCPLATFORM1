@@ -40,9 +40,18 @@ export class WebhooksService {
 
   async handleStripe(signature: string | undefined, payload: Buffer) {
     const webhookSecret = this.configService.get<string>('stripe.webhookSecret');
+    const nodeEnv = this.configService.get<string>('nodeEnv');
     let event: Stripe.Event;
 
-    if (webhookSecret && signature) {
+    if (!webhookSecret && nodeEnv !== 'development') {
+      this.logger.error('Stripe webhook secret is not configured.');
+      throw new BadRequestException('Stripe webhook secret is required');
+    }
+
+    if (webhookSecret) {
+      if (!signature) {
+        throw new BadRequestException('Missing Stripe signature header');
+      }
       try {
         event = this.getStripe().webhooks.constructEvent(payload, signature, webhookSecret);
       } catch (error) {

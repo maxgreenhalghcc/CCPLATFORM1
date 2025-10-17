@@ -1,4 +1,12 @@
-import { IsBoolean, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateBarDto {
   @IsString()
@@ -9,6 +17,8 @@ export class CreateBarDto {
   @IsString()
   @MinLength(2)
   @MaxLength(120)
+  @Matches(/^[a-z0-9-]+$/)
+  @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() : value))
   slug!: string;
 
   @IsOptional()
