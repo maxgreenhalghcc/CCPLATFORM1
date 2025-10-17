@@ -107,32 +107,6 @@ The workflow will:
 
 For rollbacks, re-run the workflow against the desired commit SHA (the CI job publishes an image per SHA, so no retagging is required).
 
-## Production runbook
-
-Follow this checklist when promoting a build to staging or production:
-
-1. Prepare the environment secrets for the target GitHub Environment so `.env.production` can be materialised (see the matrix and required variables above).
-2. Ensure CI has produced container images for the commit you want to promote (the `ci.yml` workflow publishes `ghcr.io/<owner>/<repo>-{api,web,recipe}:<sha>`).
-3. Trigger the deployment workflow with the desired tag and environment:
-   ```bash
-   gh workflow run deploy.yml \
-     -R <owner>/<repo> \
-     -f environment=staging \
-     -f tag=<git-ref>
-   ```
-4. After the workflow completes, run the smoke test helper against the deployed stack:
-   ```bash
-   API_URL=https://<api-domain>/v1 \
-   RECIPE_URL=https://<recipe-domain> \
-   WEB_URL=https://<web-domain> \
-   BAR_SLUG=demo-bar \
-   ./scripts/smoke.sh
-   ```
-   The script checks service health endpoints and validates that bar settings are being served; finish the checklist by completing a quiz, verifying Stripe webhook processing, and fulfilling the order via the staff dashboard.
-5. Once the smoke test is clean, tag and publish the release (for example `v1.0.0`) and re-run the deployment workflow with the released tag to promote the exact build to production. Capture highlights and operational notes in the [release notes](docs/releases/v1.0.0.md) so future rollouts understand the change surface.
-
-Keep a history of successful tags so that rerunning `deploy.yml` with an older tag performs a controlled rollback.
-
 ### Stripe live-mode checklist
 - Switch publishable/secret keys to live mode in GitHub environment secrets.
 - Point `NEXT_PUBLIC_API_BASE_URL` / `NEXT_PUBLIC_API_URL` at the live API domain.
@@ -162,7 +136,6 @@ Refer to `infra/db/README.md` for mysqldump backup/restore steps and Prisma migr
 - `ARCHITECTURE.md` – System overview and data flow.
 - `APISPEC.md` – REST API contract for the NestJS service.
 - `AI_RULES.md` – Contribution guardrails for AI-assisted development.
-- `docs/releases/v1.0.0.md` – Notes for the `v1.0.0` production release.
 
 ## Roadmap highlights
 - Switch the email transport to production-ready SMTP (and configure DMARC/SPF).

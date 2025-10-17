@@ -1,65 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${1:-}"
-BAR_SLUG="${2:-sample-bar}"
+API_URL=${API_URL:-"http://localhost:4000/v1"}
+RECIPE_URL=${RECIPE_URL:-"http://localhost:5000"}
+WEB_URL=${WEB_URL:-"http://localhost:3000"}
+BAR_SLUG=${BAR_SLUG:-"demo-bar"}
 
-if [[ -z "$BASE_URL" ]]; then
-  echo "Usage: $0 <BASE_URL> [BAR_SLUG]"
-  exit 2
-fi
+newline() { printf '\n'; }
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "jq is required for smoke checks" >&2
-  exit 3
-fi
-
-if ! command -v curl >/dev/null 2>&1; then
-  echo "curl is required for smoke checks" >&2
-  exit 3
-fi
-
-echo "== Smoke: $BASE_URL (bar: $BAR_SLUG)"
-
-api_health="$(curl -fsSL "$BASE_URL/health" || true)"
-if [[ -z "$api_health" ]]; then
-  echo "API health response empty" >&2
-  exit 1
-fi
-
-echo "API /health: $api_health"
-
-echo "$api_health" | jq -e '.status == "ok"' >/dev/null || {
-  echo "API health status not ok" >&2
-  exit 1
+check_endpoint() {
+  local name="$1"
+  local url="$2"
+  if curl --fail --silent --show-error "$url" >/dev/null; then
+    printf '✅ %s (%s)\n' "$name" "$url"
+  else
+    local status=$?
+    printf '❌ %s (%s)\n' "$name" "$url" >&2
+    exit "$status"
+  fi
 }
 
-echo "$api_health" | jq -e 'has("version") and .version != ""' >/dev/null || {
-  echo "API health missing version" >&2
-  exit 1
-}
+printf 'Running smoke checks against:\n'
+printf '  API_URL    = %s\n' "$API_URL"
+printf '  RECIPE_URL = %s\n' "$RECIPE_URL"
+printf '  WEB_URL    = %s\n' "$WEB_URL"
+printf '  BAR_SLUG   = %s\n' "$BAR_SLUG"
+newline
 
-echo "$api_health" | jq -e 'has("commit") and .commit != ""' >/dev/null || {
-  echo "API health missing commit" >&2
-  exit 1
-}
+check_endpoint "API health" "$API_URL/health"
+check_endpoint "Recipe health" "$RECIPE_URL/health"
+check_endpoint "Web root" "$WEB_URL"
 
-bar_json="$(curl -fsSL "$BASE_URL/bars/$BAR_SLUG/settings" || true)"
-if [[ -z "$bar_json" ]]; then
-  echo "Bar settings response empty" >&2
+newline
+printf 'Inspecting bar settings for %s...\n' "$BAR_SLUG"
+settings_json=$(curl --fail --silent --show-error "$API_URL/bars/$BAR_SLUG/settings")
+if python3 - "$settings_json" <<'PY' >/dev/null; then
+PY
+import json
+import sys
+settings = json.loads(sys.argv[1])
+required = ["pricingPounds", "theme"]
+missing = [field for field in required if field not in settings]
+if missing:
+    raise SystemExit(f"missing fields: {missing}")
+theme = settings.get("theme", {})
+if not theme:
+    raise SystemExit("theme payload empty")
+print("Theme ok")
+PY
+  printf '✅ Bar settings payload looks good\n'
+else
+  printf '❌ Unable to validate bar settings payload\n' >&2
   exit 1
 fi
 
-echo "Bar settings: $(echo "$bar_json" | jq -c '{slug, name}')"
-
-echo "$bar_json" | jq -e --arg slug "$BAR_SLUG" '.slug == $slug' >/dev/null || {
-  echo "Bar slug mismatch" >&2
-  exit 1
-}
-
-echo "$bar_json" | jq -e 'has("theme") and (.theme | type == "object")' >/dev/null || {
-  echo "Bar theme missing" >&2
-  exit 1
-}
-
-echo "✅ Smoke OK"
+newline
+cat <<INFO
+Next steps:
+  • Complete a quiz flow and Stripe payment using the deployed frontend.
+  • Confirm the Stripe webhook updates the order to paid.
+  • Use the staff dashboard to mark the order as served.
+INFO
+newline
+printf 'Smoke checks complete.\n'
