@@ -12,12 +12,10 @@ jobs:
       - uses: actions/checkout@v4
 
       # ---- API ----
-      - name: API | Use Node 20 + cache
+      - name: API | Use Node 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: api/package-lock.json
       - name: API | Install
         run: npm ci
         working-directory: api
@@ -26,12 +24,10 @@ jobs:
         working-directory: api
 
       # ---- Web ----
-      - name: Web | Use Node 20 + cache
+      - name: Web | Use Node 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: web/package-lock.json
       - name: Web | Install
         run: npm ci
         working-directory: web
@@ -103,3 +99,4 @@ jobs:
           tags: ${{ env.RECIPE_IMAGE }}
           cache-from: type=gha,scope=recipe
           cache-to: type=gha,mode=max,scope=recipe
+
