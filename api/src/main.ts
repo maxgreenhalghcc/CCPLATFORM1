@@ -4,7 +4,40 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { json, raw } from 'express';
+import * as Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { AppModule } from './app.module';
+
+const SENTRY_DSN = process.env.SENTRY_DSN;
+
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'production',
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
+    profilesSampleRate: Number(process.env.SENTRY_PROFILES_SAMPLE_RATE ?? 0),
+    integrations: [
+      Sentry.httpIntegration(),
+      Sentry.expressIntegration(),
+      nodeProfilingIntegration(),
+    ],
+    beforeSend(event) {
+      if (event.request) {
+        if (event.request.data) {
+          event.request.data = '[redacted]';
+        }
+        if (event.request.headers) {
+          const scrubbed = { ...event.request.headers };
+          delete scrubbed.authorization;
+          delete scrubbed.cookie;
+          delete scrubbed['x-staff-token'];
+          event.request.headers = scrubbed;
+        }
+      }
+      return event;
+    },
+  });
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -13,6 +46,12 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
   app.useLogger(logger);
+
+  const httpAdapter = app.getHttpAdapter().getInstance();
+  if (SENTRY_DSN) {
+    httpAdapter.use(Sentry.Handlers.requestHandler());
+    httpAdapter.use(Sentry.Handlers.tracingHandler());
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -46,6 +85,10 @@ async function bootstrap() {
   app.setGlobalPrefix(globalPrefix);
   app.use(`/${globalPrefix}/webhooks/stripe`, raw({ type: 'application/json' }));
   app.use(json({ limit: '5mb' }));
+
+  if (SENTRY_DSN) {
+    httpAdapter.use(Sentry.Handlers.errorHandler());
+  }
 
   await app.listen(port);
   logger.info(`🚀 API is running on http://localhost:${port}/${globalPrefix}`);

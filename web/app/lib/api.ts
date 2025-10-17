@@ -1,7 +1,22 @@
+import * as Sentry from '@sentry/nextjs';
+
 const REQUEST_ID_HEADER = 'x-request-id';
 
 function generateRequestId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+}
+
+function normaliseTarget(input: RequestInfo | URL): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.toString();
+  }
+  if (typeof (input as Request).url === 'string') {
+    return (input as Request).url;
+  }
+  return 'unknown';
 }
 
 export function getApiBaseUrl() {
@@ -17,7 +32,22 @@ export function withRequestId(init: RequestInit = {}): RequestInit {
 }
 
 export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const response = await fetch(input, withRequestId(init));
+  const prepared = withRequestId(init);
+  const headers = new Headers(prepared.headers ?? undefined);
+  const requestId = headers.get(REQUEST_ID_HEADER) ?? undefined;
+  const response = await fetch(input, prepared);
+  const echoedRequestId = response.headers.get(REQUEST_ID_HEADER) ?? requestId ?? undefined;
+
+  Sentry.addBreadcrumb({
+    category: 'api',
+    message: normaliseTarget(input),
+    level: 'info',
+    data: {
+      request_id: echoedRequestId,
+      status: response.status,
+    },
+  });
+
   return response;
 }
 

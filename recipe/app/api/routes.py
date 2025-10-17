@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jwt import InvalidTokenError
 from starlette.middleware.base import BaseHTTPMiddleware
 from uuid import uuid4
+from sentry_sdk import configure_scope
 
 from ..core.config import get_settings, Settings
 from ..models.schemas import GenerateRequest, GenerateResponse
@@ -20,6 +21,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = request.headers.get(HEADER) or str(uuid4())
         request.state.request_id = request_id
+        configure_scope(lambda scope: scope.set_tag('request_id', request_id))
         response = await call_next(request)
         response.headers[HEADER] = request_id
         return response
