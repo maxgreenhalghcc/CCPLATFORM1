@@ -1,12 +1,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getApiBaseUrl } from '@/app/lib/api';
+import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
 import StaffOrdersClient, { type OrderSummary } from './staff-orders-client';
 
 async function fetchOrders(token: string, barIdentifier: string): Promise<OrderSummary[]> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/v1/bars/${barIdentifier}/orders`, {
+  const res = await apiFetch(`${baseUrl}/v1/bars/${barIdentifier}/orders`, {
     cache: 'no-store',
     headers: {
       Authorization: `Bearer ${token}`

@@ -1,4 +1,5 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { QuizService } from './quiz.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
@@ -19,7 +20,8 @@ export class QuizController {
   }
 
   @Post('quiz/sessions/:id/submit')
-  submit(@Param('id') sessionId: string, @Body() dto: SubmitQuizDto) {
-    return this.quizService.submit(sessionId, dto);
+  submit(@Param('id') sessionId: string, @Body() dto: SubmitQuizDto, @Req() req: Request) {
+    const requestId = (req as any)?.requestId as string | undefined;
+    return this.quizService.submit(sessionId, dto, requestId);
   }
 }

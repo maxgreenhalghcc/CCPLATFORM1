@@ -94,4 +94,3 @@ jobs:
           tags: ${{ env.RECIPE_IMAGE }}
           cache-from: type=gha,scope=recipe
           cache-to: type=gha,mode=max,scope=recipe
-

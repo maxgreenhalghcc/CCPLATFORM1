@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { getApiBaseUrl } from '@/app/lib/api';
+import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
 import { auth } from '@/auth';
 import StaffOrderDetailClient from './order-detail-client';
 
@@ -9,7 +9,7 @@ interface OrderPageProps {
 
 async function fetchOrder(orderId: string, token?: string) {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/v1/orders/${orderId}/recipe`, {
+  const res = await apiFetch(`${baseUrl}/v1/orders/${orderId}/recipe`, {
     cache: 'no-store',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined
   });

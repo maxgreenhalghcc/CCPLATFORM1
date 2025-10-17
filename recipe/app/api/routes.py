@@ -2,14 +2,27 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jwt import InvalidTokenError
+from starlette.middleware.base import BaseHTTPMiddleware
+from uuid import uuid4
 
 from ..core.config import get_settings, Settings
 from ..models.schemas import GenerateRequest, GenerateResponse
 from ..services.generator import generate_recipe
 
 router = APIRouter()
+
+HEADER = "x-request-id"
+
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get(HEADER) or str(uuid4())
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers[HEADER] = request_id
+        return response
 
 
 def get_app_settings() -> Settings:

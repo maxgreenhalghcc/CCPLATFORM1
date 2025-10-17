@@ -85,7 +85,7 @@ export class QuizService {
     return { status: 'recorded' };
   }
 
-  async submit(sessionId: string, dto: SubmitQuizDto) {
+  async submit(sessionId: string, dto: SubmitQuizDto, requestId?: string) {
     const session = await this.prisma.quizSession.findUnique({
       where: { id: sessionId },
       include: {
@@ -150,7 +150,8 @@ export class QuizService {
         session.barId,
         session.id,
         normalizedAnswers,
-        ingredientWhitelist
+        ingredientWhitelist,
+        requestId
       );
 
       const recipe = await this.prisma.recipe.create({
@@ -318,7 +319,8 @@ export class QuizService {
     barId: string,
     sessionId: string,
     answers: NormalizedAnswer[],
-    ingredientWhitelist: string[]
+    ingredientWhitelist: string[],
+    requestId?: string
   ): Promise<RecipeEngineResponse> {
     const recipeUrl =
       this.configService.get<string>('recipeService.url') ??
@@ -365,6 +367,14 @@ export class QuizService {
       value: { ...answer.value }
     }));
 
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (requestId) {
+      headers['x-request-id'] = requestId;
+    }
+
     try {
       const response = await lastValueFrom(
         this.httpService.post<RecipeEngineResponse>(
@@ -377,9 +387,7 @@ export class QuizService {
             seed
           },
           {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
+            headers
           }
         )
       );

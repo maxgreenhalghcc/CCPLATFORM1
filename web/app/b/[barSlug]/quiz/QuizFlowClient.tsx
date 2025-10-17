@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { QUIZ_QUESTIONS, CONTACT_QUESTION_ID } from '@/app/lib/questions';
+import { apiFetch } from '@/app/lib/api';
 import { OptionCard } from '@/app/components/OptionCard';
 import { Progress } from '@/app/components/Progress';
 import { FooterNav } from '@/app/components/FooterNav';
@@ -57,7 +58,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
       setIsLoadingSession(true);
       setError(null);
       try {
-        const response = await fetch(`${apiUrl}/bars/${barSlug}/quiz/sessions`, {
+        const response = await apiFetch(`${apiUrl}/bars/${barSlug}/quiz/sessions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -148,7 +149,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
 
     try {
       for (const answer of answerPayload) {
-        const answerResponse = await fetch(`${apiUrl}/quiz/sessions/${sessionId}/answers`, {
+        const answerResponse = await apiFetch(`${apiUrl}/quiz/sessions/${sessionId}/answers`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -164,7 +165,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
         }
       }
 
-      const submitResponse = await fetch(`${apiUrl}/quiz/sessions/${sessionId}/submit`, {
+      const submitResponse = await apiFetch(`${apiUrl}/quiz/sessions/${sessionId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -182,7 +183,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
       const submitData = (await submitResponse.json()) as SubmitQuizResponse;
       const orderId = submitData.orderId;
 
-      const checkoutResponse = await fetch(`${apiUrl}/orders/${orderId}/checkout`, {
+      const checkoutResponse = await apiFetch(`${apiUrl}/orders/${orderId}/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

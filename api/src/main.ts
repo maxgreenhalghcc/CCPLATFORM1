@@ -43,7 +43,7 @@ async function bootstrap() {
   const port = configService.get<number>('port') ?? 4000;
   const globalPrefix = 'v1';
 
-  app.setGlobalPrefix(globalPrefix, { exclude: ['health'] });
+  app.setGlobalPrefix(globalPrefix);
   app.use(`/${globalPrefix}/webhooks/stripe`, raw({ type: 'application/json' }));
   app.use(json({ limit: '5mb' }));
 
