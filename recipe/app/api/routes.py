@@ -1,12 +1,17 @@
 from datetime import datetime, timezone
 from typing import Annotated
 
+from __future__ import annotations
+
 import jwt
+import sentry_sdk
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jwt import InvalidTokenError
-from starlette.middleware.base import BaseHTTPMiddleware
-from uuid import uuid4
 from sentry_sdk import configure_scope
+from starlette.middleware.base import BaseHTTPMiddleware
+from typing import Annotated
+from uuid import uuid4
 
 from ..core.config import get_settings, Settings
 from ..models.schemas import GenerateRequest, GenerateResponse
@@ -72,4 +77,5 @@ async def generate_endpoint(
     payload: GenerateRequest,
     _: None = Depends(verify_authorization)
 ) -> GenerateResponse:
-    return generate_recipe(payload)
+    with sentry_sdk.start_span(op="service", description="recipe.generate"):
+        return generate_recipe(payload)

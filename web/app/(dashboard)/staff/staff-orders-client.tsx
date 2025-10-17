@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
+import * as Sentry from '@sentry/nextjs';
 
 export type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
 
@@ -93,10 +94,12 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     );
 
     try {
-      const result = await patchJson<UpdateStatusResponse>(
-        `${baseUrl}/v1/orders/${orderId}/status`,
-        { status: 'fulfilled' },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const result = await Sentry.startSpan({ name: 'orders.fulfill', op: 'ui.action' }, () =>
+        patchJson<UpdateStatusResponse>(
+          `${baseUrl}/v1/orders/${orderId}/status`,
+          { status: 'fulfilled' },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
       );
 
       setOrders((current) =>
@@ -111,6 +114,7 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
         )
       );
     } catch (err) {
+      Sentry.captureException(err);
       setOrders(snapshot);
       setError('Unable to update order status. Please try again.');
     } finally {
