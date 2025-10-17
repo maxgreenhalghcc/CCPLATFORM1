@@ -1,14 +1,18 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getApiBaseUrl } from '@/app/lib/api';
+import { auth } from '@/auth';
 import StaffOrderDetailClient from './order-detail-client';
 
 interface OrderPageProps {
   params: { orderId: string };
 }
 
-async function fetchOrder(orderId: string) {
+async function fetchOrder(orderId: string, token?: string) {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/v1/orders/${orderId}/recipe`, { cache: 'no-store' });
+  const res = await fetch(`${baseUrl}/v1/orders/${orderId}/recipe`, {
+    cache: 'no-store',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
 
   if (res.status === 404) {
     notFound();
@@ -53,8 +57,17 @@ async function fetchOrder(orderId: string) {
 }
 
 export default async function StaffOrderDetailPage({ params }: OrderPageProps) {
-  const { orderId } = params;
-  const order = await fetchOrder(orderId);
+  const session = await auth();
 
-  return <StaffOrderDetailClient initialOrder={order} />;
+  if (!session || session.user.role !== 'staff') {
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/staff/orders/${params.orderId}`)}`);
+  }
+
+  const { orderId } = params;
+  try {
+    const order = await fetchOrder(orderId, session.apiToken);
+    return <StaffOrderDetailClient initialOrder={order} />;
+  } catch (error) {
+    redirect('/staff');
+  }
 }

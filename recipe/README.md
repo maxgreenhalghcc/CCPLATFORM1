@@ -1,6 +1,6 @@
 # Recipe Engine
 
-This FastAPI microservice generates deterministic cocktail recipes from quiz answers. It is secured with a short-lived JWT that the NestJS API signs on behalf of customers and staff.
+This FastAPI microservice generates deterministic cocktail recipes from quiz answers. It refuses to boot unless `RECIPE_JWT_SECRET` is set and is secured with a short-lived JWT that the NestJS API signs on behalf of customers and staff.
 
 ## Configuration
 

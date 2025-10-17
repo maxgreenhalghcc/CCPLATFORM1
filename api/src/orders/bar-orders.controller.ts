@@ -1,9 +1,14 @@
-import { BadRequestException, Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { OrderStatus as PrismaOrderStatus } from '@prisma/client';
 import { OrdersService } from './orders.service';
-import { DevAuthGuard } from '../common/guards/dev-auth.guard';
+import { ApiAuthGuard } from '../common/guards/api-auth.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
-@UseGuards(DevAuthGuard)
+@UseGuards(ApiAuthGuard, RolesGuard)
+@Roles(UserRole.admin, UserRole.staff)
 @Controller('bars')
 export class BarOrdersController {
   private readonly allowedStatuses = new Set<string>(Object.values(PrismaOrderStatus));
@@ -11,7 +16,11 @@ export class BarOrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get(':id/orders')
-  listForBar(@Param('id') id: string, @Query('status') status?: string) {
+  listForBar(
+    @Param('id') id: string,
+    @Query('status') status: string | undefined,
+    @Req() request: AuthenticatedRequest
+  ) {
     let normalized: PrismaOrderStatus | undefined;
 
     if (status) {
@@ -22,6 +31,6 @@ export class BarOrdersController {
       normalized = lowered as PrismaOrderStatus;
     }
 
-    return this.ordersService.listForBar(id, normalized);
+    return this.ordersService.listForBar(id, normalized, request.user);
   }
 }

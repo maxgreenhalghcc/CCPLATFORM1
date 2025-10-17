@@ -2,15 +2,6 @@ export function getApiBaseUrl() {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 }
 
-export function buildGuardHeaders(): Record<string, string> {
-  const token = process.env.NEXT_PUBLIC_STAFF_TOKEN;
-  if (!token) {
-    return {};
-  }
-  const header = process.env.NEXT_PUBLIC_STAFF_GUARD_HEADER ?? 'x-staff-token';
-  return { [header]: token };
-}
-
 export async function patchJson<T>(
   url: string,
   body: unknown,

@@ -1,15 +1,17 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus as PrismaOrderStatus } from '@prisma/client';
+import { OrderStatus as PrismaOrderStatus, UserRole } from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
+import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 
 interface NormalizedRecipeBody {
   ingredients?: unknown;
@@ -177,7 +179,11 @@ export class OrdersService {
     };
   }
 
-  async listForBar(barIdentifier: string, status?: PrismaOrderStatus) {
+  async listForBar(
+    barIdentifier: string,
+    status?: PrismaOrderStatus,
+    requester?: AuthenticatedUser
+  ) {
     const bar = await this.prisma.bar.findFirst({
       where: {
         OR: [{ id: barIdentifier }, { slug: barIdentifier }]
@@ -186,6 +192,16 @@ export class OrdersService {
 
     if (!bar) {
       throw new NotFoundException('Bar not found');
+    }
+
+    if (requester) {
+      if (requester.role === UserRole.staff) {
+        if (!requester.barId || requester.barId !== bar.id) {
+          throw new ForbiddenException('Staff users can only access their assigned bar');
+        }
+      } else if (requester.role !== UserRole.admin) {
+        throw new ForbiddenException('User is not permitted to view orders');
+      }
     }
 
     if (status && !Object.values(PrismaOrderStatus).includes(status)) {
@@ -217,7 +233,7 @@ export class OrdersService {
     };
   }
 
-  async updateStatus(orderId: string, status: 'fulfilled') {
+  async updateStatus(orderId: string, status: 'fulfilled', requester?: AuthenticatedUser) {
     if (status !== 'fulfilled') {
       throw new BadRequestException('Unsupported status transition');
     }
@@ -227,12 +243,23 @@ export class OrdersService {
       select: {
         id: true,
         status: true,
-        fulfilledAt: true
+        fulfilledAt: true,
+        barId: true
       }
     });
 
     if (!order) {
       throw new NotFoundException('Order not found');
+    }
+
+    if (requester) {
+      if (requester.role === UserRole.staff) {
+        if (!requester.barId || requester.barId !== order.barId) {
+          throw new ForbiddenException('Staff users can only update orders for their bar');
+        }
+      } else if (requester.role !== UserRole.admin) {
+        throw new ForbiddenException('User is not permitted to update orders');
+      }
     }
 
     if (order.status === PrismaOrderStatus.fulfilled) {

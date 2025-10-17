@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { buildGuardHeaders, getApiBaseUrl, patchJson } from '@/app/lib/api';
+import { useSession } from 'next-auth/react';
+import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 
 export type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
 
@@ -16,6 +17,7 @@ export interface OrderSummary {
 
 interface Props {
   initialOrders: OrderSummary[];
+  initialError?: string | null;
 }
 
 interface UpdateStatusResponse {
@@ -58,16 +60,22 @@ function formatFulfilledAt(value: string | null) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function StaffOrdersClient({ initialOrders }: Props) {
+export default function StaffOrdersClient({ initialOrders, initialError = null }: Props) {
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
-  const headers = useMemo(() => buildGuardHeaders(), []);
+  const { data: session } = useSession();
 
   const handleFulfilled = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
+      return;
+    }
+
+    const token = session?.apiToken;
+    if (!token) {
+      setError('Session expired. Please refresh the page to sign in again.');
       return;
     }
 
@@ -88,7 +96,7 @@ export default function StaffOrdersClient({ initialOrders }: Props) {
       const result = await patchJson<UpdateStatusResponse>(
         `${baseUrl}/v1/orders/${orderId}/status`,
         { status: 'fulfilled' },
-        { headers }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setOrders((current) =>
@@ -112,9 +120,12 @@ export default function StaffOrdersClient({ initialOrders }: Props) {
 
   if (orders.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
-      </p>
+      <div className="space-y-4">
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <p className="text-sm text-muted-foreground">
+          No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
+        </p>
+      </div>
     );
   }
 

@@ -1,4 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+
+const shouldSeed = (process.env.SEED_ON_BOOT ?? 'true').toLowerCase() !== 'false';
+
+if (!shouldSeed) {
+  console.info('Seed skipped because SEED_ON_BOOT=false');
+  process.exit(0);
+}
 
 const prisma = new PrismaClient();
 
@@ -23,7 +30,7 @@ async function main() {
             },
             introText: introCopy,
             outroText: outroCopy,
-            pricingPounds: 12,
+            pricingPounds: new Prisma.Decimal(12),
           },
           create: {
             theme: {
@@ -33,7 +40,7 @@ async function main() {
             },
             introText: introCopy,
             outroText: outroCopy,
-            pricingPounds: 12,
+            pricingPounds: new Prisma.Decimal(12),
           },
         },
       },
@@ -51,7 +58,61 @@ async function main() {
           },
           introText: introCopy,
           outroText: outroCopy,
-          pricingPounds: 12,
+          pricingPounds: new Prisma.Decimal(12),
+        },
+      },
+    },
+  });
+
+  await prisma.bar.upsert({
+    where: { slug: 'sample-bar-2' },
+    update: {
+      name: 'Sample Bar 2',
+      active: true,
+      location: 'Manchester',
+      settings: {
+        upsert: {
+          update: {
+            theme: {
+              primary: '#ff6b6b',
+              background: '#1a0f0f',
+              foreground: '#ffffff',
+              card: '#241414',
+            },
+            introText: 'Discover bold flavours crafted in Manchester.',
+            outroText: 'Visit again soon for another tailored cocktail.',
+            pricingPounds: new Prisma.Decimal(11.5),
+          },
+          create: {
+            theme: {
+              primary: '#ff6b6b',
+              background: '#1a0f0f',
+              foreground: '#ffffff',
+              card: '#241414',
+            },
+            introText: 'Discover bold flavours crafted in Manchester.',
+            outroText: 'Visit again soon for another tailored cocktail.',
+            pricingPounds: new Prisma.Decimal(11.5),
+          },
+        },
+      },
+    },
+    create: {
+      name: 'Sample Bar 2',
+      slug: 'sample-bar-2',
+      active: true,
+      location: 'Manchester',
+      settings: {
+        create: {
+          theme: {
+            primary: '#ff6b6b',
+            background: '#1a0f0f',
+            foreground: '#ffffff',
+            card: '#241414',
+          },
+          introText: 'Discover bold flavours crafted in Manchester.',
+          outroText: 'Visit again soon for another tailored cocktail.',
+          pricingPounds: new Prisma.Decimal(11.5),
         },
       },
     },
@@ -85,6 +146,42 @@ async function main() {
       })
     )
   );
+
+  const verificationDate = new Date();
+
+  await prisma.user.upsert({
+    where: { email: 'admin@platform.bar' },
+    update: {
+      role: 'admin',
+      barId: null,
+      emailVerified: verificationDate,
+      name: 'Platform Admin',
+    },
+    create: {
+      email: 'admin@platform.bar',
+      role: 'admin',
+      barId: null,
+      emailVerified: verificationDate,
+      name: 'Platform Admin',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'staff@demo.bar' },
+    update: {
+      role: 'staff',
+      barId: demoBar.id,
+      emailVerified: verificationDate,
+      name: 'Demo Bartender',
+    },
+    create: {
+      email: 'staff@demo.bar',
+      role: 'staff',
+      barId: demoBar.id,
+      emailVerified: verificationDate,
+      name: 'Demo Bartender',
+    },
+  });
 
   console.info('Seed data created. Demo bar id:', demoBar.id);
 }

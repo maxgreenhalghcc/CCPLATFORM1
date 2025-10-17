@@ -1,47 +1,63 @@
 import { Suspense } from 'react';
-import { buildGuardHeaders, getApiBaseUrl } from '@/app/lib/api';
-import StaffOrdersClient from './staff-orders-client';
+import { redirect } from 'next/navigation';
+import { auth } from '@/auth';
+import { getApiBaseUrl } from '@/app/lib/api';
+import StaffOrdersClient, { type OrderSummary } from './staff-orders-client';
 
-type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
-
-interface OrderSummary {
-  id: string;
-  status: OrderStatus;
-  createdAt: string;
-  fulfilledAt: string | null;
-}
-
-async function fetchOrders(): Promise<OrderSummary[]> {
+async function fetchOrders(token: string, barIdentifier: string): Promise<OrderSummary[]> {
   const baseUrl = getApiBaseUrl();
-  const barSlug = process.env.NEXT_PUBLIC_STAFF_BAR_SLUG ?? 'sample-bar';
-  const headers = buildGuardHeaders();
-  const res = await fetch(`${baseUrl}/v1/bars/${barSlug}/orders`, {
+  const res = await fetch(`${baseUrl}/v1/bars/${barIdentifier}/orders`, {
     cache: 'no-store',
-    headers
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   });
+
   if (!res.ok) {
-    return [];
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Not authorised to view orders for this bar');
+    }
+    throw new Error('Unable to load orders');
   }
+
   const payload = (await res.json()) as {
     items: Array<{
       id: string;
-      status: OrderStatus;
+      status: OrderSummary['status'];
       createdAt: string;
       fulfilledAt?: string | null;
     }>;
   };
+
   return payload.items.map((item) => ({
     ...item,
     fulfilledAt: item.fulfilledAt ?? null
   }));
 }
 
-async function StaffOrdersTable() {
-  const orders = await fetchOrders();
-  return <StaffOrdersClient initialOrders={orders} />;
+async function StaffOrdersTable({ token, barId }: { token: string; barId: string }) {
+  try {
+    const orders = await fetchOrders(token, barId);
+    return <StaffOrdersClient initialOrders={orders} />;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to load orders.';
+    return <StaffOrdersClient initialOrders={[]} initialError={message} />;
+  }
 }
 
-export default function StaffDashboardPage() {
+export default async function StaffDashboardPage() {
+  const session = await auth();
+
+  if (!session || session.user.role !== 'staff') {
+    redirect(`/login?callbackUrl=${encodeURIComponent('/staff')}`);
+  }
+
+  if (!session.apiToken) {
+    throw new Error('Missing API token for staff session');
+  }
+
+  const barId = session.user.barId ?? 'demo-bar';
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-16">
       <header className="flex flex-col gap-2">
@@ -52,7 +68,7 @@ export default function StaffDashboardPage() {
       </header>
       <Suspense fallback={<p>Loading orders…</p>}>
         {/* @ts-expect-error Async Server Component */}
-        <StaffOrdersTable />
+        <StaffOrdersTable barId={barId} token={session.apiToken} />
       </Suspense>
     </div>
   );
