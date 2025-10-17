@@ -1,7 +1,8 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { MiddlewareConsumer, Module, NestModule, Catch, ArgumentsHost } from '@nestjs/common';
+import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import * as Sentry from '@sentry/node';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -15,6 +16,37 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { HealthModule } from './health/health.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+
+const HEADER = 'x-request-id';
+
+@Catch()
+class SentryFilter extends BaseExceptionFilter {
+  constructor(adapterHost: HttpAdapterHost) {
+    super(adapterHost.httpAdapter);
+  }
+
+  override catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const req: any = ctx.getRequest();
+    const res: any = ctx.getResponse();
+    const requestId = req?.requestId ?? res?.getHeader?.(HEADER);
+
+    if (process.env.SENTRY_DSN) {
+      Sentry.withScope((scope) => {
+        if (requestId) {
+          scope.setTag('request_id', requestId);
+        }
+        scope.setContext('request', {
+          method: req?.method,
+          url: req?.url,
+        });
+        Sentry.captureException(exception);
+      });
+    }
+
+    super.catch(exception, host);
+  }
+}
 
 @Module({
   imports: [
@@ -62,6 +94,10 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: SentryFilter,
     },
   ],
 })

@@ -12,6 +12,9 @@ Environment variables consumed by the service:
 | `RECIPE_JWT_SECRET` | Shared symmetric secret for verifying API-issued JWTs. |
 | `RECIPE_JWT_AUDIENCE` | Expected audience claim (default `recipe-engine`). |
 | `RECIPE_JWT_ISSUER` | Expected issuer claim (default `custom-cocktails-api`). |
+| `SENTRY_DSN` | Optional DSN for production error capture (leave unset locally). |
+| `SENTRY_ENVIRONMENT` | Sentry environment label (e.g. `staging`, `production`). |
+| `SENTRY_TRACES_SAMPLE_RATE` | Sample rate for tracing (0–1, defaults to `0`). |
 
 ## Local testing
 

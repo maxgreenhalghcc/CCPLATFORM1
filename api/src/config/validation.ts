@@ -24,4 +24,8 @@ export const validationSchema = Joi.object({
   RECIPE_SERVICE_JWT_SECRET: Joi.string().allow(''),
   RECIPE_SERVICE_JWT_AUDIENCE: Joi.string().default('recipe-engine'),
   RECIPE_SERVICE_JWT_ISSUER: Joi.string().default('custom-cocktails-api'),
+  SENTRY_DSN: Joi.string().uri().allow(''),
+  SENTRY_ENVIRONMENT: Joi.string().allow(''),
+  SENTRY_TRACES_SAMPLE_RATE: Joi.number().min(0).max(1).allow(''),
+  SENTRY_PROFILES_SAMPLE_RATE: Joi.number().min(0).max(1).allow(''),
 });

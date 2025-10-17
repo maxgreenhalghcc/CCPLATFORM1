@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import * as Sentry from '@sentry/node';
 
 const HEADER = 'x-request-id';
 
@@ -21,6 +22,12 @@ export class LoggingInterceptor implements NestInterceptor {
 
     if (req?.log && typeof req.log.child === 'function' && requestId) {
       req.log = req.log.child({ requestId });
+    }
+
+    if (process.env.SENTRY_DSN && requestId) {
+      Sentry.configureScope((scope) => {
+        scope.setTag('request_id', requestId);
+      });
     }
 
     return next.handle().pipe(

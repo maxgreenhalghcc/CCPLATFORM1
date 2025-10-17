@@ -74,9 +74,13 @@ Configure the following secrets on the `staging` and `production` environments b
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `EMAIL_FROM`
 - `EMAIL_SERVER`
-- `SENTRY_API_DSN`
-- `SENTRY_WEB_DSN`
-- `SENTRY_RECIPE_DSN`
+- `SENTRY_DSN`
+- `SENTRY_ENVIRONMENT`
+- `SENTRY_TRACES_SAMPLE_RATE`
+- `SENTRY_PROFILES_SAMPLE_RATE`
+- `NEXT_PUBLIC_SENTRY_DSN`
+- `NEXT_PUBLIC_SENTRY_ENVIRONMENT`
+- `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`
 - `MYSQL_ROOT_PASSWORD`
 - `MYSQL_DATABASE`
 - `MYSQL_USER`
@@ -144,6 +148,7 @@ Keep a history of successful tags so that rerunning `deploy.yml` with an older t
 - Structured JSON logging is enabled through `nestjs-pino`; set `LOG_LEVEL` to tune verbosity. In development, pretty-print logs are enabled automatically.
 - Basic in-memory rate limiting is configured via `express-rate-limit` (defaults to 180 req/min in development). Tune via `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS`.
 - CORS is locked down via the `CORS_ORIGINS` allow-list; set multiple origins by comma separating values.
+- Centralised error tracking is wired through Sentry for the API, recipe service, and Next.js app. Provide the DSNs and sampling rates via the SENTRY/NEXT_PUBLIC_SENTRY variables in staging/production; leave them unset locally to disable reporting. Every request includes an `x-request-id` header that is echoed in responses, attached as a Sentry tag, and written to logs so traces, logs, and incidents can be correlated quickly.
 - The recipe engine refuses to boot without `RECIPE_JWT_SECRET`, and every `/generate` request requires a short-lived HS256 token issued by the API.
 
 ## Database operations
@@ -168,4 +173,4 @@ Refer to `infra/db/README.md` for mysqldump backup/restore steps and Prisma migr
 - Switch the email transport to production-ready SMTP (and configure DMARC/SPF).
 - Expand staff tooling (live order updates, fulfilment flows).
 - Enrich admin analytics (ingredient usage, conversion tracking).
-- Add production observability (Sentry, OTEL collectors) and automated smoke tests.
+- Expand observability with OTEL collectors and deeper tracing, building on the existing Sentry integration.
