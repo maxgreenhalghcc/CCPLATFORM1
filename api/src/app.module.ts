@@ -65,7 +65,23 @@ class SentryFilter extends BaseExceptionFilter {
             level,
             customProps: (req: Record<string, unknown>) => ({
               requestId: (req as any)?.requestId,
+              userId: (req as any)?.user?.id ?? null,
             }),
+            redact: {
+              paths: [
+                'req.headers.authorization',
+                'req.headers.cookie',
+                'req.headers.x-staff-token',
+                'req.headers["x-staff-token"]',
+                'req.headers["x-api-token"]',
+                'res.headers["set-cookie"]',
+                'req.body.contact',
+                'req.body.answers',
+                'user.email',
+                'req.user.email',
+              ],
+              censor: '[redacted]',
+            },
             transport:
               nodeEnv === 'development'
                 ? {

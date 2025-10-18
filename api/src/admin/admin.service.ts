@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import * as Sentry from '@sentry/node';
 
 interface DateRange {
   from: Date;
@@ -42,91 +43,95 @@ export class AdminService {
   }
 
   async getRevenue(barId?: string, range?: string) {
-    const { from, to, label } = this.resolveRange(range);
+    return Sentry.startSpan({ name: 'admin.metrics.revenue', op: 'service' }, async () => {
+      const { from, to, label } = this.resolveRange(range);
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        status: OrderStatus.paid,
-        createdAt: {
-          gte: from,
-          lte: to
+      const orders = await this.prisma.order.findMany({
+        where: {
+          status: OrderStatus.paid,
+          createdAt: {
+            gte: from,
+            lte: to
+          },
+          ...(barId ? { barId } : {})
         },
-        ...(barId ? { barId } : {})
-      },
-      select: {
-        amount: true,
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'asc'
+        select: {
+          amount: true,
+          createdAt: true
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      });
+
+      const seriesMap = new Map<string, number>();
+      let total = 0;
+
+      for (const order of orders) {
+        const amount = order.amount.toNumber();
+        total += amount;
+        const key = this.toDateKey(order.createdAt);
+        seriesMap.set(key, (seriesMap.get(key) ?? 0) + amount);
       }
+
+      const series: RevenueSeriesPoint[] = Array.from(seriesMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, value]) => ({
+          date,
+          value: Number(value.toFixed(2))
+        }));
+
+      return {
+        barId: barId ?? null,
+        range: label,
+        currency: 'GBP',
+        total: Number(total.toFixed(2)),
+        series
+      };
     });
-
-    const seriesMap = new Map<string, number>();
-    let total = 0;
-
-    for (const order of orders) {
-      const amount = order.amount.toNumber();
-      total += amount;
-      const key = this.toDateKey(order.createdAt);
-      seriesMap.set(key, (seriesMap.get(key) ?? 0) + amount);
-    }
-
-    const series: RevenueSeriesPoint[] = Array.from(seriesMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, value]) => ({
-        date,
-        value: Number(value.toFixed(2))
-      }));
-
-    return {
-      barId: barId ?? null,
-      range: label,
-      currency: 'GBP',
-      total: Number(total.toFixed(2)),
-      series
-    };
   }
 
   async getOrders(barId?: string, range?: string) {
-    const { from, to, label } = this.resolveRange(range);
+    return Sentry.startSpan({ name: 'admin.metrics.orders', op: 'service' }, async () => {
+      const { from, to, label } = this.resolveRange(range);
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        createdAt: {
-          gte: from,
-          lte: to
+      const orders = await this.prisma.order.findMany({
+        where: {
+          createdAt: {
+            gte: from,
+            lte: to
+          },
+          ...(barId ? { barId } : {})
         },
-        ...(barId ? { barId } : {})
-      },
-      select: {
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'asc'
+        select: {
+          createdAt: true
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      });
+
+      const seriesMap = new Map<string, number>();
+
+      for (const order of orders) {
+        const key = this.toDateKey(order.createdAt);
+        seriesMap.set(key, (seriesMap.get(key) ?? 0) + 1);
       }
+
+      const series: OrderSeriesPoint[] = Array.from(seriesMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, count]) => ({
+          date,
+          count
+        }));
+
+      return {
+        barId: barId ?? null,
+        range: label,
+        total: orders.length,
+        series
+      };
     });
-
-    const seriesMap = new Map<string, number>();
-
-    for (const order of orders) {
-      const key = this.toDateKey(order.createdAt);
-      seriesMap.set(key, (seriesMap.get(key) ?? 0) + 1);
-    }
-
-    const series: OrderSeriesPoint[] = Array.from(seriesMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, count]) => ({
-        date,
-        count
-      }));
-
-    return {
-      barId: barId ?? null,
-      range: label,
-      total: orders.length,
-      series
-    };
   }
 
   getIngredients(barId?: string, range?: string) {

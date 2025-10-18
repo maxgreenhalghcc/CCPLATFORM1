@@ -8,6 +8,10 @@ import { OptionCard } from '@/app/components/OptionCard';
 import { Progress } from '@/app/components/Progress';
 import { FooterNav } from '@/app/components/FooterNav';
 import { getApiUrl } from '@/lib/utils';
+import * as Sentry from '@sentry/nextjs';
+
+const PAYMENTS_ENABLED =
+  (process.env.NEXT_PUBLIC_FEATURE_ENABLE_PAYMENT ?? 'true').toLowerCase() !== 'false';
 
 interface QuizFlowProps {
   barSlug: string;
@@ -148,61 +152,69 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
     });
 
     try {
-      for (const answer of answerPayload) {
-        const answerResponse = await apiFetch(`${apiUrl}/quiz/sessions/${sessionId}/answers`, {
+      await Sentry.startSpan({ name: 'quiz.submit', op: 'ui.action' }, async () => {
+        for (const answer of answerPayload) {
+          const answerResponse = await apiFetch(`${apiUrl}/quiz/sessions/${sessionId}/answers`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              questionId: answer.questionId,
+              value: answer.value
+            })
+          });
+
+          if (!answerResponse.ok) {
+            throw new Error(`Failed to record answer ${answer.questionId}`);
+          }
+        }
+
+        const submitResponse = await apiFetch(`${apiUrl}/quiz/sessions/${sessionId}/submit`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            questionId: answer.questionId,
-            value: answer.value
+            final: true,
+            answers: answerPayload
           })
         });
 
-        if (!answerResponse.ok) {
-          throw new Error(`Failed to record answer ${answer.questionId}`);
+        if (!submitResponse.ok) {
+          throw new Error(`Submit failed with status ${submitResponse.status}`);
         }
-      }
 
-      const submitResponse = await apiFetch(`${apiUrl}/quiz/sessions/${sessionId}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          final: true,
-          answers: answerPayload
-        })
-      });
+        const submitData = (await submitResponse.json()) as SubmitQuizResponse;
+        const orderId = submitData.orderId;
 
-      if (!submitResponse.ok) {
-        throw new Error(`Submit failed with status ${submitResponse.status}`);
-      }
+        if (!PAYMENTS_ENABLED) {
+          router.push(`/receipt?orderId=${orderId}`);
+          return;
+        }
 
-      const submitData = (await submitResponse.json()) as SubmitQuizResponse;
-      const orderId = submitData.orderId;
+        const checkoutResponse = await apiFetch(`${apiUrl}/orders/${orderId}/checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
 
-      const checkoutResponse = await apiFetch(`${apiUrl}/orders/${orderId}/checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+        if (!checkoutResponse.ok) {
+          throw new Error(`Checkout failed with status ${checkoutResponse.status}`);
+        }
+
+        const checkoutData = (await checkoutResponse.json()) as { checkout_url: string };
+        const redirectPath = resolveCheckoutPath(checkoutData.checkout_url, orderId);
+
+        if (redirectPath.startsWith('http')) {
+          window.location.href = redirectPath;
+        } else {
+          router.push(redirectPath);
         }
       });
-
-      if (!checkoutResponse.ok) {
-        throw new Error(`Checkout failed with status ${checkoutResponse.status}`);
-      }
-
-      const checkoutData = (await checkoutResponse.json()) as { checkout_url: string };
-      const redirectPath = resolveCheckoutPath(checkoutData.checkout_url, orderId);
-
-      if (redirectPath.startsWith('http')) {
-        window.location.href = redirectPath;
-      } else {
-        router.push(redirectPath);
-      }
     } catch (submitError) {
+      Sentry.captureException(submitError);
       setError('We hit a snag mixing your cocktail. Please try again.');
     } finally {
       setSubmitting(false);

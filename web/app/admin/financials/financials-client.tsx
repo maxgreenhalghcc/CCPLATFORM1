@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { cn, fetchJson, getApiUrl } from '@/lib/utils';
+import * as Sentry from '@sentry/nextjs';
 
 interface RevenueSeriesPoint {
   date: string;
@@ -150,15 +151,20 @@ export default function AdminFinancialsClient() {
           headers,
           signal: abortController.signal
         };
-        const [revenueResponse, ordersResponse] = await Promise.all([
-          fetchJson<RevenueResponse>(`${apiBase}/admin/metrics/revenue?${params.toString()}`, requestInit),
-          fetchJson<OrdersResponse>(`${apiBase}/admin/metrics/orders?${params.toString()}`, requestInit)
-        ]);
+        const [revenueResponse, ordersResponse] = await Sentry.startSpan(
+          { name: 'admin.metrics.fetch', op: 'ui.action' },
+          () =>
+            Promise.all([
+              fetchJson<RevenueResponse>(`${apiBase}/admin/metrics/revenue?${params.toString()}`, requestInit),
+              fetchJson<OrdersResponse>(`${apiBase}/admin/metrics/orders?${params.toString()}`, requestInit)
+            ])
+        );
         if (!isCancelled) {
           setRevenue(revenueResponse);
           setOrders(ordersResponse);
         }
       } catch (err) {
+        Sentry.captureException(err);
         if (isCancelled || (err instanceof DOMException && err.name === 'AbortError')) {
           return;
         }

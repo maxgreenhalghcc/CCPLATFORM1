@@ -17,16 +17,20 @@ export class LoggingInterceptor implements NestInterceptor {
     const req: any = http.getRequest();
     const res: any = http.getResponse();
     const { method, url } = req;
+    const userId = req?.user?.id ?? null;
     const requestId = req?.requestId ?? res?.getHeader?.(HEADER);
     const start = Date.now();
 
-    if (req?.log && typeof req.log.child === 'function' && requestId) {
-      req.log = req.log.child({ requestId });
+    if (req?.log && typeof req.log.child === 'function') {
+      req.log = req.log.child({ requestId, userId });
     }
 
     if (process.env.SENTRY_DSN && requestId) {
       Sentry.configureScope((scope) => {
         scope.setTag('request_id', requestId);
+        if (userId) {
+          scope.setUser({ id: userId });
+        }
       });
     }
 
@@ -36,9 +40,13 @@ export class LoggingInterceptor implements NestInterceptor {
           const duration = Date.now() - start;
           const log = req?.log ?? console;
           if (typeof log.info === 'function') {
-            log.info({ requestId, method, url, duration }, 'request completed');
+            log.info({ requestId, userId, method, url, duration }, 'request completed');
           } else if (typeof log.log === 'function') {
-            log.log(`request completed ${method} ${url} ${duration}ms id=${requestId ?? 'n/a'}`);
+            log.log(
+              `request completed ${method} ${url} ${duration}ms id=${requestId ?? 'n/a'} user=${
+                userId ?? 'anonymous'
+              }`
+            );
           }
         }
       })

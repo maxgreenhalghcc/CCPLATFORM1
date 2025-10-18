@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import { useSession } from 'next-auth/react';
 import type { OrderStatus } from '../staff-orders-client';
+import * as Sentry from '@sentry/nextjs';
 
 interface IngredientEntry {
   name?: string;
@@ -103,14 +104,17 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
     setFulfilledAt(optimisticTimestamp);
 
     try {
-      const result = await patchJson<UpdateStatusResponse>(
-        `${baseUrl}/v1/orders/${initialOrder.orderId}/status`,
-        { status: 'fulfilled' },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const result = await Sentry.startSpan({ name: 'orders.fulfill', op: 'ui.action' }, () =>
+        patchJson<UpdateStatusResponse>(
+          `${baseUrl}/v1/orders/${initialOrder.orderId}/status`,
+          { status: 'fulfilled' },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
       );
       setStatus(result.status);
       setFulfilledAt(result.fulfilledAt);
     } catch (err) {
+      Sentry.captureException(err);
       setStatus(previousStatus);
       setFulfilledAt(previousFulfilled);
       setError('Unable to update the order. Please try again.');

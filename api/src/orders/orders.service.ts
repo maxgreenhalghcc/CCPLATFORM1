@@ -12,6 +12,7 @@ import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
+import * as Sentry from '@sentry/node';
 
 interface NormalizedRecipeBody {
   ingredients?: unknown;
@@ -59,86 +60,88 @@ export class OrdersService {
   }
 
   async createCheckout(orderId: string, dto?: CreateCheckoutDto) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        bar: {
-          select: {
-            slug: true,
-            name: true
-          }
-        }
-      }
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    const stripe = this.getStripe();
-
-    if (order.stripeSessionId) {
-      try {
-        const existing = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
-        if (existing.currency && existing.currency !== order.currency) {
-          await this.prisma.order.update({
-            where: { id: order.id },
-            data: { currency: existing.currency.toLowerCase() }
-          });
-        }
-
-        if (existing.url && existing.status !== 'expired') {
-          return { checkout_url: existing.url };
-        }
-      } catch (error) {
-        // Intentionally fall through to create a new session
-      }
-    }
-
-    const successUrl =
-      dto?.successUrl ?? this.resolveFrontendUrl(`/checkout/success?orderId=${order.id}`);
-    const cancelUrl =
-      dto?.cancelUrl ?? this.resolveFrontendUrl(`/checkout/cancel?orderId=${order.id}`);
-    const currency = (dto?.currency ?? order.currency).toLowerCase();
-    const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
-
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      metadata: {
-        orderId: order.id,
-        barId: order.barId,
-        sessionId: order.sessionId
-      },
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency,
-            unit_amount: amountInMinorUnits,
-            product_data: {
-              name: `${order.bar.name} custom cocktail`
+    return Sentry.startSpan({ name: 'orders.checkout', op: 'service' }, async () => {
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          bar: {
+            select: {
+              slug: true,
+              name: true
             }
           }
         }
-      ],
-      success_url: successUrl,
-      cancel_url: cancelUrl
-    });
+      });
 
-    await this.prisma.order.update({
-      where: { id: order.id },
-      data: {
-        stripeSessionId: session.id,
-        currency: (session.currency ?? currency).toLowerCase()
+      if (!order) {
+        throw new NotFoundException('Order not found');
       }
+
+      const stripe = this.getStripe();
+
+      if (order.stripeSessionId) {
+        try {
+          const existing = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+          if (existing.currency && existing.currency !== order.currency) {
+            await this.prisma.order.update({
+              where: { id: order.id },
+              data: { currency: existing.currency.toLowerCase() }
+            });
+          }
+
+          if (existing.url && existing.status !== 'expired') {
+            return { checkout_url: existing.url };
+          }
+        } catch (error) {
+          // Intentionally fall through to create a new session
+        }
+      }
+
+      const successUrl =
+        dto?.successUrl ?? this.resolveFrontendUrl(`/checkout/success?orderId=${order.id}`);
+      const cancelUrl =
+        dto?.cancelUrl ?? this.resolveFrontendUrl(`/checkout/cancel?orderId=${order.id}`);
+      const currency = (dto?.currency ?? order.currency).toLowerCase();
+      const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        metadata: {
+          orderId: order.id,
+          barId: order.barId,
+          sessionId: order.sessionId
+        },
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency,
+              unit_amount: amountInMinorUnits,
+              product_data: {
+                name: `${order.bar.name} custom cocktail`
+              }
+            }
+          }
+        ],
+        success_url: successUrl,
+        cancel_url: cancelUrl
+      });
+
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          stripeSessionId: session.id,
+          currency: (session.currency ?? currency).toLowerCase()
+        }
+      });
+
+      if (!session.url) {
+        throw new InternalServerErrorException('Stripe session did not return a URL');
+      }
+
+      return { checkout_url: session.url };
     });
-
-    if (!session.url) {
-      throw new InternalServerErrorException('Stripe session did not return a URL');
-    }
-
-    return { checkout_url: session.url };
   }
 
   async getRecipe(orderId: string) {
@@ -238,80 +241,83 @@ export class OrdersService {
       throw new BadRequestException('Unsupported status transition');
     }
 
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        status: true,
-        fulfilledAt: true,
-        barId: true
-      }
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-
-    if (requester) {
-      if (requester.role === UserRole.staff) {
-        if (!requester.barId || requester.barId !== order.barId) {
-          throw new ForbiddenException('Staff users can only update orders for their bar');
+    return Sentry.startSpan({ name: 'orders.fulfill', op: 'service' }, async () => {
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          status: true,
+          fulfilledAt: true,
+          barId: true
         }
-      } else if (requester.role !== UserRole.admin) {
-        throw new ForbiddenException('User is not permitted to update orders');
-      }
-    }
+      });
 
-    if (order.status === PrismaOrderStatus.fulfilled) {
-      if (!order.fulfilledAt) {
-        const updated = await this.prisma.order.update({
-          where: { id: order.id },
-          data: {
-            fulfilledAt: new Date()
-          },
-          select: {
-            id: true,
-            status: true,
-            fulfilledAt: true
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      if (requester) {
+        if (requester.role === UserRole.staff) {
+          if (!requester.barId || requester.barId !== order.barId) {
+            throw new ForbiddenException('Staff users can only update orders for their bar');
           }
-        });
+        } else if (requester.role !== UserRole.admin) {
+          throw new ForbiddenException('User is not permitted to update orders');
+        }
+      }
+
+      if (order.status === PrismaOrderStatus.fulfilled) {
+        if (!order.fulfilledAt) {
+          const updated = await this.prisma.order.update({
+            where: { id: order.id },
+            data: {
+              fulfilledAt: new Date()
+            },
+            select: {
+              id: true,
+              status: true,
+              fulfilledAt: true
+            }
+          });
+
+          return {
+            id: updated.id,
+            status: updated.status,
+            fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+          };
+        }
+
         return {
-          id: updated.id,
-          status: updated.status,
-          fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+          id: order.id,
+          status: order.status,
+          fulfilledAt: order.fulfilledAt?.toISOString() ?? null
         };
       }
 
-      return {
-        id: order.id,
-        status: order.status,
-        fulfilledAt: order.fulfilledAt?.toISOString() ?? null
-      };
-    }
-
-    if (order.status !== PrismaOrderStatus.paid) {
-      throw new ConflictException('Only paid orders can be fulfilled');
-    }
-
-    const fulfilledAt = new Date();
-
-    const updated = await this.prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status: PrismaOrderStatus.fulfilled,
-        fulfilledAt
-      },
-      select: {
-        id: true,
-        status: true,
-        fulfilledAt: true
+      if (order.status !== PrismaOrderStatus.paid) {
+        throw new ConflictException('Only paid orders can be fulfilled');
       }
-    });
 
-    return {
-      id: updated.id,
-      status: updated.status,
-      fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
-    };
+      const fulfilledAt = new Date();
+
+      const updated = await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: PrismaOrderStatus.fulfilled,
+          fulfilledAt
+        },
+        select: {
+          id: true,
+          status: true,
+          fulfilledAt: true
+        }
+      });
+
+      return {
+        id: updated.id,
+        status: updated.status,
+        fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+      };
+    });
   }
 }
