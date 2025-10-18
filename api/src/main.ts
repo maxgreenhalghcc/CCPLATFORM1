@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import rateLimit from 'express-rate-limit';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
