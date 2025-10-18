@@ -1,22 +1,30 @@
-# syntax=docker/dockerfile:1
-FROM node:20-alpine AS base
+# -------- deps stage --------
+FROM node:20-alpine AS deps
 WORKDIR /app
-ENV NODE_ENV=production
-
-FROM base AS deps
+RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-FROM deps AS build
-COPY . .
-RUN npx prisma generate && npm run build
+# -------- builder stage --------
+FROM node:20-alpine AS builder
+WORKDIR /app
+RUN apk add --no-cache openssl libc6-compat
+COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY prisma ./prisma
+COPY src ./src
+RUN npx prisma generate
+RUN npm run build
 
+# -------- runner stage --------
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY package.json ./
-COPY prisma ./prisma
-EXPOSE 4000
+RUN apk add --no-cache openssl libc6-compat
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/dist ./dist
+COPY package*.json ./
+EXPOSE 3000
 CMD ["node", "dist/main.js"]
