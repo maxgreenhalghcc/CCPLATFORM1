@@ -14,6 +14,7 @@ import { CreateSessionDto } from './dto/create-session.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { RecordAnswerDto } from './dto/record-answer.dto';
 import { signJwtHS256 } from '../common/jwt';
+import * as Sentry from '@sentry/node';
 
 interface RecipeEngineResponse {
   name: string;
@@ -86,129 +87,131 @@ export class QuizService {
   }
 
   async submit(sessionId: string, dto: SubmitQuizDto, requestId?: string) {
-    const session = await this.prisma.quizSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        bar: {
-          include: {
-            settings: true
+    return Sentry.startSpan({ name: 'quiz.submit', op: 'service' }, async () => {
+      const session = await this.prisma.quizSession.findUnique({
+        where: { id: sessionId },
+        include: {
+          bar: {
+            include: {
+              settings: true
+            }
           }
         }
+      });
+
+      if (!session) {
+        throw new NotFoundException('Quiz session not found');
       }
-    });
 
-    if (!session) {
-      throw new NotFoundException('Quiz session not found');
-    }
+      if (dto.answers?.length) {
+        const normalized = dto.answers.map((answer) => ({
+          questionId: answer.questionId,
+          value: this.normalizeAnswerValue(answer.value.choice)
+        }));
 
-    if (dto.answers?.length) {
-      const normalized = dto.answers.map((answer) => ({
-        questionId: answer.questionId,
-        value: this.normalizeAnswerValue(answer.value.choice)
+        await this.persistAnswers(
+          { id: session.id, answerRecord: session.answerRecord ?? null },
+          normalized
+        );
+      }
+
+      const existingOrder = await this.prisma.order.findFirst({
+        where: { sessionId: session.id },
+        select: { id: true }
+      });
+
+      if (existingOrder) {
+        return { orderId: existingOrder.id };
+      }
+
+      const storedAnswers = await this.prisma.quizAnswer.findMany({
+        where: { sessionId: session.id }
+      });
+
+      const normalizedAnswers: NormalizedAnswer[] = storedAnswers.map((entry) => ({
+        questionId: entry.questionId,
+        value: this.normalizeStoredAnswer(entry.value)
       }));
 
-      await this.persistAnswers(
-        { id: session.id, answerRecord: session.answerRecord ?? null },
-        normalized
-      );
-    }
+      const defaultPrice = new Prisma.Decimal(12);
+      const amount = session.bar.settings?.pricingPounds ?? defaultPrice;
 
-    const existingOrder = await this.prisma.order.findFirst({
-      where: { sessionId: session.id },
-      select: { id: true }
-    });
-
-    if (existingOrder) {
-      return { orderId: existingOrder.id };
-    }
-
-    const storedAnswers = await this.prisma.quizAnswer.findMany({
-      where: { sessionId: session.id }
-    });
-
-    const normalizedAnswers: NormalizedAnswer[] = storedAnswers.map((entry) => ({
-      questionId: entry.questionId,
-      value: this.normalizeStoredAnswer(entry.value)
-    }));
-
-    const defaultPrice = new Prisma.Decimal(12);
-    const amount = session.bar.settings?.pricingPounds ?? defaultPrice;
-
-    const order = await this.prisma.order.create({
-      data: {
-        barId: session.barId,
-        sessionId: session.id,
-        amount,
-        currency: 'gbp',
-        status: OrderStatus.created
-      }
-    });
-
-    try {
-      const ingredientWhitelist = await this.loadIngredientWhitelist(session.barId);
-      const recipeResponse = await this.requestRecipe(
-        session.barId,
-        session.id,
-        normalizedAnswers,
-        ingredientWhitelist,
-        requestId
-      );
-
-      const recipe = await this.prisma.recipe.create({
+      const order = await this.prisma.order.create({
         data: {
           barId: session.barId,
           sessionId: session.id,
-          name: recipeResponse.name,
-          description: recipeResponse.description,
-          body: {
-            ingredients: recipeResponse.ingredients ?? [],
-            method: recipeResponse.method ?? '',
-            glassware: recipeResponse.glassware ?? '',
-            garnish: recipeResponse.garnish ?? '',
-            warnings: recipeResponse.warnings ?? []
-          } as Prisma.JsonObject,
-          abvEstimate: recipeResponse.abv_estimate ?? null
+          amount,
+          currency: 'gbp',
+          status: OrderStatus.created
         }
       });
 
-      await this.prisma.order.update({
-        where: { id: order.id },
-        data: { recipeId: recipe.id }
-      });
+      try {
+        const ingredientWhitelist = await this.loadIngredientWhitelist(session.barId);
+        const recipeResponse = await this.requestRecipe(
+          session.barId,
+          session.id,
+          normalizedAnswers,
+          ingredientWhitelist,
+          requestId
+        );
 
-      await this.prisma.quizSession.update({
-        where: { id: session.id },
-        data: { status: QuizSessionStatus.submitted }
-      });
-
-      return { orderId: order.id };
-    } catch (error) {
-      await this.prisma.order
-        .delete({ where: { id: order.id } })
-        .catch((deleteError) => {
-          const rollbackMessage =
-            deleteError instanceof Error ? deleteError.message : String(deleteError);
-          this.logger.error(
-            `Failed to rollback order ${order.id}: ${rollbackMessage}`,
-            deleteError instanceof Error ? deleteError.stack : undefined
-          );
+        const recipe = await this.prisma.recipe.create({
+          data: {
+            barId: session.barId,
+            sessionId: session.id,
+            name: recipeResponse.name,
+            description: recipeResponse.description,
+            body: {
+              ingredients: recipeResponse.ingredients ?? [],
+              method: recipeResponse.method ?? '',
+              glassware: recipeResponse.glassware ?? '',
+              garnish: recipeResponse.garnish ?? '',
+              warnings: recipeResponse.warnings ?? []
+            } as Prisma.JsonObject,
+            abvEstimate: recipeResponse.abv_estimate ?? null
+          }
         });
-      await this.prisma.quizSession.update({
-        where: { id: session.id },
-        data: { status: QuizSessionStatus.in_progress }
-      });
 
-      if (error instanceof NotFoundException) {
-        throw error;
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: { recipeId: recipe.id }
+        });
+
+        await this.prisma.quizSession.update({
+          where: { id: session.id },
+          data: { status: QuizSessionStatus.submitted }
+        });
+
+        return { orderId: order.id };
+      } catch (error) {
+        await this.prisma.order
+          .delete({ where: { id: order.id } })
+          .catch((deleteError) => {
+            const rollbackMessage =
+              deleteError instanceof Error ? deleteError.message : String(deleteError);
+            this.logger.error(
+              `Failed to rollback order ${order.id}: ${rollbackMessage}`,
+              deleteError instanceof Error ? deleteError.stack : undefined
+            );
+          });
+        await this.prisma.quizSession.update({
+          where: { id: session.id },
+          data: { status: QuizSessionStatus.in_progress }
+        });
+
+        if (error instanceof NotFoundException) {
+          throw error;
+        }
+
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `Recipe generation failed: ${errorMessage}`,
+          error instanceof Error ? error.stack : undefined
+        );
+        throw new InternalServerErrorException('Failed to generate recipe');
       }
-
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Recipe generation failed: ${errorMessage}`,
-        error instanceof Error ? error.stack : undefined
-      );
-      throw new InternalServerErrorException('Failed to generate recipe');
-    }
+    });
   }
 
   private normalizeAnswerValue(choice?: string) {
@@ -322,84 +325,86 @@ export class QuizService {
     ingredientWhitelist: string[],
     requestId?: string
   ): Promise<RecipeEngineResponse> {
-    const recipeUrl =
-      this.configService.get<string>('recipeService.url') ??
-      this.configService.get<string>('RECIPE_URL') ??
-      process.env.RECIPE_URL ??
-      'http://localhost:5000';
+    return Sentry.startSpan({ name: 'recipe.generate', op: 'http.client' }, async () => {
+      const recipeUrl =
+        this.configService.get<string>('recipeService.url') ??
+        this.configService.get<string>('RECIPE_URL') ??
+        process.env.RECIPE_URL ??
+        'http://localhost:5000';
 
-    const recipeSecret =
-      this.configService.get<string>('recipeService.secret') ??
-      this.configService.get<string>('RECIPE_JWT_SECRET') ??
-      process.env.RECIPE_JWT_SECRET;
+      const recipeSecret =
+        this.configService.get<string>('recipeService.secret') ??
+        this.configService.get<string>('RECIPE_JWT_SECRET') ??
+        process.env.RECIPE_JWT_SECRET;
 
-    if (!recipeSecret) {
-      throw new InternalServerErrorException('Recipe secret is not configured');
-    }
-
-    const audience =
-      this.configService.get<string>('recipeService.audience') ??
-      this.configService.get<string>('RECIPE_JWT_AUD') ??
-      process.env.RECIPE_JWT_AUD ??
-      'recipe-engine';
-
-    const issuer =
-      this.configService.get<string>('recipeService.issuer') ??
-      this.configService.get<string>('RECIPE_JWT_ISS') ??
-      process.env.RECIPE_JWT_ISS ??
-      'custom-cocktails-api';
-
-    const seedBuffer = createHash('sha256').update(sessionId).digest();
-    const seed = seedBuffer.readUInt32BE(0);
-
-    const token = signJwtHS256(
-      { sub: sessionId },
-      recipeSecret,
-      {
-        audience,
-        issuer,
-        expiresInSeconds: 300
+      if (!recipeSecret) {
+        throw new InternalServerErrorException('Recipe secret is not configured');
       }
-    );
 
-    const payloadAnswers = answers.map((answer) => ({
-      question_id: answer.questionId,
-      value: { ...answer.value }
-    }));
+      const audience =
+        this.configService.get<string>('recipeService.audience') ??
+        this.configService.get<string>('RECIPE_JWT_AUD') ??
+        process.env.RECIPE_JWT_AUD ??
+        'recipe-engine';
 
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${token}`,
-    };
+      const issuer =
+        this.configService.get<string>('recipeService.issuer') ??
+        this.configService.get<string>('RECIPE_JWT_ISS') ??
+        process.env.RECIPE_JWT_ISS ??
+        'custom-cocktails-api';
 
-    if (requestId) {
-      headers['x-request-id'] = requestId;
-    }
+      const seedBuffer = createHash('sha256').update(sessionId).digest();
+      const seed = seedBuffer.readUInt32BE(0);
 
-    try {
-      const response = await lastValueFrom(
-        this.httpService.post<RecipeEngineResponse>(
-          `${recipeUrl.replace(/\/$/, '')}/generate`,
-          {
-            bar_id: barId,
-            session_id: sessionId,
-            answers: payloadAnswers,
-            ingredient_whitelist: ingredientWhitelist,
-            seed
-          },
-          {
-            headers
-          }
-        )
+      const token = signJwtHS256(
+        { sub: sessionId },
+        recipeSecret,
+        {
+          audience,
+          issuer,
+          expiresInSeconds: 300
+        }
       );
 
-      return response.data;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Recipe engine request failed: ${errorMessage}`,
-        error instanceof Error ? error.stack : undefined
-      );
-      throw new InternalServerErrorException('Recipe engine request failed');
-    }
+      const payloadAnswers = answers.map((answer) => ({
+        question_id: answer.questionId,
+        value: { ...answer.value }
+      }));
+
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`
+      };
+
+      if (requestId) {
+        headers['x-request-id'] = requestId;
+      }
+
+      try {
+        const response = await lastValueFrom(
+          this.httpService.post<RecipeEngineResponse>(
+            `${recipeUrl.replace(/\/$/, '')}/generate`,
+            {
+              bar_id: barId,
+              session_id: sessionId,
+              answers: payloadAnswers,
+              ingredient_whitelist: ingredientWhitelist,
+              seed
+            },
+            {
+              headers
+            }
+          )
+        );
+
+        return response.data;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `Recipe engine request failed: ${errorMessage}`,
+          error instanceof Error ? error.stack : undefined
+        );
+        throw new InternalServerErrorException('Recipe engine request failed');
+      }
+    });
   }
 }

@@ -8,14 +8,17 @@ import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { AppModule } from './app.module';
 
-const SENTRY_DSN = process.env.SENTRY_DSN;
+const SENTRY_DSN =
+  process.env.SENTRY_DSN ?? process.env.SENTRY_DSN_API ?? process.env.SENTRY_DSN_BACKEND ?? '';
+const SENTRY_TRACES_SAMPLE_RATE = Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0.1');
+const SENTRY_PROFILES_SAMPLE_RATE = Number(process.env.SENTRY_PROFILES_SAMPLE_RATE ?? '0');
 
 if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'production',
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
-    profilesSampleRate: Number(process.env.SENTRY_PROFILES_SAMPLE_RATE ?? 0),
+    tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
+    profilesSampleRate: SENTRY_PROFILES_SAMPLE_RATE,
     integrations: [
       Sentry.httpIntegration(),
       Sentry.expressIntegration(),
@@ -31,6 +34,7 @@ if (SENTRY_DSN) {
           delete scrubbed.authorization;
           delete scrubbed.cookie;
           delete scrubbed['x-staff-token'];
+          delete scrubbed['x-api-token'];
           event.request.headers = scrubbed;
         }
       }

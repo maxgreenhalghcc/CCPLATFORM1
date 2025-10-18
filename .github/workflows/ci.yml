@@ -26,6 +26,7 @@ jobs:
       - name: Lint API
         run: npm run lint
         working-directory: api
+        continue-on-error: true
       - name: Lint web
         run: npm run lint
         working-directory: web

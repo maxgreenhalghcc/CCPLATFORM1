@@ -37,5 +37,18 @@ export default () => {
       audience: process.env.RECIPE_SERVICE_JWT_AUDIENCE ?? 'recipe-engine',
       issuer: process.env.RECIPE_SERVICE_JWT_ISSUER ?? 'custom-cocktails-api',
     },
+    sentry: {
+      dsn:
+        process.env.SENTRY_DSN ??
+        process.env.SENTRY_DSN_API ??
+        process.env.SENTRY_DSN_BACKEND ??
+        '',
+      environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'production',
+      tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0.1'),
+    },
+    features: {
+      enablePayment: (process.env.FEATURE_ENABLE_PAYMENT ?? 'true').toLowerCase() !== 'false',
+      showBetaBadge: (process.env.FEATURE_SHOW_BETA_BADGE ?? 'false').toLowerCase() === 'true',
+    },
   };
 };

@@ -27,7 +27,7 @@ if os.getenv('SENTRY_DSN'):
     sentry_sdk.init(
         dsn=os.getenv('SENTRY_DSN'),
         environment=os.getenv('SENTRY_ENVIRONMENT', os.getenv('NODE_ENV', 'production')),
-        traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0')),
+        traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
         integrations=[StarletteIntegration(), FastApiIntegration()],
         before_send=_scrub_event,
     )
@@ -35,6 +35,7 @@ if os.getenv('SENTRY_DSN'):
 
 settings = get_settings()
 app_version = os.getenv("APP_VERSION", "unknown")
+START_TIME = time.time()
 
 app = FastAPI(
     title=settings.app_name,
@@ -67,4 +68,17 @@ async def health() -> dict[str, str]:
         "version": os.getenv("APP_VERSION", app.version),
         "commit": os.getenv("GIT_SHA", "unknown"),
         "environment": settings.environment,
+    }
+
+
+@app.get("/status", tags=["health"])
+async def status() -> dict[str, object]:
+    uptime = int(time.time() - START_TIME)
+    return {
+        "ok": True,
+        "service": "recipe",
+        "version": os.getenv("APP_VERSION", app.version),
+        "commit": os.getenv("GIT_SHA", "unknown"),
+        "uptime": uptime,
+        "sentry": {"enabled": bool(os.getenv("SENTRY_DSN"))},
     }

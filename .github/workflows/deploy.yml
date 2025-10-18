@@ -10,6 +10,10 @@ on:
           - staging
           - production
         required: true
+      tag:
+        description: "Image tag (defaults to commit SHA)"
+        type: string
+        required: false
 
 jobs:
   deploy:
@@ -29,9 +33,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure image tags
         run: |
-          echo "API_IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-api:${{ github.sha }}" >> $GITHUB_ENV
-          echo "WEB_IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-web:${{ github.sha }}" >> $GITHUB_ENV
-          echo "RECIPE_IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-recipe:${{ github.sha }}" >> $GITHUB_ENV
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${{ github.sha }}"
+          fi
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+          echo "API_IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-api:$TAG" >> $GITHUB_ENV
+          echo "WEB_IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-web:$TAG" >> $GITHUB_ENV
+          echo "RECIPE_IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-recipe:$TAG" >> $GITHUB_ENV
       - name: Pull release images
         run: |
           docker pull $API_IMAGE
@@ -47,6 +56,7 @@ jobs:
           RATE_LIMIT_MAX=${{ secrets.RATE_LIMIT_MAX }}
           RATE_LIMIT_WINDOW_MS=${{ secrets.RATE_LIMIT_WINDOW_MS }}
           SEED_ON_BOOT=false
+
           API_PORT=4000
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
@@ -54,10 +64,21 @@ jobs:
           REFRESH_EXPIRES_IN=604800
           STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          FEATURE_ENABLE_PAYMENT=${{ secrets.FEATURE_ENABLE_PAYMENT }}
+          FEATURE_SHOW_BETA_BADGE=${{ secrets.FEATURE_SHOW_BETA_BADGE }}
+
           RECIPE_SERVICE_URL=http://recipe:5000
           RECIPE_SERVICE_JWT_SECRET=${{ secrets.RECIPE_JWT_SECRET }}
           RECIPE_SERVICE_JWT_AUDIENCE=recipe-engine
           RECIPE_SERVICE_JWT_ISSUER=custom-cocktails-api
+
+          SENTRY_DSN=${{ secrets.SENTRY_DSN_API }}
+          SENTRY_DSN_API=${{ secrets.SENTRY_DSN_API }}
+          SENTRY_DSN_RECIPE=${{ secrets.SENTRY_DSN_RECIPE }}
+          SENTRY_ENVIRONMENT=${{ github.event.inputs.environment }}
+          SENTRY_TRACES_SAMPLE_RATE=0.1
+          SENTRY_PROFILES_SAMPLE_RATE=0.0
+
           NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
           NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
@@ -65,9 +86,12 @@ jobs:
           NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
           EMAIL_FROM=${{ secrets.EMAIL_FROM }}
           EMAIL_SERVER=${{ secrets.EMAIL_SERVER }}
-          SENTRY_API_DSN=${{ secrets.SENTRY_API_DSN }}
-          SENTRY_WEB_DSN=${{ secrets.SENTRY_WEB_DSN }}
-          SENTRY_RECIPE_DSN=${{ secrets.SENTRY_RECIPE_DSN }}
+          NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT=${{ github.event.inputs.environment }}
+          NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1
+          NEXT_PUBLIC_FEATURE_ENABLE_PAYMENT=${{ secrets.NEXT_PUBLIC_FEATURE_ENABLE_PAYMENT }}
+          NEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE=${{ secrets.NEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE }}
+
           RECIPE_PORT=5000
           RECIPE_JWT_SECRET=${{ secrets.RECIPE_JWT_SECRET }}
           MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}

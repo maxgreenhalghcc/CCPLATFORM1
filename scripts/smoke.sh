@@ -3,6 +3,7 @@ set -euo pipefail
 
 BASE_URL="${1:-}"
 BAR_SLUG="${2:-sample-bar}"
+EXPECTED_VERSION="${3:-}"
 
 if [[ -z "$BASE_URL" ]]; then
   echo "Usage: $0 <BASE_URL> [BAR_SLUG]"
@@ -21,26 +22,33 @@ fi
 
 echo "== Smoke: $BASE_URL (bar: $BAR_SLUG)"
 
-api_health="$(curl -fsSL "$BASE_URL/health" || true)"
-if [[ -z "$api_health" ]]; then
-  echo "API health response empty" >&2
+status_json="$(curl -fsSL "$BASE_URL/status" || true)"
+if [[ -z "$status_json" ]]; then
+  echo "API status response empty" >&2
   exit 1
 fi
 
-echo "API /health: $api_health"
+echo "API /status: $status_json"
 
-echo "$api_health" | jq -e '.status == "ok"' >/dev/null || {
-  echo "API health status not ok" >&2
+echo "$status_json" | jq -e '.ok == true' >/dev/null || {
+  echo "API status not ok" >&2
   exit 1
 }
 
-echo "$api_health" | jq -e 'has("version") and .version != ""' >/dev/null || {
-  echo "API health missing version" >&2
+echo "$status_json" | jq -e 'has("version") and .version != ""' >/dev/null || {
+  echo "API status missing version" >&2
   exit 1
 }
 
-echo "$api_health" | jq -e 'has("commit") and .commit != ""' >/dev/null || {
-  echo "API health missing commit" >&2
+if [[ -n "$EXPECTED_VERSION" ]]; then
+  echo "$status_json" | jq -e --arg v "$EXPECTED_VERSION" '.version == $v' >/dev/null || {
+    echo "API version \"$(echo "$status_json" | jq -r .version)\" did not match expected $EXPECTED_VERSION" >&2
+    exit 1
+  }
+fi
+
+echo "$status_json" | jq -e '.sentry.enabled == true' >/dev/null || {
+  echo "Sentry not enabled according to /status" >&2
   exit 1
 }
 
