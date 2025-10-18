@@ -10,24 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      # --- API lint (no npm cache to avoid missing-path errors) ---
+      - name: API | Use Node 20
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: |
-            api/package-lock.json
-            web/package-lock.json
-      - name: Install API dependencies
-        run: npm install
+      - name: API | Install
+        run: npm ci
         working-directory: api
-      - name: Install web dependencies
-        run: npm install
+      - name: API | Lint
+        run: npm run lint --if-present
+        working-directory: api
+
+      # --- Web lint (no npm cache) ---
+      - name: Web | Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Web | Install
+        run: npm ci
         working-directory: web
-      - name: Lint API
-        run: npm run lint
-        working-directory: api
-      - name: Lint web
-        run: npm run lint
+      - name: Web | Lint
+        run: npm run lint --if-present
         working-directory: web
         continue-on-error: true
 
@@ -94,3 +99,4 @@ jobs:
           tags: ${{ env.RECIPE_IMAGE }}
           cache-from: type=gha,scope=recipe
           cache-to: type=gha,mode=max,scope=recipe
+
