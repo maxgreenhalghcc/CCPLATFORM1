@@ -19,17 +19,19 @@ jobs:
           node-version: 20
 
       # ---------- API ----------
-      - name: Install API dependencies (lock-aware)
+      # ---------- API ----------
+      - name: Install API dependencies (ci)
         working-directory: api
         shell: bash
         run: |
           if [ -f package-lock.json ]; then
-            echo "package-lock.json found -> npm ci"
-            npm ci
+            echo "package-lock.json found -> npm ci --legacy-peer-deps"
+            npm ci --legacy-peer-deps
           else
-            echo "No package-lock.json -> npm install"
-            npm install
+            echo "No package-lock.json -> npm install --legacy-peer-deps"
+            npm install --legacy-peer-deps
           fi
+
 
       - name: Lint API
         working-directory: api
@@ -37,17 +39,19 @@ jobs:
         continue-on-error: true   # keep non-blocking
 
       # ---------- Web ----------
-      - name: Install web dependencies (lock-aware)
+      # ---------- Web ----------
+      - name: Install web dependencies (ci)
         working-directory: web
         shell: bash
         run: |
           if [ -f package-lock.json ]; then
-            echo "package-lock.json found -> npm ci"
-            npm ci
+            echo "package-lock.json found -> npm ci --legacy-peer-deps"
+            npm ci --legacy-peer-deps
           else
-            echo "No package-lock.json -> npm install"
-            npm install
+            echo "No package-lock.json -> npm install --legacy-peer-deps"
+            npm install --legacy-peer-deps
           fi
+
 
       - name: Lint web
         working-directory: web
