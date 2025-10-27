@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule, Catch, ArgumentsHost } from '@n
 import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import type { LoggerModuleOptions } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
@@ -57,7 +58,8 @@ class SentryFilter extends BaseExceptionFilter {
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
+      // FIX(build): ensure logger factory matches nestjs-pino expected options type.
+      useFactory: (configService: ConfigService): LoggerModuleOptions => {
         const nodeEnv = configService.get<string>('nodeEnv');
         const level = configService.get<string>('logLevel') ?? 'info';
         return {

@@ -5,7 +5,7 @@ ENV NODE_ENV=production
 
 FROM base AS deps
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm install
 
 FROM deps AS build
 COPY . .

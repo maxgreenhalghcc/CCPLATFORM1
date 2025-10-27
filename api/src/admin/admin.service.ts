@@ -9,14 +9,31 @@ interface DateRange {
   label: string;
 }
 
-interface RevenueSeriesPoint {
+// FIX(build): export metrics series point types for controller return signatures.
+export interface RevenueSeriesPoint {
   date: string;
   value: number;
 }
 
-interface OrderSeriesPoint {
+// FIX(build): export order series point type for controller return signatures.
+export interface OrderSeriesPoint {
   date: string;
   count: number;
+}
+
+export interface RevenueMetricsResponse {
+  barId: string | null;
+  range: string;
+  currency: string;
+  total: number;
+  series: RevenueSeriesPoint[];
+}
+
+export interface OrdersMetricsResponse {
+  barId: string | null;
+  range: string;
+  total: number;
+  series: OrderSeriesPoint[];
 }
 
 @Injectable()
@@ -42,7 +59,7 @@ export class AdminService {
     return date.toISOString().slice(0, 10);
   }
 
-  async getRevenue(barId?: string, range?: string) {
+  async getRevenue(barId?: string, range?: string): Promise<RevenueMetricsResponse> {
     return Sentry.startSpan({ name: 'admin.metrics.revenue', op: 'service' }, async () => {
       const { from, to, label } = this.resolveRange(range);
 
@@ -91,7 +108,7 @@ export class AdminService {
     });
   }
 
-  async getOrders(barId?: string, range?: string) {
+  async getOrders(barId?: string, range?: string): Promise<OrdersMetricsResponse> {
     return Sentry.startSpan({ name: 'admin.metrics.orders', op: 'service' }, async () => {
       const { from, to, label } = this.resolveRange(range);
 

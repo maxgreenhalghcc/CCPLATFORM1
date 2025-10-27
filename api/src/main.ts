@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import rateLimit from 'express-rate-limit';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -21,8 +20,8 @@ if (SENTRY_DSN) {
     tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
     profilesSampleRate: SENTRY_PROFILES_SAMPLE_RATE,
     integrations: [
-      Sentry.httpIntegration(),
-      Sentry.expressIntegration(),
+      // FIX(build): align with supported Sentry node integrations for tracing.
+      new Sentry.Integrations.Http({ tracing: true }),
       nodeProfilingIntegration(),
     ],
     beforeSend(event) {
@@ -96,7 +95,8 @@ async function bootstrap() {
   }
 
   await app.listen(port);
-  logger.info(`🚀 API is running on http://localhost:${port}/${globalPrefix}`);
+  // FIX(build): use Nest logger.log for compatibility with Logger interface.
+  logger.log(`🚀 API is running on http://localhost:${port}/${globalPrefix}`);
 }
 
 void bootstrap();

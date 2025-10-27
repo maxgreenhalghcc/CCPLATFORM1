@@ -43,7 +43,8 @@ export class OrdersService {
     }
 
     this.stripeClient = new Stripe(secretKey, {
-      apiVersion: '2023-10-16'
+      // FIX(build): align Stripe API version with installed SDK typings.
+      apiVersion: '2022-11-15'
     });
 
     return this.stripeClient;
