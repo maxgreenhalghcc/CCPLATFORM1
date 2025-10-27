@@ -3,7 +3,6 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { MiddlewareConsumer, Module, NestModule, Catch, ArgumentsHost } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { LoggerModule } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
