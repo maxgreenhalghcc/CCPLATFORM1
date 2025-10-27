@@ -1,7 +1,5 @@
 import { Params, LoggerModule } from 'nestjs-pino';
 import { IncomingMessage, ServerResponse } from 'http';
-import { Params, LoggerModule } from 'nestjs-pino';
-import { IncomingMessage, ServerResponse } from 'http';
 import { MiddlewareConsumer, Module, NestModule, Catch, ArgumentsHost } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
