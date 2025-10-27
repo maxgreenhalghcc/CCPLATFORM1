@@ -58,7 +58,7 @@ class SentryFilter extends BaseExceptionFilter {
     LoggerModule.forRootAsync({
       inject: [ConfigService],
       // FIX(build): ensure logger factory matches nestjs-pino expected options type.
-      useFactory: (configService: ConfigService): LoggerModuleOptions => {
+      useFactory: (configService: ConfigService) => {
         const nodeEnv = configService.get<string>('nodeEnv');
         const level = configService.get<string>('logLevel') ?? 'info';
         return {
