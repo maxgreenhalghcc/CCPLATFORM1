@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { HttpService } from '@nestjs/axios';
 import {
   Injectable,
