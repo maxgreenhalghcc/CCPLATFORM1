@@ -58,34 +58,34 @@ class SentryFilter extends BaseExceptionFilter {
       validationSchema,
     }),
     LoggerModule.forRootAsync({
-  inject: [ConfigService],
-  useFactory: (configService: ConfigService): Params => {
-    const level = configService.get<string>('logLevel') ?? 'info';
-    return {
-      pinoHttp: {
-        level,
-        // pretty printing in dev; keep or remove as you like
-        transport: { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } },
-        // Note the correct parameter types here:
-        customProps: (_req: IncomingMessage, _res: ServerResponse) => ({
-          requestId: (_req as any)?.requestId,
-          userId: (_req as any)?.user?.id ?? null,
-        }),
-        redact: {
-          paths: [
-            'req.headers.authorization',
-            'req.headers.cookie',
-            'req.headers.x-staff-token',
-            'req.headers["x-staff-token"]',
-            'req.headers["x-api-token"]',
-            'res.headers["set-cookie"]',
-          ],
-          censor: '[redacted]',
-        },
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService): Params => {
+        const level = configService.get<string>('logLevel') ?? 'info';
+        return {
+          pinoHttp: {
+            level,
+            // pretty printing in dev; keep or remove as you like
+            transport: { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } },
+            // Note the correct parameter types here:
+            customProps: (_req: IncomingMessage, _res: ServerResponse) => ({
+              requestId: (_req as any)?.requestId,
+              userId: (_req as any)?.user?.id ?? null,
+            }),
+            redact: {
+              paths: [
+                'req.headers.authorization',
+                'req.headers.cookie',
+                'req.headers.x-staff-token',
+                'req.headers["x-staff-token"]',
+                'req.headers["x-api-token"]',
+                'res.headers["set-cookie"]',
+              ],
+              censor: '[redacted]',
+            },
+          },
+        };
       },
-    };
-  },
-}),
+    }),
 
     PrismaModule,
     AuthModule,
