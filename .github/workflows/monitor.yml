@@ -3,28 +3,6 @@ name: monitor
 on:
   schedule:
     - cron: "*/10 * * * *"
-
-permissions:
-  contents: read
-  issues: write
-
-jobs:
-  smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # If your script uses gh CLI, export the token for it:
-      - name: Configure gh auth
-        run: echo "${{ github.token }}" | gh auth login --with-token
-
-      - name: Run smoke checks
-        run: bash scripts/smoke.sh
-name: monitor
-
-on:
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 jobs:

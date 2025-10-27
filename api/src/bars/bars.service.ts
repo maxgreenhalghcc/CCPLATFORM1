@@ -3,14 +3,15 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common';
-import { Prisma, PrismaClientKnownRequestError } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBarDto } from './dto/create-bar.dto';
 import { UpdateBarDto } from './dto/update-bar.dto';
 import { UpdateBarSettingsDto } from './dto/update-bar-settings.dto';
 import { ListBarsQueryDto } from './dto/list-bars-query.dto';
 
-interface BarSummary {
+// FIX(build): export bar summary type for controller responses.
+export interface BarSummary {
   id: string;
   name: string;
   slug: string;
@@ -20,7 +21,8 @@ interface BarSummary {
   pricingPounds: number | null;
 }
 
-interface BarSettingsResponse {
+// FIX(build): export bar settings response type for controller responses.
+export interface BarSettingsResponse {
   id: string;
   name: string;
   slug: string;
@@ -37,11 +39,21 @@ const DEFAULT_THEME: Record<string, string> = {
   card: '#1f1f2e'
 };
 
+export interface BarListResponse {
+  items: BarSummary[];
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+    pageCount: number;
+  };
+}
+
 @Injectable()
 export class BarsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: ListBarsQueryDto) {
+  async findAll(query: ListBarsQueryDto): Promise<BarListResponse> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const skip = (page - 1) * pageSize;
@@ -89,7 +101,7 @@ export class BarsService {
     };
   }
 
-  async create(dto: CreateBarDto) {
+  async create(dto: CreateBarDto): Promise<BarSummary> {
     try {
       const bar = await this.prisma.bar.create({
         data: {
@@ -116,7 +128,7 @@ export class BarsService {
     }
   }
 
-  async findOne(identifier: string) {
+  async findOne(identifier: string): Promise<BarSummary> {
     const bar = await this.prisma.bar.findFirst({
       where: {
         OR: [{ id: identifier }, { slug: identifier }]
@@ -133,7 +145,7 @@ export class BarsService {
     return this.mapDetail(bar);
   }
 
-  async update(identifier: string, dto: UpdateBarDto) {
+  async update(identifier: string, dto: UpdateBarDto): Promise<BarSummary> {
     const bar = await this.ensureBar(identifier);
 
     try {
@@ -172,7 +184,10 @@ export class BarsService {
     return this.mapSettings(bar);
   }
 
-  async updateSettings(identifier: string, dto: UpdateBarSettingsDto) {
+  async updateSettings(
+    identifier: string,
+    dto: UpdateBarSettingsDto,
+  ): Promise<BarSettingsResponse> {
     const bar = await this.ensureBar(identifier, true);
 
     const existingTheme = (bar.settings?.theme as Record<string, string> | undefined) ?? undefined;
@@ -247,7 +262,7 @@ export class BarsService {
     };
   }
 
-  private mapDetail(bar: Prisma.BarGetPayload<{ include: { settings: true } }>) {
+  private mapDetail(bar: Prisma.BarGetPayload<{ include: { settings: true } }>): BarSummary {
     return {
       ...this.mapSummary(bar)
     };
@@ -308,7 +323,8 @@ export class BarsService {
   }
 
   private handleUniqueConstraint(error: unknown): void {
-    if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
+    // FIX(build): use Prisma namespace error type for compatibility with generated client.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw new ConflictException('A bar with this slug already exists');
     }
   }
