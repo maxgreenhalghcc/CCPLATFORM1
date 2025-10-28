@@ -25,7 +25,7 @@ services:
     env_file:
       - ../.env
     environment:
-      DATABASE_URL: ${DATABASE_URL:-mysql://custom:custom@mysql:3306/custom_cocktails}
+      DATABASE_URL: ${DATABASE_URL="mysql://root:dev-secret@localhost:3306/ccplatform1"}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     depends_on:
       mysql:
