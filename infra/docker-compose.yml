@@ -25,7 +25,7 @@ services:
     env_file:
       - ../.env
     environment:
-      DATABASE_URL: ${DATABASE_URL:-mysql://ccai:SuperStrongPass@mysql:3306/custom_cocktails}
+      DATABASE_URL: ${DATABASE_URL:-mysql://ccai:SuperStrongPass@localhost:3306/custom_cocktails}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     depends_on:
       mysql:
