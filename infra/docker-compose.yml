@@ -48,10 +48,7 @@ services:
     ports:
       - "5000:5000"
     healthcheck:
-      test: >
-        CMD-SHELL
-        python -c "import sys,urllib.request;
-        sys.exit(0) if urllib.request.urlopen('http://localhost:5000/health', timeout=2).status==200 else sys.exit(1)"
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:5000/health', timeout=2).status==200 else sys.exit(1)\""]
       interval: 10s
       timeout: 3s
       retries: 5
