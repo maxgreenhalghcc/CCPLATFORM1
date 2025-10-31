@@ -76,13 +76,15 @@ async def generate_endpoint(
 ) -> GenerateResponse:
     with sentry_sdk.start_span(op="service", description="recipe.generate"):
         return generate_recipe(payload)
-  recipe:
-    ...
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+
+recipe:
+...
+healthcheck:
+    test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health >/dev/null 2>&1 || exit 1"]
+    interval: 10s
+    timeout: 3s
+    retries: 5
+
 @router.get("/health")
 def health():
     return {"status": "ok"}
