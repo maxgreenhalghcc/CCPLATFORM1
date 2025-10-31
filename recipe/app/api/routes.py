@@ -76,8 +76,6 @@ async def generate_endpoint(
 ) -> GenerateResponse:
     with sentry_sdk.start_span(op="service", description="recipe.generate"):
         return generate_recipe(payload)
-
-
 @router.get("/health")
 def health():
     return {"status": "ok"}
