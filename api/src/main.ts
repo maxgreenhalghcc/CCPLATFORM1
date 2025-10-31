@@ -94,6 +94,23 @@ async function bootstrap() {
     httpAdapter.use(Sentry.Handlers.errorHandler());
   }
 
+  // 🔍 Log all Express routes to help debug endpoints
+  const server: any = app.getHttpServer();
+  const router = server._events?.request?._router;
+  if (router?.stack) {
+    console.log('--- Registered routes ---');
+    router.stack
+      .filter((layer: any) => layer.route)
+      .forEach((layer: any) => {
+        const methods = Object.keys(layer.route.methods)
+          .map(m => m.toUpperCase())
+          .join(',');
+        console.log(`${methods} ${layer.route.path}`);
+     });
+    console.log('-------------------------');
+  }
+
+  
   await app.listen(port);
   // FIX(build): use Nest logger.log for compatibility with Logger interface.
   logger.log(`🚀 API is running on http://localhost:${port}/${globalPrefix}`);

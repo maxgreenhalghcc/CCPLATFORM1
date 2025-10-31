@@ -1,7 +1,6 @@
+from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Annotated
-
-from __future__ import annotations
 
 import jwt
 import sentry_sdk
