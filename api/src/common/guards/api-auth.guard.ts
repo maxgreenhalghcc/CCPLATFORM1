@@ -1,3 +1,4 @@
+import * as jwt from 'jsonwebtoken';
 import {
   CanActivate,
   ExecutionContext,
