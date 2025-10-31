@@ -41,20 +41,20 @@ services:
       retries: 10
 
   recipe:
-  build:
-    context: ../recipe
-  env_file:
-    - ../.env
-  ports:
-    - "5000:5000"
-  healthcheck:
-    test: >
-      CMD-SHELL
-      python -c "import sys,urllib.request;
-      sys.exit(0) if urllib.request.urlopen('http://localhost:5000/health', timeout=2).status==200 else sys.exit(1)"
-    interval: 10s
-    timeout: 3s
-    retries: 5
+    build:
+      context: ../recipe
+    env_file:
+      - ../.env
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: >
+        CMD-SHELL
+        python -c "import sys,urllib.request;
+        sys.exit(0) if urllib.request.urlopen('http://localhost:5000/health', timeout=2).status==200 else sys.exit(1)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 
   web:
