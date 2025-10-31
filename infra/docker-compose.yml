@@ -48,10 +48,10 @@ services:
     ports:
       - '5000:5000'
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:5000/status || exit 1']
-      interval: 15s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   web:
     build:
