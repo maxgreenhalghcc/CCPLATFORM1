@@ -4,12 +4,10 @@ from typing import Annotated
 
 import jwt
 import sentry_sdk
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jwt import InvalidTokenError
 from sentry_sdk import configure_scope
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Annotated
 from uuid import uuid4
 
 from ..core.config import get_settings, Settings
