@@ -9,10 +9,36 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
+    # IMPORTANT: give the token enough permissions for scheduled runs
+    permissions:
+      contents: read
+      issues: write
+
     steps:
       - uses: actions/checkout@v4
 
+      # Validate required secrets (skip gracefully if missing)
+      - name: Validate inputs
+        id: validate
+        env:
+          MONITOR_API_BASE_URL: ${{ secrets.MONITOR_API_BASE_URL }}
+          MONITOR_BAR_SLUG: ${{ secrets.MONITOR_BAR_SLUG }}
+          EXPECTED_VERSION: ${{ secrets.MONITOR_EXPECTED_VERSION }}
+        run: |
+          ok=true
+          if [ -z "$MONITOR_API_BASE_URL" ]; then
+            echo "::warning::Missing secret MONITOR_API_BASE_URL"
+            ok=false
+          fi
+          if [ -z "$MONITOR_BAR_SLUG" ]; then
+            echo "::warning::Missing secret MONITOR_BAR_SLUG"
+            ok=false
+          fi
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+
       - name: Run smoke against API
+        if: ${{ steps.validate.outputs.ok == 'true' }}
         env:
           BASE_URL: ${{ secrets.MONITOR_API_BASE_URL }}
           BAR_SLUG: ${{ secrets.MONITOR_BAR_SLUG }}
@@ -25,14 +51,15 @@ jobs:
             ./scripts/smoke.sh "$BASE_URL" "$BAR_SLUG"
           fi
 
-      - if: failure()
-        name: Open incident issue
+      - name: Open incident issue
+        if: failure() && steps.validate.outputs.ok == 'true'
         uses: actions-ecosystem/action-create-issue@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           title: "Production smoke failed ❌"
           body: |
-            The scheduled smoke checks failed.
+            The scheduled smoke check failed.
+
             - Workflow: ${{ github.workflow }}
             - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             - Time (UTC): ${{ github.run_started_at }}
