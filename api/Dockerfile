@@ -3,6 +3,8 @@ FROM node:20-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
 
+RUN apk add --no-cache openssl1.1-compat ca-certificates
+
 FROM base AS deps
 COPY package*.json ./
 RUN npm install
