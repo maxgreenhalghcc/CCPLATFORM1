@@ -14,12 +14,12 @@ describe('OrdersService.listForBar', () => {
 
   beforeAll(async () => {
     prisma = new PrismaService({
-      datasources: {
-        db: {
-          url: 'file:memdb1?mode=memory&cache=shared'
-        }
+    datasources: {
+      db: {
+        url: 'file:memdb1?mode=memory&cache=shared'
       }
-    });
+    }
+  }as any);
 
     await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = ON;`);
     await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Order";`);
