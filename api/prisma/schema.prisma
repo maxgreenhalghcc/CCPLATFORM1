@@ -5,6 +5,8 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x"]
+  engineType    = "library"       // (safer inside containers)
 }
 
 enum UserRole {
