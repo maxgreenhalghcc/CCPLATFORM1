@@ -7,7 +7,7 @@ import type {
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../common/roles/user-role.enum';
 
 @UseGuards(ApiAuthGuard, RolesGuard)
 @Roles(UserRole.admin)

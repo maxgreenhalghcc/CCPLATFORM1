@@ -7,7 +7,8 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus as PrismaOrderStatus, UserRole } from '@prisma/client';
+import { OrderStatus as PrismaOrderStatus} from '@prisma/client';
+import { UserRole } from '../common/roles/user-role.enum';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
