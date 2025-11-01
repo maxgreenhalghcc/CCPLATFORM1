@@ -4,7 +4,7 @@ import { OrdersService } from './orders.service';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../common/roles/user-role.enum';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @UseGuards(ApiAuthGuard, RolesGuard)
