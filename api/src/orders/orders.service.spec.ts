@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, Prisma, UserRole } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
+import { UserRole } from '../common/roles/user-role.enum';
 import { ForbiddenException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
