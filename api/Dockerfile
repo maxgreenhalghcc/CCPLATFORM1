@@ -8,7 +8,6 @@ ENV NODE_ENV=production
 # ---------- deps ----------
 FROM base AS deps
 COPY package*.json ./
-# Use ci for reproducible installs; swap to `npm install` if you prefer
 RUN npm ci --omit=dev
 
 # ---------- build ----------
