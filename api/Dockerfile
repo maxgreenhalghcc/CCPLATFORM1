@@ -3,7 +3,7 @@ FROM node:20-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
 
-RUN apk add --no-cache openssl1.1-compat ca-certificates
+RUN apk add --no-cache openssl ca-certificates libc6-compat
 
 FROM base AS deps
 COPY package*.json ./
