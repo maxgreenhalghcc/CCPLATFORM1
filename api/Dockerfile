@@ -26,6 +26,7 @@ RUN apk add --no-cache openssl ca-certificates libc6-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
+COPY --from=build /app/prisma ./prisma
 EXPOSE 4000
 CMD ["node","dist/src/main.js"]
 

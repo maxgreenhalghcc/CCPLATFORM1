@@ -1,4 +1,9 @@
-{
+{ 
+  {
+    "prisma": {
+      "seed": "ts-node prisma/seed.ts"
+    }
+  }
   "name": "custom-cocktails-api",
   "version": "1.0.1-rc.1",
   "private": true,
@@ -12,7 +17,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed": "ts-node src/seed.ts",
-    "test": "jest"
+    "test": "jest",
   },
   "dependencies": {
     "@nestjs/axios": "3.0.2",
@@ -60,11 +65,5 @@
   "overrides": {
     "reflect-metadata": "0.1.13"
   }
-
-  {
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  }
-}
 
 }
