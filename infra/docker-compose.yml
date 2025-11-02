@@ -8,7 +8,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-super-secret-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-custom_cocktails}
       MYSQL_USER: ${MYSQL_USER:-custom}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-custom}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:SuperStrongPass}
     volumes:
       - mysql-data:/var/lib/mysql
     ports:
