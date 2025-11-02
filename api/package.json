@@ -1,12 +1,12 @@
-{ 
-  {
-    "prisma": {
-      "seed": "ts-node prisma/seed.ts"
-    }
-  }
+{   
   "name": "custom-cocktails-api",
   "version": "1.0.1-rc.1",
   "private": true,
+
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
+
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
