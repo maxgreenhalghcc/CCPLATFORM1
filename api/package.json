@@ -60,4 +60,11 @@
   "overrides": {
     "reflect-metadata": "0.1.13"
   }
+
+  {
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
+}
+
 }
