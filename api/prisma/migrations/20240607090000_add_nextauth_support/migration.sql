@@ -1,8 +1,8 @@
 -- AlterTable
 ALTER TABLE `User`
-    ADD COLUMN `emailVerified` DATETIME(3) NULL,
-    ADD COLUMN `image` VARCHAR(191) NULL,
-    ADD COLUMN `name` VARCHAR(191) NULL,
+    ADD IF NOT EXISTS COLUMN `emailVerified` DATETIME(3) NULL,
+    ADD IF NOT EXISTS COLUMN `image` VARCHAR(191) NULL,
+    ADD IF NOT EXISTS COLUMN `name` VARCHAR(191) NULL,
     MODIFY `role` ENUM('admin', 'staff', 'customer') NOT NULL DEFAULT 'customer';
 
 -- CreateTable
