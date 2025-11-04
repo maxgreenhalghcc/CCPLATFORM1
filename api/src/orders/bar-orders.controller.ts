@@ -46,18 +46,11 @@ const OrderStatusValues: Record<string, OrderStatus> = (() => {
 // Lowercase keys we’ll accept from the query (e.g. 'paid', 'created', …)
 const AllowedStatusKeys = new Set(Object.keys(OrderStatusValues));
 
-type PrismaOrderStatus = Prisma.$Enums.OrderStatus; // (v5) – safe in v4 as well
-
 @UseGuards(ApiAuthGuard, RolesGuard)
 @Roles(UserRole.admin, UserRole.staff)
 @Controller('bars')
 export class BarOrdersController {
   constructor(private readonly ordersService: OrdersService) {}
-  // Build a set of valid lowercase enum keys (e.g. 'paid', 'created', 'cancelled', 'fulfilled')
-  // Build a set of valid lowercase enum values (e.g. 'paid','created','cancelled','fulfilled')
-  private readonly allowedStatuses = new Set<string>(
-    Object.values(OrderStatusValues)
-  );
 
   @Get(':id/orders')
   async listForBar(
