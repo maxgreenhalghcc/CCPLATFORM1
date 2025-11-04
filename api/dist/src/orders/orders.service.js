@@ -12,10 +12,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const client_1 = require("@prisma/client");
+const user_role_enum_1 = require("../common/roles/user-role.enum");
 const stripe_1 = require("stripe");
 const prisma_service_1 = require("../prisma/prisma.service");
 const Sentry = require("@sentry/node");
+const OrderStatusValues = {
+    created: 'created',
+    paid: 'paid',
+    cancelled: 'cancelled',
+    fulfilled: 'fulfilled',
+};
 let OrdersService = class OrdersService {
     constructor(prisma, configService) {
         this.prisma = prisma;
@@ -156,22 +162,22 @@ let OrdersService = class OrdersService {
             throw new common_1.NotFoundException('Bar not found');
         }
         if (requester) {
-            if (requester.role === client_1.UserRole.staff) {
+            if (requester.role === user_role_enum_1.UserRole.staff) {
                 if (!requester.barId || requester.barId !== bar.id) {
                     throw new common_1.ForbiddenException('Staff users can only access their assigned bar');
                 }
             }
-            else if (requester.role !== client_1.UserRole.admin) {
+            else if (requester.role !== user_role_enum_1.UserRole.admin) {
                 throw new common_1.ForbiddenException('User is not permitted to view orders');
             }
         }
-        if (status && !Object.values(client_1.OrderStatus).includes(status)) {
+        if (status && !Object.values(OrderStatusValues).includes(status)) {
             throw new common_1.BadRequestException('Invalid status filter');
         }
         const orders = await this.prisma.order.findMany({
             where: {
                 barId: bar.id,
-                ...(status ? { status } : {})
+                ...(status ? { status: status } : {})
             },
             orderBy: { createdAt: 'desc' },
             take: 100,
@@ -183,12 +189,12 @@ let OrdersService = class OrdersService {
             }
         });
         return {
-            items: orders.map((order) => ({
-                id: order.id,
-                status: order.status,
-                createdAt: order.createdAt.toISOString(),
-                fulfilledAt: order.fulfilledAt?.toISOString() ?? null
-            }))
+            items: orders.map((o) => ({
+                id: o.id,
+                status: o.status,
+                createdAt: o.createdAt.toISOString(),
+                fulfilledAt: o.fulfilledAt?.toISOString() ?? null,
+            })),
         };
     }
     async updateStatus(orderId, status, requester) {
@@ -209,16 +215,16 @@ let OrdersService = class OrdersService {
                 throw new common_1.NotFoundException('Order not found');
             }
             if (requester) {
-                if (requester.role === client_1.UserRole.staff) {
+                if (requester.role === user_role_enum_1.UserRole.staff) {
                     if (!requester.barId || requester.barId !== order.barId) {
                         throw new common_1.ForbiddenException('Staff users can only update orders for their bar');
                     }
                 }
-                else if (requester.role !== client_1.UserRole.admin) {
+                else if (requester.role !== user_role_enum_1.UserRole.admin) {
                     throw new common_1.ForbiddenException('User is not permitted to update orders');
                 }
             }
-            if (order.status === client_1.OrderStatus.fulfilled) {
+            if (order.status === OrderStatusValues.fulfilled) {
                 if (!order.fulfilledAt) {
                     const updated = await this.prisma.order.update({
                         where: { id: order.id },
@@ -243,14 +249,14 @@ let OrdersService = class OrdersService {
                     fulfilledAt: order.fulfilledAt?.toISOString() ?? null
                 };
             }
-            if (order.status !== client_1.OrderStatus.paid) {
+            if (order.status !== OrderStatusValues.paid) {
                 throw new common_1.ConflictException('Only paid orders can be fulfilled');
             }
             const fulfilledAt = new Date();
             const updated = await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
-                    status: client_1.OrderStatus.fulfilled,
+                    status: OrderStatusValues.fulfilled,
                     fulfilledAt
                 },
                 select: {
