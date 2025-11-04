@@ -18,7 +18,7 @@ const admin_service_1 = require("./admin.service");
 const api_auth_guard_1 = require("../common/guards/api-auth.guard");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
 const roles_guard_1 = require("../common/guards/roles.guard");
-const client_1 = require("@prisma/client");
+const user_role_enum_1 = require("../common/roles/user-role.enum");
 let AdminController = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;
@@ -60,7 +60,7 @@ __decorate([
 ], AdminController.prototype, "getIngredients", null);
 exports.AdminController = AdminController = __decorate([
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(client_1.UserRole.admin),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin),
     (0, common_1.Controller)('admin'),
     __metadata("design:paramtypes", [admin_service_1.AdminService])
 ], AdminController);

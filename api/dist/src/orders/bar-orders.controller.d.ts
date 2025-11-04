@@ -1,13 +1,12 @@
-import { OrdersService } from './orders.service';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import { OrdersService } from './orders.service';
 export declare class BarOrdersController {
     private readonly ordersService;
-    private readonly allowedStatuses;
     constructor(ordersService: OrdersService);
-    listForBar(id: string, status: string | undefined, request: AuthenticatedRequest): Promise<{
+    listForBar(id: string, request: AuthenticatedRequest, status?: string): Promise<{
         items: {
             id: string;
-            status: import(".prisma/client").$Enums.OrderStatus;
+            status: "paid" | "created" | "cancelled" | "fulfilled";
             createdAt: string;
             fulfilledAt: string | null;
         }[];

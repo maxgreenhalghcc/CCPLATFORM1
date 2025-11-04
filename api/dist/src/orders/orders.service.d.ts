@@ -1,8 +1,14 @@
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus as PrismaOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
+declare const OrderStatusValues: {
+    readonly created: "created";
+    readonly paid: "paid";
+    readonly cancelled: "cancelled";
+    readonly fulfilled: "fulfilled";
+};
+type PrismaOrderStatus = typeof OrderStatusValues[keyof typeof OrderStatusValues];
 export declare class OrdersService {
     private readonly prisma;
     private readonly configService;
@@ -28,7 +34,7 @@ export declare class OrdersService {
     listForBar(barIdentifier: string, status?: PrismaOrderStatus, requester?: AuthenticatedUser): Promise<{
         items: {
             id: string;
-            status: import(".prisma/client").$Enums.OrderStatus;
+            status: PrismaOrderStatus;
             createdAt: string;
             fulfilledAt: string | null;
         }[];
@@ -39,3 +45,4 @@ export declare class OrdersService {
         fulfilledAt: string | null;
     }>;
 }
+export {};
