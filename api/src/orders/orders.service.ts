@@ -7,13 +7,23 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus as PrismaOrderStatus} from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { UserRole } from '../common/roles/user-role.enum';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import * as Sentry from '@sentry/node';
+
+// Runtime-safe map of valid statuses + a type that matches your DB enum values
+const OrderStatusValues = {
+  created: 'created',
+  paid: 'paid',
+  cancelled: 'cancelled',
+  fulfilled: 'fulfilled',
+} as const;
+
+type PrismaOrderStatus = typeof OrderStatusValues[keyof typeof OrderStatusValues];
 
 interface NormalizedRecipeBody {
   ingredients?: unknown;
@@ -209,14 +219,14 @@ export class OrdersService {
       }
     }
 
-    if (status && !Object.values(PrismaOrderStatus).includes(status)) {
-      throw new BadRequestException('Invalid status filter');
-    }
+   if (status && !Object.values(OrderStatusValues).includes(status as PrismaOrderStatus)) {
+    throw new BadRequestException('Invalid status filter');
+   }
 
     const orders = await this.prisma.order.findMany({
       where: {
         barId: bar.id,
-        ...(status ? { status } : {})
+        ...(status ? { status: status as PrismaOrderStatus } : {})
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -228,14 +238,21 @@ export class OrdersService {
       }
     });
 
-    return {
-      items: orders.map((order) => ({
-        id: order.id,
-        status: order.status,
-        createdAt: order.createdAt.toISOString(),
-        fulfilledAt: order.fulfilledAt?.toISOString() ?? null
-      }))
-    };
+  return {
+    items: orders.map(
+      (o: {
+        id: string;
+        status: PrismaOrderStatus;      // import this from @prisma/client
+        createdAt: Date;
+        fulfilledAt: Date | null;
+      }) => ({
+        id: o.id,
+        status: o.status,
+        createdAt: o.createdAt.toISOString(),
+        fulfilledAt: o.fulfilledAt?.toISOString() ?? null,
+      })
+    ),
+  };
   }
 
   async updateStatus(orderId: string, status: 'fulfilled', requester?: AuthenticatedUser) {
@@ -268,7 +285,7 @@ export class OrdersService {
         }
       }
 
-      if (order.status === PrismaOrderStatus.fulfilled) {
+      if (order.status === OrderStatusValues.fulfilled) {
         if (!order.fulfilledAt) {
           const updated = await this.prisma.order.update({
             where: { id: order.id },
@@ -296,7 +313,7 @@ export class OrdersService {
         };
       }
 
-      if (order.status !== PrismaOrderStatus.paid) {
+      if (order.status !== OrderStatusValues.paid) {
         throw new ConflictException('Only paid orders can be fulfilled');
       }
 
@@ -305,7 +322,7 @@ export class OrdersService {
       const updated = await this.prisma.order.update({
         where: { id: order.id },
         data: {
-          status: PrismaOrderStatus.fulfilled,
+          status: OrderStatusValues.fulfilled as PrismaOrderStatus,
           fulfilledAt
         },
         select: {
