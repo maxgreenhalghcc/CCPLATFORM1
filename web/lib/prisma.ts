@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../api/node_modules/@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
