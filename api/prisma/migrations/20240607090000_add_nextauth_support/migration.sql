@@ -43,7 +43,7 @@ CREATE TABLE `VerificationToken` (
 );
 
 -- AddForeignKey
-ALTER TABLE `Account`
+ALTER TABLE `Account` MODIFY `userId` VARCHAR(191) NOT NULL;
   ADD CONSTRAINT `Account_userId_fkey`
   FOREIGN KEY (`userId`) REFERENCES `User`(`id`)
   ON DELETE CASCADE ON UPDATE CASCADE;
