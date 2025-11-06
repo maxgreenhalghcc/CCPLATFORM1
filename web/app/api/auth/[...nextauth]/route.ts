@@ -16,11 +16,6 @@ export const authOptions: NextAuthOptions = {
         : { jsonTransport: true },
       from: process.env.EMAIL_FROM ?? "no-reply@localhost",
       maxAge: 10 * 60, // 10 minutes
-      sendVerificationRequest({ identifier, url, provider }) {
-        // This is a safety fix for the "concat" crash
-        console.log("Magic link for", identifier);
-        console.log("Click to sign in:", url);
-      },
     }),
   ],
   pages: { signIn: "/login" },
