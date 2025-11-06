@@ -1,15 +1,16 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/lib/prisma"; // make sure this path exists
+import prisma from "@/lib/prisma"; // make sure this points to web/lib/prisma.ts
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any, // ← fixes TypeScript mismatch safely
+  adapter: PrismaAdapter(prisma),
+  // Use DB sessions so we don't rely on JWT decryption
   session: { strategy: "database" },
-
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     EmailProvider({
-      // Use JSON transport in dev — prints magic link to terminal
+      // JSON transport prints the magic link in your terminal
       server: process.env.EMAIL_SERVER
         ? JSON.parse(process.env.EMAIL_SERVER)
         : { jsonTransport: true },
@@ -22,12 +23,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-
-  pages: {
-    signIn: "/login",
-  },
-
-  secret: process.env.NEXTAUTH_SECRET,
+  pages: { signIn: "/login" },
   debug: process.env.NEXTAUTH_DEBUG === "1",
 };
 
