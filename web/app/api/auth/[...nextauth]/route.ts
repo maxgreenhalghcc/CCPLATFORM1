@@ -15,8 +15,6 @@ export const authOptions: NextAuthOptions = {
       server: process.env.EMAIL_SERVER
         ? JSON.parse(process.env.EMAIL_SERVER)
         : { jsonTransport: true },
-
-      // Make sure "from" is always defined
       from: process.env.EMAIL_FROM ?? "no-reply@localhost",
       // how long the magic-link is valid
       maxAge: 10 * 60, // 10 minutes
