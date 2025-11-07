@@ -1,35 +1,44 @@
-// web/app/api/auth/[...nextauth]/route.ts
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/lib/prisma"; // your existing prisma singleton
+import prisma from "@/lib/prisma"; // your prisma singleton
 
 export const authOptions: NextAuthOptions = {
-  // Use DB-backed sessions so we don’t have to decrypt JWTs
+  // DB-backed sessions avoid JWT decryption issues during email callbacks
   session: { strategy: "database" },
 
-  // One secret for everything (matches .env.local)
+  // One secret for everything
   secret: process.env.NEXTAUTH_SECRET,
 
-  // Prisma adapter for User / Session / VerificationToken tables
+  // Use Prisma for users/sessions/verification tokens
   adapter: PrismaAdapter(prisma),
 
-  // Magic-link email provider
+  // Email “magic link” provider – dev-safe
   providers: [
     EmailProvider({
-      // In dev we print the link instead of sending mail
-      server: process.env.EMAIL_SERVER
-        ? JSON.parse(process.env.EMAIL_SERVER)
-        : { jsonTransport: true },
-      from: process.env.EMAIL_FROM ?? "no-reply@localhost",
+      // Ignore EMAIL_SERVER in dev; just print the link to the console
+      server: { jsonTransport: true },
+      from: process.env.EMAIL_FROM ?? "Custom Cocktails <no-reply@localhost>",
       maxAge: 10 * 60, // 10 minutes
+
+      // Dev override: print the link and don't talk to any SMTP transport
+      async sendVerificationRequest({ identifier, url }) {
+        // Make sure the URL uses your NEXTAUTH_URL base
+        const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+        const safeUrl = new URL(url);
+        safeUrl.host = new URL(base).host;
+        safeUrl.protocol = new URL(base).protocol;
+
+        console.log("\nMagic link for", identifier);
+        console.log(safeUrl.toString(), "\n");
+      },
     }),
   ],
 
-  // Where to show the email form
+  // Route overrides (keep your current login page)
   pages: { signIn: "/login" },
 
-  // Helpful while we’re stabilising
+  // Handy while stabilising
   debug: process.env.NEXTAUTH_DEBUG === "1",
 };
 
