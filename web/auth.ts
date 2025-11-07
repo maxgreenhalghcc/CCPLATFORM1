@@ -7,34 +7,35 @@ import prisma from "@/lib/prisma";
 const isDev = process.env.NODE_ENV !== "production";
 
 const authOptions = {
+  // use DB sessions, avoids JWE decrypt headaches
   session: { strategy: "database" },
   secret: process.env.NEXTAUTH_SECRET,
+
   adapter: PrismaAdapter(prisma),
+
   providers: [
     EmailProvider({
-      server: isDev
-        ? { jsonTransport: true }
-        : JSON.parse(process.env.EMAIL_SERVER || "{}"),
-      from: process.env.EMAIL_FROM ?? "Custom Cocktails <no-reply@localhost>",
+      // Dev: don't send real email; print magic link
+      server: isDev ? { jsonTransport: true } : JSON.parse(process.env.EMAIL_SERVER || "{}"),
+      from: process.env.EMAIL_FROM ?? `Custom Cocktails <no-reply@localhost>`,
       maxAge: 10 * 60,
       async sendVerificationRequest({ identifier, url }) {
-        if (!isDev) return;
+        if (!isDev) return;              // prod uses SMTP above
         const base = process.env.NEXTAUTH_URL || "http://localhost:3000";
         const u = new URL(url);
         const b = new URL(base);
         u.host = b.host;
         u.protocol = b.protocol;
+        // pretty console output
         console.log("\nMagic link for", identifier);
         console.log(u.toString(), "\n");
       },
     }),
   ],
+
   pages: { signIn: "/login" },
   debug: process.env.NEXTAUTH_DEBUG === "1",
-};
+} as const;
 
-const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
-
-export const GET = handlers.GET;
-export const POST = handlers.POST;
-export { auth, signIn, signOut };
+// v5: NextAuth returns { handlers, auth, signIn, signOut }
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
