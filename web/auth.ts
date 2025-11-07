@@ -1,48 +1,51 @@
 // web/auth.ts
-import NextAuth, { type NextAuthConfig } from "next-auth";
+import NextAuth from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/lib/prisma"; // keep this path if your prisma singleton is at web/lib/prisma.ts
+import prisma from "@/lib/prisma";
 
-export const authOptions: NextAuthConfig = {
-  // Use DB-backed sessions so nothing tries to decrypt JWTs anymore
+const isDev = process.env.NODE_ENV !== "production";
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Use DB sessions so we avoid JWE issues entirely
   session: { strategy: "database" },
 
-  // One secret for everything (keep your existing value)
+  // One secret for everything
   secret: process.env.NEXTAUTH_SECRET,
 
-  // Prisma for users/sessions/verification tokens
+  // Prisma adapter for users/sessions/verification tokens
   adapter: PrismaAdapter(prisma),
 
-  // Email “magic link” provider
+  // Email magic-link provider
   providers: [
     EmailProvider({
-      // Dev-safe: print the magic link to your terminal (no SMTP required)
-      server: { jsonTransport: true },
-      from: process.env.EMAIL_FROM ?? `Custom Cocktails <no-reply@localhost>`,
+      // In dev: don't send real email — just print the link to the console
+      server: isDev
+        ? { jsonTransport: true }
+        : JSON.parse(process.env.EMAIL_SERVER || "{}"),
+
+      from: process.env.EMAIL_FROM ?? "Custom Cocktails <no-reply@localhost>",
       maxAge: 10 * 60, // 10 minutes
 
-      // Fully override: don't try to send email, just log the link
+      // Dev-only override: print the magic link and make sure host/protocol match NEXTAUTH_URL
       async sendVerificationRequest({ identifier, url }) {
-        // Make sure the printed link uses the right host/protocol
-        const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-        const safeUrl = new URL(url);
-        const baseUrl = new URL(base);
-        safeUrl.host = baseUrl.host;
-        safeUrl.protocol = baseUrl.protocol;
+        if (!isDev) return; // prod will use the SMTP server above
+
+        const base = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const u = new URL(url);
+        const b = new URL(base);
+        u.host = b.host;
+        u.protocol = b.protocol;
 
         console.log("\nMagic link for", identifier);
-        console.log(safeUrl.toString(), "\n");
+        console.log(u.toString(), "\n");
       },
     }),
   ],
 
-  // Where to show the email form
+  // Where the email form lives
   pages: { signIn: "/login" },
 
-  // Helpful while we’re stabilising
+  // Helpful while stabilizing
   debug: process.env.NEXTAUTH_DEBUG === "1",
-};
-
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
-export type { NextAuthConfig };
+});

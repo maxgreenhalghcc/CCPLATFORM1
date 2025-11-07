@@ -1,2 +1,2 @@
 // web/app/api/auth/[...nextauth]/route.ts
-export { GET, POST } from "@/auth";
+export { handlers as GET, handlers as POST } from "@/auth";
