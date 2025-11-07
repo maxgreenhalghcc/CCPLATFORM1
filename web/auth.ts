@@ -1,96 +1,48 @@
-import { getServerSession, type NextAuthOptions } from 'next-auth';
-import EmailProvider from 'next-auth/providers/email';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { UserRole } from '@prisma/client';
-import nodemailer from 'nodemailer';
-import { sign } from 'jsonwebtoken';
-import prisma from './lib/prisma';
+// web/auth.ts
+import NextAuth, { type NextAuthConfig } from "next-auth";
+import EmailProvider from "next-auth/providers/email";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import prisma from "@/lib/prisma"; // keep this path if your prisma singleton is at web/lib/prisma.ts
 
-const fromAddress = process.env.EMAIL_FROM ?? 'login@example.com';
+export const authOptions: NextAuthConfig = {
+  // Use DB-backed sessions so nothing tries to decrypt JWTs anymore
+  session: { strategy: "database" },
 
-function createTransport() {
-  const server = process.env.EMAIL_SERVER;
-  if (server && server.length > 0) {
-    return nodemailer.createTransport(server);
-  }
-  return nodemailer.createTransport({ jsonTransport: true });
-}
-
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // One secret for everything (keep your existing value)
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: 'jwt' },
-  pages: {
-    signIn: '/login'
-  },
+
+  // Prisma for users/sessions/verification tokens
+  adapter: PrismaAdapter(prisma),
+
+  // Email “magic link” provider
   providers: [
     EmailProvider({
-      from: fromAddress,
-      maxAge: 15 * 60,
+      // Dev-safe: print the magic link to your terminal (no SMTP required)
+      server: { jsonTransport: true },
+      from: process.env.EMAIL_FROM ?? `Custom Cocktails <no-reply@localhost>`,
+      maxAge: 10 * 60, // 10 minutes
+
+      // Fully override: don't try to send email, just log the link
       async sendVerificationRequest({ identifier, url }) {
-        const transport = createTransport();
-        await transport.sendMail({
-          to: identifier,
-          from: fromAddress,
-          subject: 'Sign in to Custom Cocktails',
-          text: `Click the link below to sign in:\n${url}`,
-          html: `<p>Click the link below to sign in:</p><p><a href="${url}">${url}</a></p>`
-        });
+        // Make sure the printed link uses the right host/protocol
+        const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+        const safeUrl = new URL(url);
+        const baseUrl = new URL(base);
+        safeUrl.host = baseUrl.host;
+        safeUrl.protocol = baseUrl.protocol;
 
-        const usesJsonTransport = Boolean((transport as any)?.options?.jsonTransport);
-        if (usesJsonTransport) {
-          console.info(`[auth] Magic link for ${identifier}: ${url}`);
-        }
-      }
-    })
+        console.log("\nMagic link for", identifier);
+        console.log(safeUrl.toString(), "\n");
+      },
+    }),
   ],
-  callbacks: {
-    async signIn({ user }) {
-      const role = (user.role ?? 'customer') as UserRole;
-      return role === UserRole.admin || role === UserRole.staff;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role as UserRole;
-        token.barId = user.barId ?? null;
-        token.email = user.email;
-      } else if (!token.role && token.email) {
-        const dbUser = await prisma.user.findUnique({ where: { email: token.email as string } });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.barId = dbUser.barId ?? null;
-        }
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      const email = (token.email as string) ?? session.user?.email ?? '';
-      session.user = {
-        id: (token.sub as string) ?? '',
-        email,
-        role: (token.role as UserRole) ?? UserRole.customer,
-        barId: (token.barId as string | null) ?? null
-      };
 
-      const secret = process.env.NEXTAUTH_SECRET;
-      if (secret && token.sub) {
-        session.apiToken = sign(
-          {
-            sub: token.sub,
-            email,
-            role: token.role,
-            barId: token.barId ?? null
-          },
-          secret,
-          { expiresIn: '5m' }
-        );
-      }
+  // Where to show the email form
+  pages: { signIn: "/login" },
 
-      return session;
-    }
-  }
+  // Helpful while we’re stabilising
+  debug: process.env.NEXTAUTH_DEBUG === "1",
 };
 
-export function auth() {
-  return getServerSession(authOptions);
-}
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+export type { NextAuthConfig };
