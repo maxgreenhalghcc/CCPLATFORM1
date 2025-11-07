@@ -4,6 +4,9 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { auth } from '@/auth';
+// v4 uses getServerSession
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -17,7 +20,7 @@ interface RootLayoutProps {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
 
   return (
     <html className={inter.variable} lang="en" suppressHydrationWarning>
