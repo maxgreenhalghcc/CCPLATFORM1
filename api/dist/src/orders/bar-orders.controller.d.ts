@@ -6,7 +6,7 @@ export declare class BarOrdersController {
     listForBar(id: string, request: AuthenticatedRequest, status?: string): Promise<{
         items: {
             id: string;
-            status: "created" | "paid" | "fulfilled" | "cancelled";
+            status: "created" | "paid" | "cancelled" | "fulfilled";
             createdAt: string;
             fulfilledAt: string | null;
         }[];
