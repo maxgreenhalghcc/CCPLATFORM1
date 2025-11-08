@@ -20,8 +20,8 @@ export class ApiAuthGuard implements CanActivate {
       request.user = { sub: 'dev', role, barId: 'demo-bar' };
       return true;
     }
+    // ------------------------------------------------------------------------
 
-    // ── Real auth path (NextAuth JWT) ───────────────────────────────────────────
     if (!authorization) {
       throw new UnauthorizedException('Authorization header missing');
     }
@@ -38,14 +38,6 @@ export class ApiAuthGuard implements CanActivate {
         throw new UnauthorizedException('Token missing required claims');
       }
 
-      // Coerce string role → Prisma enum
-      const roleKey = payload.role as keyof typeof UserRole;
-      const roleEnum = UserRole[roleKey];
-      if (!roleEnum) {
-        throw new UnauthorizedException('Invalid role in token');
-      }
-
-      // Attach the normalized user to the request
       request.user = {
         sub: String(payload.sub),
         email: payload.email,
@@ -59,17 +51,12 @@ export class ApiAuthGuard implements CanActivate {
     }
   }
 
-  /**
-   * Extracts a bearer token from the Authorization header.
-   */
   private extractToken(request: AuthenticatedRequest): string | null {
     const header = request.headers['authorization'] ?? request.headers['Authorization'];
     if (!header) return null;
     if (Array.isArray(header)) return null;
-
     const [scheme, token] = header.split(' ');
     if (scheme?.toLowerCase() !== 'bearer' || !token) return null;
-
     return token;
   }
 }

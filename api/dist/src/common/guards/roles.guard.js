@@ -17,23 +17,15 @@ let RolesGuard = class RolesGuard {
     constructor(reflector) {
         this.reflector = reflector;
     }
-    canActivate(context) {
-        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [
-            context.getHandler(),
-            context.getClass()
-        ]);
-        if (!requiredRoles || requiredRoles.length === 0) {
+    canActivate(ctx) {
+        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [ctx.getHandler(), ctx.getClass()]);
+        if (!requiredRoles || requiredRoles.length === 0)
             return true;
-        }
-        const request = context.switchToHttp().getRequest();
-        const user = request.user;
-        if (!user) {
-            throw new common_1.UnauthorizedException();
-        }
-        if (!requiredRoles.includes(user.role)) {
-            throw new common_1.ForbiddenException('Insufficient permissions');
-        }
-        return true;
+        const req = ctx.switchToHttp().getRequest();
+        const user = req.user;
+        if (!user)
+            return false;
+        return requiredRoles.includes(user.role);
     }
 };
 exports.RolesGuard = RolesGuard;
