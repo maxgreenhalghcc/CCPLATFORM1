@@ -29,7 +29,7 @@ export class ApiAuthGuard implements CanActivate {
       authorization === process.env.API_DEV_TOKEN
     ) {
       // use VALUE from Prisma namespace and TYPE from $Enums
-      const role: $Enums.UserRole = Prisma.UserRole.staff;
+      const role: $Enums.UserRole = 'staff';
 
       // try common param names for the bar identifier
       const requestedBar =
