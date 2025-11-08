@@ -21,7 +21,6 @@ interface RootLayoutProps {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
-
   return (
     <html className={inter.variable} lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
