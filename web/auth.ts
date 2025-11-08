@@ -23,27 +23,37 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
-  // ✅ Put `role` into the JWT and Session so server/pages can read it
-  callbacks: {
-    async jwt({ token, user }) {
-      // on first sign-in `user` is defined; thereafter we keep values in token
-      if (user) {
-        // @ts-expect-error - your Prisma User likely has a `role` field
-        token.role = user.role ?? token.role ?? "staff";
-      }
-      return token;
-    },
-    async session({ session, token, user }) {
-      if (session.user) {
-        // prefer DB user if available, otherwise fall back to token
-        // @ts-expect-error augmenting user
-        session.user.id = user?.id ?? token.sub ?? session.user.id;
-        // @ts-expect-error augmenting user
-        session.user.role = user?.role ?? token.role ?? "staff";
-      }
-      return session;
-    },
+ callbacks: {
+  async jwt({ token, user }) {
+    if (user) {
+      // @ts-expect-error depends on your schema
+      token.role = user.role ?? token.role ?? "staff";
+      // Optional: if your User has barId
+      // @ts-expect-error
+      token.barId = user.barId ?? token.barId;
+    }
+    return token;
   },
+  async session({ session, token }) {
+    if (session.user) {
+      // Ensure id/role are available to pages
+      // @ts-expect-error augmenting
+      session.user.id = token.sub ?? session.user.id;
+      // @ts-expect-error augmenting
+      session.user.role = (token as any).role ?? "staff";
+      // @ts-expect-error augmenting
+      session.user.barId = (token as any).barId ?? "demo-bar";
+    }
+
+    // ✅ DEV: always provide a token so staff page won’t throw
+    // If you later store a real API token in DB, replace this with that value.
+    // @ts-expect-error augmenting
+    session.apiToken = process.env.DEV_API_TOKEN ?? "dev-token";
+
+    return session;
+  },
+},
+
 
   // ✅ (Dev convenience) ensure new magic-link users get a role
   events: {
