@@ -13,6 +13,7 @@ exports.ApiAuthGuard = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const jsonwebtoken_1 = require("jsonwebtoken");
+const client_1 = require("@prisma/client");
 let ApiAuthGuard = class ApiAuthGuard {
     constructor(configService) {
         this.configService = configService;
@@ -22,12 +23,14 @@ let ApiAuthGuard = class ApiAuthGuard {
         const authorization = this.extractToken(request);
         if (process.env.NODE_ENV !== 'production' &&
             authorization === process.env.API_DEV_TOKEN) {
-            const requestedBar = request.params?.id ??
-                request.params?.barId ??
+            const role = client_1.Prisma.UserRole.staff;
+            const requestedBar = request.params?.barId ??
+                request.params?.id ??
+                request.query?.barId ??
                 'demo-bar';
             request.user = {
                 sub: 'dev',
-                role: Prisma.UserRole.staff,
+                role,
                 barId: requestedBar,
             };
             return true;
@@ -46,7 +49,7 @@ let ApiAuthGuard = class ApiAuthGuard {
             }
             request.user = {
                 sub: String(payload.sub),
-                email: payload.email,
+                email: payload.email ?? null,
                 role: payload.role,
                 barId: payload.barId ?? null,
             };
@@ -57,8 +60,7 @@ let ApiAuthGuard = class ApiAuthGuard {
         }
     }
     extractToken(request) {
-        const header = (request.headers['authorization'] ??
-            request.headers['Authorization']);
+        const header = request.headers['authorization'] ?? request.headers['Authorization'];
         if (!header || Array.isArray(header))
             return null;
         const [scheme, token] = header.split(' ');
