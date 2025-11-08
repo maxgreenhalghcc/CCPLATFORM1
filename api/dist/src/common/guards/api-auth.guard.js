@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiAuthGuard = void 0;
+const client_1 = require("@prisma/client");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const jsonwebtoken_1 = require("jsonwebtoken");
@@ -21,7 +22,7 @@ let ApiAuthGuard = class ApiAuthGuard {
         const request = context.switchToHttp().getRequest();
         const authorization = this.extractToken(request);
         if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
-            request.user = { id: 'dev', role: 'staff', barId: 'demo-bar' };
+            request.user = { id: 'dev', role: client_1.UserRole.STAFF, barId: 'demo-bar' };
             return true;
         }
         if (!authorization) {
