@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
 import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
 import StaffOrdersClient, { type OrderSummary } from './staff-orders-client';
 import { getServerSession } from "next-auth";
