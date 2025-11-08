@@ -20,14 +20,15 @@ export class ApiAuthGuard implements CanActivate {
     const authorization = this.extractToken(request);
 
     // ── Dev bypass with API_DEV_TOKEN ────────────────────────────────────────────
+    // dev bypass with API_DEV_TOKEN
     if (
       process.env.NODE_ENV !== 'production' &&
       authorization === process.env.API_DEV_TOKEN
     ) {
-      // AuthenticatedUser uses `sub`, not `id`, and `role` must be a UserRole
+      const role: UserRole = 'staff';           // <- make it a UserRole-typed value
       request.user = {
         sub: 'dev',
-        role: UserRole.staff,
+        role,                                   // <- now matches the expected type
         barId: 'demo-bar',
       };
       return true;
