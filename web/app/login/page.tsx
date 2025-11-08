@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
 import LoginForm from './login-form';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
