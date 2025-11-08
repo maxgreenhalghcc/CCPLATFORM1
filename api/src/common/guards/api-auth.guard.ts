@@ -24,14 +24,8 @@ export class ApiAuthGuard implements CanActivate {
     const authorization = this.extractToken(request);
 
     // ── Dev bypass with API_DEV_TOKEN ─────────────────────────────────────────
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      authorization === process.env.API_DEV_TOKEN
-    ) {
-      // use VALUE from Prisma namespace and TYPE from $Enums
-      const role: $Enums.UserRole = 'staff';
-
-      // try common param names for the bar identifier
+    if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
+      // Grab the param the route uses; default to 'demo-bar'
       const requestedBar =
         request.params?.barId ??
         request.params?.id ??
@@ -40,9 +34,13 @@ export class ApiAuthGuard implements CanActivate {
 
       request.user = {
         sub: 'dev',
-        role,
+        // if you use a Prisma enum, use the literal and cast once:
+        role: 'staff' as any, 
         barId: requestedBar,
       };
+
+      // Optional: log once to confirm
+      // console.log('[DEV BYPASS]', { params: request.params, user: request.user });
 
       return true;
     }
