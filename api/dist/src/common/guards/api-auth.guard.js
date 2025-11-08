@@ -10,10 +10,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiAuthGuard = void 0;
-const client_1 = require("@prisma/client");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const jsonwebtoken_1 = require("jsonwebtoken");
+const client_1 = require("@prisma/client");
 let ApiAuthGuard = class ApiAuthGuard {
     constructor(configService) {
         this.configService = configService;
@@ -21,15 +21,17 @@ let ApiAuthGuard = class ApiAuthGuard {
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const authorization = this.extractToken(request);
-        if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
-            request.user = { id: 'dev', role: client_1.UserRole.staff, barId: 'demo-bar' };
+        if (process.env.NODE_ENV !== 'production' &&
+            authorization === process.env.API_DEV_TOKEN) {
+            request.user = {
+                sub: 'dev',
+                role: client_1.UserRole.staff,
+                barId: 'demo-bar',
+            };
             return true;
         }
         if (!authorization) {
             throw new common_1.UnauthorizedException('Authorization header missing');
-        }
-        if (!authorization) {
-            throw new common_1.UnauthorizedException('Authorization token is missing');
         }
         const secret = this.configService.get('nextAuth.secret');
         if (!secret) {
@@ -37,33 +39,35 @@ let ApiAuthGuard = class ApiAuthGuard {
         }
         try {
             const payload = (0, jsonwebtoken_1.verify)(authorization, secret);
-            if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
+            if (!payload.sub || !payload.role || typeof payload.role !== 'string') {
                 throw new common_1.UnauthorizedException('Token missing required claims');
             }
+            const roleKey = payload.role;
+            const roleEnum = client_1.UserRole[roleKey];
+            if (!roleEnum) {
+                throw new common_1.UnauthorizedException('Invalid role in token');
+            }
             request.user = {
-                sub: payload.sub,
+                sub: String(payload.sub),
                 email: payload.email,
-                role: payload.role,
-                barId: payload.barId ?? null
+                role: roleEnum,
+                barId: payload.barId ?? null,
             };
             return true;
         }
-        catch (error) {
+        catch {
             throw new common_1.UnauthorizedException('Invalid authentication token');
         }
     }
     extractToken(request) {
         const header = request.headers['authorization'] ?? request.headers['Authorization'];
-        if (!header) {
+        if (!header)
             return null;
-        }
-        if (Array.isArray(header)) {
+        if (Array.isArray(header))
             return null;
-        }
         const [scheme, token] = header.split(' ');
-        if (scheme?.toLowerCase() !== 'bearer' || !token) {
+        if (scheme?.toLowerCase() !== 'bearer' || !token)
             return null;
-        }
         return token;
     }
 };
