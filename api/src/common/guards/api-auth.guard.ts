@@ -73,7 +73,7 @@ export class ApiAuthGuard implements CanActivate {
       } as AuthenticatedUser;
 
       return true;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid authentication token');
     }
   }
