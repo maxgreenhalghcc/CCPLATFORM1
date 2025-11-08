@@ -1,4 +1,5 @@
 import * as jwt from 'jsonwebtoken';
+import { UserRole } from '@prisma/client';
 import {
   CanActivate,
   ExecutionContext,
@@ -19,7 +20,7 @@ export class ApiAuthGuard implements CanActivate {
     const authorization = this.extractToken(request);
 
      if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
-      request.user = { id: 'dev', role: 'staff', barId: 'demo-bar' };
+      request.user = { id: 'dev', role: UserRole.STAFF, barId: 'demo-bar' };
       return true;
     }
 
