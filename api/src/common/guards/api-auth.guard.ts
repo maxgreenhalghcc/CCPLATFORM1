@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { verify, type JwtPayload } from 'jsonwebtoken';
-import { $Enums } from '@prisma/client';
+import { $Enums as PrismaEnums } from '@prisma/client'; // or `import { UserRole as PrismaUserRole } from '@prisma/client'`
 
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import type { AuthenticatedUser } from '../interfaces/authenticated-user.interface';
@@ -16,8 +16,20 @@ export class ApiAuthGuard implements CanActivate {
 
     // --- Dev bypass with API_DEV_TOKEN --------------------------------------
     if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
-      const role: $Enums.UserRole = 'staff';          // <- Prisma enum value (string literal)
-      request.user = { sub: 'dev', role, barId: 'demo-bar' };
+      const role: PrismaEnums.UserRole = 'staff'; // enum-safe
+
+      // Grab the bar identifier the route is using (often :id or :barId)
+      const requestedBar =
+        request.params?.id ??
+        request.params?.barId ??
+        'demo-bar';
+
+      request.user = {
+        sub: 'dev',
+        role,
+        barId: requestedBar,  // 👈 ensure it matches what the controller/service checks
+      };
+
       return true;
     }
     // ------------------------------------------------------------------------
