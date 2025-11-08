@@ -13,7 +13,6 @@ exports.ApiAuthGuard = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const jsonwebtoken_1 = require("jsonwebtoken");
-const client_1 = require("@prisma/client");
 let ApiAuthGuard = class ApiAuthGuard {
     constructor(configService) {
         this.configService = configService;
@@ -21,33 +20,27 @@ let ApiAuthGuard = class ApiAuthGuard {
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const authorization = this.extractToken(request);
-        if (process.env.NODE_ENV !== 'production' &&
-            authorization === process.env.API_DEV_TOKEN) {
-            const role = client_1.UserRole.staff;
+        if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
+            const role = 'staff';
             request.user = { sub: 'dev', role, barId: 'demo-bar' };
             return true;
         }
         if (!authorization) {
             throw new common_1.UnauthorizedException('Authorization header missing');
         }
-        const secret = this.configService.get('nextAuth.secret');
+        const secret = this.configService.get('nextauth.secret');
         if (!secret) {
             throw new common_1.UnauthorizedException('Authentication is not configured');
         }
         try {
             const payload = (0, jsonwebtoken_1.verify)(authorization, secret);
-            if (!payload.sub || !payload.role || typeof payload.role !== 'string') {
+            if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
                 throw new common_1.UnauthorizedException('Token missing required claims');
-            }
-            const roleKey = payload.role;
-            const roleEnum = client_1.UserRole[roleKey];
-            if (!roleEnum) {
-                throw new common_1.UnauthorizedException('Invalid role in token');
             }
             request.user = {
                 sub: String(payload.sub),
                 email: payload.email,
-                role: roleEnum,
+                role: payload.role,
                 barId: payload.barId ?? null,
             };
             return true;
