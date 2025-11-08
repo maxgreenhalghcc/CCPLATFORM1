@@ -20,14 +20,14 @@ let ApiAuthGuard = class ApiAuthGuard {
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const authorization = this.extractToken(request);
-        if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
-            const role = 'staff';
+        if (process.env.NODE_ENV !== 'production' &&
+            authorization === process.env.API_DEV_TOKEN) {
             const requestedBar = request.params?.id ??
                 request.params?.barId ??
                 'demo-bar';
             request.user = {
                 sub: 'dev',
-                role,
+                role: Prisma.UserRole.staff,
                 barId: requestedBar,
             };
             return true;
@@ -57,10 +57,9 @@ let ApiAuthGuard = class ApiAuthGuard {
         }
     }
     extractToken(request) {
-        const header = request.headers['authorization'] ?? request.headers['Authorization'];
-        if (!header)
-            return null;
-        if (Array.isArray(header))
+        const header = (request.headers['authorization'] ??
+            request.headers['Authorization']);
+        if (!header || Array.isArray(header))
             return null;
         const [scheme, token] = header.split(' ');
         if (scheme?.toLowerCase() !== 'bearer' || !token)
