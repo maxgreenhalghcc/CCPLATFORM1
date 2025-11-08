@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { verify, type JwtPayload } from 'jsonwebtoken';
-import { $Enums as PrismaEnums } from '@prisma/client'; // or `import { UserRole as PrismaUserRole } from '@prisma/client'`
+import type { Prisma } from '@prisma/client';
 
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import type { AuthenticatedUser } from '../interfaces/authenticated-user.interface';
@@ -15,10 +15,11 @@ export class ApiAuthGuard implements CanActivate {
     const authorization = this.extractToken(request);
 
     // --- Dev bypass with API_DEV_TOKEN --------------------------------------
-    if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
-      const role: PrismaEnums.UserRole = 'staff'; // enum-safe
-
-      // Grab the bar identifier the route is using (often :id or :barId)
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      authorization === process.env.API_DEV_TOKEN
+    ) {
+      // Try to infer the bar identifier from route params
       const requestedBar =
         request.params?.id ??
         request.params?.barId ??
@@ -26,8 +27,8 @@ export class ApiAuthGuard implements CanActivate {
 
       request.user = {
         sub: 'dev',
-        role,
-        barId: requestedBar,  // 👈 ensure it matches what the controller/service checks
+        role: Prisma.UserRole.staff, // enum-safe
+        barId: requestedBar,
       };
 
       return true;
@@ -53,7 +54,7 @@ export class ApiAuthGuard implements CanActivate {
       request.user = {
         sub: String(payload.sub),
         email: payload.email,
-        role: payload.role as $Enums.UserRole,       // ensure Prisma role type
+        role: payload.role as Prisma.UserRole, // ensure Prisma role type
         barId: (payload as any).barId ?? null,
       };
 
@@ -64,11 +65,14 @@ export class ApiAuthGuard implements CanActivate {
   }
 
   private extractToken(request: AuthenticatedRequest): string | null {
-    const header = request.headers['authorization'] ?? request.headers['Authorization'];
-    if (!header) return null;
-    if (Array.isArray(header)) return null;
+    const header = (request.headers['authorization'] ??
+      request.headers['Authorization']) as string | string[] | undefined;
+
+    if (!header || Array.isArray(header)) return null;
+
     const [scheme, token] = header.split(' ');
     if (scheme?.toLowerCase() !== 'bearer' || !token) return null;
+
     return token;
-  }
+    }
 }
