@@ -25,12 +25,13 @@ export class ApiAuthGuard implements CanActivate {
       process.env.NODE_ENV !== 'production' &&
       authorization === process.env.API_DEV_TOKEN
     ) {
-      const role: UserRole = 'staff';           // <- make it a UserRole-typed value
-      request.user = {
-        sub: 'dev',
-        role,                                   // <- now matches the expected type
-        barId: 'demo-bar',
-      };
+      // Option A (best): enum member provides correct type
+      const role: UserRole = UserRole.staff;
+
+      // Option B (also fine): literal cast to the enum type
+      // const role: UserRole = 'staff' as UserRole;
+
+      request.user = { sub: 'dev', role, barId: 'demo-bar' };
       return true;
     }
 
