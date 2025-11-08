@@ -29,7 +29,6 @@ export class ApiAuthGuard implements CanActivate {
       const requestedBar =
         request.params?.barId ??
         request.params?.id ??
-        request.query?.barId ??
         'demo-bar';
 
       request.user = {
