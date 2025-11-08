@@ -1,8 +1,8 @@
-import { UserRole } from '../roles/user-role.enum';
+import { UserRole } from '@prisma/client';
 
 export interface AuthenticatedUser {
   sub: string;
-  email?: string;
-  role: UserRole;
-  barId?: string | null;
+  role: UserRole;        // <- must be Prisma enum, not a string union
+  barId: string | null;  // or whatever your type is
 }
+
