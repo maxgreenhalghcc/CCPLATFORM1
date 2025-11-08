@@ -23,12 +23,8 @@ let ApiAuthGuard = class ApiAuthGuard {
         const authorization = this.extractToken(request);
         if (process.env.NODE_ENV !== 'production' &&
             authorization === process.env.API_DEV_TOKEN) {
-            const role = 'staff';
-            request.user = {
-                sub: 'dev',
-                role,
-                barId: 'demo-bar',
-            };
+            const role = client_1.UserRole.staff;
+            request.user = { sub: 'dev', role, barId: 'demo-bar' };
             return true;
         }
         if (!authorization) {
