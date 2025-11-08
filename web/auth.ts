@@ -11,6 +11,7 @@ export const authOptions: NextAuthOptions = {
   providers: [
     EmailProvider({
       async sendVerificationRequest({ identifier, url }) {
+        // Dev: print magic link instead of sending email
         console.log("\n=== MAGIC LINK (dev) ===");
         console.log("To:", identifier);
         console.log("URL:", url, "\n");
@@ -19,59 +20,65 @@ export const authOptions: NextAuthOptions = {
         ? JSON.parse(process.env.EMAIL_SERVER)
         : undefined,
       from: process.env.EMAIL_FROM ?? `Custom Cocktails <no-reply@localhost>`,
-      maxAge: 10 * 60,
+      maxAge: 10 * 60, // 10 minutes
     }),
   ],
 
- callbacks: {
-  async jwt({ token, user }) {
-    if (user) {
-      // @ts-expect-error depends on your schema
-      token.role = user.role ?? token.role ?? "staff";
-      // Optional: if your User has barId
-      // @ts-expect-error
-      token.barId = user.barId ?? token.barId;
-    }
-    return token;
+  callbacks: {
+    // NOTE: With strategy: "database", do not read from `token`.
+    // Use `user` when present (on sign-in) or fetch from DB using session.user.email.
+    async session({ session, user }) {
+      if (!session.user?.email) return session;
+
+      let id: string | undefined = (user as any)?.id;
+      let role: string | undefined = (user as any)?.role;
+      let barId: string | undefined = (user as any)?.barId;
+      let apiToken: string | undefined = (user as any)?.apiToken;
+
+      if (!id || !role || !barId || !apiToken) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, role: true, barId: true, apiToken: true },
+        });
+        if (dbUser) {
+          id ??= dbUser.id;
+          role ??= (dbUser as any).role;
+          barId ??= (dbUser as any).barId;
+          apiToken ??= (dbUser as any).apiToken ?? undefined;
+        }
+      }
+
+      // Attach to session for server components/pages
+      // @ts-expect-error augmenting SessionUser
+      session.user.id = id ?? session.user.id;
+      // @ts-expect-error augmenting SessionUser
+      session.user.role = role ?? "staff";
+      // @ts-expect-error augmenting SessionUser
+      session.user.barId = barId ?? "demo-bar";
+      // @ts-expect-error augmenting Session
+      session.apiToken = apiToken ?? process.env.DEV_API_TOKEN ?? "dev-token";
+
+      return session;
+    },
   },
-  async session({ session, token }) {
-    if (session.user) {
-      // Ensure id/role are available to pages
-      // @ts-expect-error augmenting
-      session.user.id = token.sub ?? session.user.id;
-      // @ts-expect-error augmenting
-      session.user.role = (token as any).role ?? "staff";
-      // @ts-expect-error augmenting
-      session.user.barId = (token as any).barId ?? "demo-bar";
-    }
 
-    // ✅ DEV: always provide a token so staff page won’t throw
-    // If you later store a real API token in DB, replace this with that value.
-    // @ts-expect-error augmenting
-    session.apiToken = process.env.DEV_API_TOKEN ?? "dev-token";
-
-    return session;
-  },
-},
-
-
-  // ✅ (Dev convenience) ensure new magic-link users get a role
+  // Dev: default any new magic-link user to "staff" role
   events: {
     async createUser({ user }) {
       try {
-        // If your Prisma User model has a Role enum, adjust value accordingly
-        // @ts-expect-error: depends on your schema field name/type
         await prisma.user.update({
           where: { id: user.id },
+          // Adjust if your schema uses an enum type
+          // @ts-expect-error app-specific field
           data: { role: "staff" },
         });
       } catch (e) {
-        console.log("[events.createUser] role defaulting skipped:", e);
+        console.log("[events.createUser] role default skipped:", e);
       }
     },
   },
 
-  // ✅ Dev-safe cookies so the browser keeps the session on http://localhost
+  // Dev-safe cookie options for http://localhost
   cookies: {
     sessionToken: {
       name:
@@ -94,4 +101,3 @@ export const authOptions: NextAuthOptions = {
 // v4 handler export
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
-
