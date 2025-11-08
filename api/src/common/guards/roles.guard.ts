@@ -1,6 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { Prisma } from '@prisma/client';
+
+// ✅ type-only import for enum TYPES
+import type { $Enums } from '@prisma/client';
 
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
@@ -10,19 +12,21 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(ctx: ExecutionContext): boolean {
-    // Expect metadata as array of Prisma.UserRole enum values
-    const requiredRoles = this.reflector.getAllAndOverride<Prisma.UserRole[]>(
-      ROLES_KEY,
-      [ctx.getHandler(), ctx.getClass()],
-    );
+    // requiredRoles is a list of Prisma enum TYPES
+    const requiredRoles =
+      this.reflector.getAllAndOverride<$Enums.UserRole[]>(
+        ROLES_KEY,
+        [ctx.getHandler(), ctx.getClass()],
+      );
 
+    // no roles required -> allow
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
     const req = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = req.user;
     if (!user) return false;
 
-    // user.role is (or is castable to) Prisma.UserRole
-    return requiredRoles.includes(user.role as Prisma.UserRole);
+    // user.role is already a $Enums.UserRole
+    return requiredRoles.includes(user.role as $Enums.UserRole);
   }
 }
