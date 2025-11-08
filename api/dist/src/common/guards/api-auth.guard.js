@@ -20,16 +20,13 @@ let ApiAuthGuard = class ApiAuthGuard {
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const authorization = this.extractToken(request);
-        if (process.env.NODE_ENV !== 'production' &&
-            authorization === process.env.API_DEV_TOKEN) {
-            const role = 'staff';
+        if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
             const requestedBar = request.params?.barId ??
                 request.params?.id ??
-                request.query?.barId ??
                 'demo-bar';
             request.user = {
                 sub: 'dev',
-                role,
+                role: 'staff',
                 barId: requestedBar,
             };
             return true;
