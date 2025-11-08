@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
 import StaffOrdersClient, { type OrderSummary } from './staff-orders-client';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
 
 async function fetchOrders(token: string, barIdentifier: string): Promise<OrderSummary[]> {
   const baseUrl = getApiBaseUrl();
@@ -46,7 +48,7 @@ async function StaffOrdersTable({ token, barId }: { token: string; barId: string
 }
 
 export default async function StaffDashboardPage() {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== 'staff') {
     redirect(`/login?callbackUrl=${encodeURIComponent('/staff')}`);
