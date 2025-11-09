@@ -21,21 +21,22 @@ export class ApiAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const authorization = this.extractToken(request);
 
-    // -------------------------------------------------- DEV BYPASS (API_DEV_TOKEN) -------------------------------
-    // DEV BYPASS (API_DEV_TOKEN)
-    const token = authorization?.replace(/^Bearer\s+/i, '').trim();
-    const bypass = (process.env.API_DEV_TOKEN || '').trim();
-    // --- DEV BYPASS (debug) -
-    // debug info (temporary)
-    console.log('[DEV BYPASS DEBUG]', {
-      NODE_ENV: process.env.NODE_ENV,
-      hasBypass: bypass.length > 0,
-      tokenPresent: !!token,
-      tokenFirst8: (token ?? '').slice(0, 8),
-      bypassFirst8: (bypass ?? '').slice(0, 8),
-    });
+    // ----- DEV BYPASS (API_DEV_TOKEN) -----
+    const rawHeader =
+      (request.headers?.authorization as string | undefined) ??
+      (request.headers as any)?.Authorization;
 
-    if (process.env.NODE_ENV !== 'production' && token && token === bypass) {
+    const token = this.extractBearer(rawHeader); // plain token, no "Bearer "
+    const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
+
+    // console.log('[DEV BYPASS DEBUG]', {
+    //   NODE_ENV: process.env.NODE_ENV,
+    //   hasBypass: !!bypass,
+    //   tokenFirst8: (token ?? '').slice(0, 8),
+    //   bypassFirst8: bypass.slice(0, 8),
+    // });
+
+    if (process.env.NODE_ENV !== 'production' && token && bypass && token === bypass) {
       const requestedBar =
         request.params?.barId ??
         request.params?.id ??
@@ -46,20 +47,20 @@ export class ApiAuthGuard implements CanActivate {
         role: 'staff' as $Enums.UserRole,
         barId: requestedBar,
       };
-        // Ensure both param names exist so downstream guards/controllers agree:
-        (request as any).params = {
-          ...(request.params ?? {}),
-          barId: requestedBar,
-          id: requestedBar,
-        };
 
-      // Optional: temporary log for confirmation
-      // console.log('[DEV BYPASS ACTIVE]', { token, bypass, requestedBar });
+      // Ensure both param names exist so downstream guards/controllers agree
+      (request as any).params = {
+        ...(request.params ?? {}),
+        barId: requestedBar,
+        id: requestedBar,
+      };
+
+      // console.log('[DEV BYPASS ACTIVE]', { requestedBar });
       return true;
     }
-    // -----------------------------------------------------------------------
+    // --------------------------------------
 
-    if (!authorization) {
+    if (!token) {
       throw new UnauthorizedException('Authorization header missing');
     }
 
@@ -69,8 +70,7 @@ export class ApiAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = verify(authorization, secret) as JwtPayload &
-        Partial<AuthenticatedUser>;
+      const payload = verify(token, secret) as JwtPayload & Partial<AuthenticatedUser>;
 
       if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
         throw new UnauthorizedException('Token missing required claims');
@@ -80,7 +80,7 @@ export class ApiAuthGuard implements CanActivate {
       request.user = {
         sub: String(payload.sub),
         email: (payload as any).email ?? null,
-        role: (payload.role as unknown) as $Enums.UserRole, // cast string claim to Prisma enum type
+        role: (payload.role as unknown) as $Enums.UserRole,
         barId: (payload as any).barId ?? null,
       };
 
@@ -90,15 +90,18 @@ export class ApiAuthGuard implements CanActivate {
     }
   }
 
-  private extractToken(request: AuthenticatedRequest): string | null {
-    const header =
-      request.headers['authorization'] ?? request.headers['Authorization'];
-    if (!header) return null;
-    if (Array.isArray(header)) return null;
+  private extractBearer(
+    headerValue: string | string[] | undefined,
+  ): string | null {
+    if (!headerValue) return null;
+    if (Array.isArray(headerValue)) return null;
 
-    const [scheme, token] = header.split(' ');
-    if (scheme?.toLowerCase() !== 'bearer' || !token) return null;
-
-    return token;
+    // Support both already-plain tokens and "Bearer <token>"
+    const trimmed = headerValue.trim();
+    if (/^bearer\s+/i.test(trimmed)) {
+      const [, tok] = trimmed.split(/\s+/, 2);
+      return tok?.trim() || null;
     }
+    return trimmed || null;
+  }
 }
