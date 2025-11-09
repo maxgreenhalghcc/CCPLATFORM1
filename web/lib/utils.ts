@@ -1,17 +1,22 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-// web/lib/utils.ts
-export async function apiFetch(path: string, init: RequestInit = {}) {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-  const headers = new Headers(init.headers || {});
 
-  // Dev-only: forward the API dev token so the API guard bypass kicks in
-  if (process.env.NODE_ENV !== 'production' && process.env.DEV_API_TOKEN) {
-    headers.set('Authorization', `Bearer ${process.env.DEV_API_TOKEN}`);
+export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers || {});
+
+  // In development, attach the dev bypass token if present and no auth header was provided.
+  const devToken = process.env.NEXT_PUBLIC_DEV_API_TOKEN;
+  if (process.env.NODE_ENV !== 'production' && devToken && !headers.has('authorization')) {
+    headers.set('Authorization', `Bearer ${devToken}`);
   }
 
-  return fetch(`${base}/v1${path}`, { ...init, headers });
+  const response = await fetch(url, { ...init, headers });
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+  return (await response.json()) as T;
 }
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
