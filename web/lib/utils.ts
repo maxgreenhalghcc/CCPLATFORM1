@@ -1,5 +1,17 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+// web/lib/utils.ts
+export async function apiFetch(path: string, init: RequestInit = {}) {
+  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const headers = new Headers(init.headers || {});
+
+  // Dev-only: forward the API dev token so the API guard bypass kicks in
+  if (process.env.NODE_ENV !== 'production' && process.env.DEV_API_TOKEN) {
+    headers.set('Authorization', `Bearer ${process.env.DEV_API_TOKEN}`);
+  }
+
+  return fetch(`${base}/v1${path}`, { ...init, headers });
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
