@@ -28,12 +28,12 @@ export class ApiAuthGuard implements CanActivate {
     const token = this.extractBearer(rawHeader); // plain token, no "Bearer "
     const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
 
-    // console.log('[DEV BYPASS DEBUG]', {
-    //   NODE_ENV: process.env.NODE_ENV,
-    //   hasBypass: !!bypass,
-    //   tokenFirst8: (token ?? '').slice(0, 8),
-    //   bypassFirst8: bypass.slice(0, 8),
-    // });
+    console.log('[DEV BYPASS DEBUG]', {
+       NODE_ENV: process.env.NODE_ENV,
+       hasBypass: !!bypass,
+       tokenFirst8: (token ?? '').slice(0, 8),
+      bypassFirst8: bypass.slice(0, 8),
+     });
 
     if (process.env.NODE_ENV !== 'production' && token && bypass && token === bypass) {
         const requestedBar =
@@ -87,6 +87,7 @@ export class ApiAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid authentication token');
     }
+  }
   }
 
   private extractBearer(
