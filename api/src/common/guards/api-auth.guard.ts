@@ -36,23 +36,27 @@ export class ApiAuthGuard implements CanActivate {
     // });
 
     if (process.env.NODE_ENV !== 'production' && token && bypass && token === bypass) {
-      const requestedBar =
-        request.params?.barId ??
-        request.params?.id ??
-        'demo-bar';
+        const requestedBar =
+      request.params?.barId ??
+      request.params?.id ??
+      request.params?.slug ??
+      request.params?.barSlug ??
+      'demo-bar';
 
-      request.user = {
-        sub: 'dev',
-        role: 'staff' as $Enums.UserRole,
-        barId: requestedBar,
-      };
+    request.user = {
+      sub: 'dev',
+      role: 'staff' as $Enums.UserRole,
+      barId: requestedBar,
+    };
 
-      // Ensure both param names exist so downstream guards/controllers agree
-      (request as any).params = {
-        ...(request.params ?? {}),
-        barId: requestedBar,
-        id: requestedBar,
-      };
+    // ensure every common param name is present so downstream checks agree
+    (request as any).params = {
+      ...(request.params ?? {}),
+      barId: requestedBar,
+      id: requestedBar,
+      slug: requestedBar,
+      barSlug: requestedBar,
+    };
 
       // console.log('[DEV BYPASS ACTIVE]', { requestedBar });
       return true;
