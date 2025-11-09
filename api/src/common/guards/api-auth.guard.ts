@@ -7,9 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { verify, type JwtPayload } from 'jsonwebtoken';
 
-// ✅ Prisma value namespace for enum VALUES (e.g. Prisma.UserRole.staff)
-import { Prisma } from '@prisma/client';
-// ✅ Prisma type-only namespace for enum TYPES (e.g. $Enums.UserRole)
+// type-only import so we can reference the Prisma enum type safely
 import type { $Enums } from '@prisma/client';
 
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
@@ -23,27 +21,29 @@ export class ApiAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const authorization = this.extractToken(request);
 
-    // ── Dev bypass with API_DEV_TOKEN ─────────────────────────────────────────
-    if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
-      // Grab the param the route uses; default to 'demo-bar'
+    // ---------------------- DEV BYPASS (API_DEV_TOKEN) ----------------------
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      authorization === process.env.API_DEV_TOKEN
+    ) {
+      // pick up the bar id from common param names, or fall back to demo
       const requestedBar =
         request.params?.barId ??
         request.params?.id ??
         'demo-bar';
 
+      // role is the Prisma enum (type-only) – the string value is 'staff'
+      const role = 'staff' as $Enums.UserRole;
+
       request.user = {
         sub: 'dev',
-        // if you use a Prisma enum, use the literal and cast once:
-        role: 'staff' as any, 
+        role,
         barId: requestedBar,
       };
 
-      // Optional: log once to confirm
-      // console.log('[DEV BYPASS]', { params: request.params, user: request.user });
-
       return true;
     }
-    // ─────────────────────────────────────────────────────────────────────────
+    // -----------------------------------------------------------------------
 
     if (!authorization) {
       throw new UnauthorizedException('Authorization header missing');
@@ -62,11 +62,11 @@ export class ApiAuthGuard implements CanActivate {
         throw new UnauthorizedException('Token missing required claims');
       }
 
+      // Build the request.user object the API expects
       request.user = {
         sub: String(payload.sub),
         email: (payload as any).email ?? null,
-        // cast the string claim to the Prisma enum TYPE
-        role: payload.role as $Enums.UserRole,
+        role: (payload.role as unknown) as $Enums.UserRole, // cast string claim to Prisma enum type
         barId: (payload as any).barId ?? null,
       };
 
@@ -79,7 +79,8 @@ export class ApiAuthGuard implements CanActivate {
   private extractToken(request: AuthenticatedRequest): string | null {
     const header =
       request.headers['authorization'] ?? request.headers['Authorization'];
-    if (!header || Array.isArray(header)) return null;
+    if (!header) return null;
+    if (Array.isArray(header)) return null;
 
     const [scheme, token] = header.split(' ');
     if (scheme?.toLowerCase() !== 'bearer' || !token) return null;
