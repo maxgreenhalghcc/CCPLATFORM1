@@ -36,6 +36,12 @@ export class ApiAuthGuard implements CanActivate {
         role: 'staff' as $Enums.UserRole,
         barId: requestedBar,
       };
+        // Ensure both param names exist so downstream guards/controllers agree:
+        (request as any).params = {
+          ...(request.params ?? {}),
+          barId: requestedBar,
+          id: requestedBar,
+        };
 
       // Optional: temporary log for confirmation
       // console.log('[DEV BYPASS ACTIVE]', { token, bypass, requestedBar });
