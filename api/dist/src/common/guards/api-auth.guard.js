@@ -33,6 +33,11 @@ let ApiAuthGuard = class ApiAuthGuard {
             };
             return true;
         }
+        request.params = {
+            ...(request.params ?? {}),
+            barId: requestedBar,
+            id: requestedBar,
+        };
         if (!authorization) {
             throw new common_1.UnauthorizedException('Authorization header missing');
         }
