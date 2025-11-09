@@ -19,7 +19,6 @@ export class ApiAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const authorization = this.extractToken(request);
 
     // ----- DEV BYPASS (API_DEV_TOKEN) -----
     const rawHeader =
@@ -76,7 +75,6 @@ export class ApiAuthGuard implements CanActivate {
         throw new UnauthorizedException('Token missing required claims');
       }
 
-      // Build the request.user object the API expects
       request.user = {
         sub: String(payload.sub),
         email: (payload as any).email ?? null,

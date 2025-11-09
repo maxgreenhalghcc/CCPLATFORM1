@@ -4,5 +4,5 @@ export declare class ApiAuthGuard implements CanActivate {
     private readonly configService;
     constructor(configService: ConfigService);
     canActivate(context: ExecutionContext): boolean;
-    private extractToken;
+    private extractBearer;
 }
