@@ -1,22 +1,7 @@
-import { type ClassValue, clsx } from 'clsx';
+// web/lib/utils.ts
+import type { ClassValue } from 'clsx';
+import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers || {});
-
-  // In development, attach the dev bypass token if present and no auth header was provided.
-  const devToken = process.env.NEXT_PUBLIC_DEV_API_TOKEN;
-  if (process.env.NODE_ENV !== 'production' && devToken && !headers.has('authorization')) {
-    headers.set('Authorization', `Bearer ${devToken}`);
-  }
-
-  const response = await fetch(url, { ...init, headers });
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
-
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -41,11 +26,28 @@ export function getApiUrl(): string {
     throw new Error('NEXT_PUBLIC_API_URL is not configured');
   }
   const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return normalized.endsWith('/v1') ? normalized : `${normalized}/v1`;
+  return `${normalized}/v1`;
 }
 
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+/**
+ * fetchJson
+ * - In development, if NEXT_PUBLIC_DEV_API_TOKEN is set and no Authorization header
+ *   is present, attach `Bearer <token>` so the API dev-bypass works from the web app.
+ */
+export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers((init.headers || {}) as HeadersInit);
+
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    !headers.has('authorization')
+  ) {
+    const devToken = process.env.NEXT_PUBLIC_DEV_API_TOKEN;
+    if (devToken) {
+      headers.set('authorization', `Bearer ${devToken}`);
+    }
+  }
+
+  const response = await fetch(url, { ...init, headers });
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
   }
