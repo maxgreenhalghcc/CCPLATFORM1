@@ -21,26 +21,24 @@ export class ApiAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const authorization = this.extractToken(request);
 
-    // ---------------------- DEV BYPASS (API_DEV_TOKEN) ----------------------
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      authorization === process.env.API_DEV_TOKEN
-    ) {
-      // pick up the bar id from common param names, or fall back to demo
+    // -------------------------------------------------- DEV BYPASS (API_DEV_TOKEN) -------------------------------
+    const token = authorization?.trim();
+    const bypass = (process.env.API_DEV_TOKEN || '').trim();
+
+    if (process.env.NODE_ENV !== 'production' && token && token === bypass) {
       const requestedBar =
         request.params?.barId ??
         request.params?.id ??
         'demo-bar';
 
-      // role is the Prisma enum (type-only) – the string value is 'staff'
-      const role = 'staff' as $Enums.UserRole;
-
       request.user = {
         sub: 'dev',
-        role,
+        role: 'staff' as $Enums.UserRole,
         barId: requestedBar,
       };
 
+      // Optional: temporary log for confirmation
+      // console.log('[DEV BYPASS ACTIVE]', { token, bypass, requestedBar });
       return true;
     }
     // -----------------------------------------------------------------------
