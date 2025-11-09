@@ -22,7 +22,8 @@ export class ApiAuthGuard implements CanActivate {
     const authorization = this.extractToken(request);
 
     // -------------------------------------------------- DEV BYPASS (API_DEV_TOKEN) -------------------------------
-    const token = authorization?.trim();
+    // DEV BYPASS (API_DEV_TOKEN)
+    const token = authorization?.replace(/^Bearer\s+/i, '').trim();
     const bypass = (process.env.API_DEV_TOKEN || '').trim();
     // --- DEV BYPASS (debug) -
     // debug info (temporary)
