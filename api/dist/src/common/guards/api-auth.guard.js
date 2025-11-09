@@ -26,6 +26,8 @@ let ApiAuthGuard = class ApiAuthGuard {
         if (process.env.NODE_ENV !== 'production' && token && bypass && token === bypass) {
             const requestedBar = request.params?.barId ??
                 request.params?.id ??
+                request.params?.slug ??
+                request.params?.barSlug ??
                 'demo-bar';
             request.user = {
                 sub: 'dev',
@@ -36,31 +38,32 @@ let ApiAuthGuard = class ApiAuthGuard {
                 ...(request.params ?? {}),
                 barId: requestedBar,
                 id: requestedBar,
+                slug: requestedBar,
+                barSlug: requestedBar,
             };
-            return true;
-        }
-        if (!token) {
-            throw new common_1.UnauthorizedException('Authorization header missing');
-        }
-        const secret = this.configService.get('nextauth.secret');
-        if (!secret) {
-            throw new common_1.UnauthorizedException('Authentication is not configured');
-        }
-        try {
-            const payload = (0, jsonwebtoken_1.verify)(token, secret);
-            if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
-                throw new common_1.UnauthorizedException('Token missing required claims');
+            if (!token) {
+                throw new common_1.UnauthorizedException('Authorization header missing');
             }
-            request.user = {
-                sub: String(payload.sub),
-                email: payload.email ?? null,
-                role: payload.role,
-                barId: payload.barId ?? null,
-            };
-            return true;
-        }
-        catch {
-            throw new common_1.UnauthorizedException('Invalid authentication token');
+            const secret = this.configService.get('nextauth.secret');
+            if (!secret) {
+                throw new common_1.UnauthorizedException('Authentication is not configured');
+            }
+            try {
+                const payload = (0, jsonwebtoken_1.verify)(token, secret);
+                if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
+                    throw new common_1.UnauthorizedException('Token missing required claims');
+                }
+                request.user = {
+                    sub: String(payload.sub),
+                    email: payload.email ?? null,
+                    role: payload.role,
+                    barId: payload.barId ?? null,
+                };
+                return true;
+            }
+            catch {
+                throw new common_1.UnauthorizedException('Invalid authentication token');
+            }
         }
     }
     extractBearer(headerValue) {

@@ -58,9 +58,6 @@ export class ApiAuthGuard implements CanActivate {
       barSlug: requestedBar,
     };
 
-      // console.log('[DEV BYPASS ACTIVE]', { requestedBar });
-      return true;
-    }
     // --------------------------------------
 
     if (!token) {
