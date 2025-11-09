@@ -19,17 +19,11 @@ let ApiAuthGuard = class ApiAuthGuard {
     }
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
-        const authorization = this.extractToken(request);
-        const token = authorization?.replace(/^Bearer\s+/i, '').trim();
-        const bypass = (process.env.API_DEV_TOKEN || '').trim();
-        console.log('[DEV BYPASS DEBUG]', {
-            NODE_ENV: process.env.NODE_ENV,
-            hasBypass: bypass.length > 0,
-            tokenPresent: !!token,
-            tokenFirst8: (token ?? '').slice(0, 8),
-            bypassFirst8: (bypass ?? '').slice(0, 8),
-        });
-        if (process.env.NODE_ENV !== 'production' && token && token === bypass) {
+        const rawHeader = request.headers?.authorization ??
+            request.headers?.Authorization;
+        const token = this.extractBearer(rawHeader);
+        const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
+        if (process.env.NODE_ENV !== 'production' && token && bypass && token === bypass) {
             const requestedBar = request.params?.barId ??
                 request.params?.id ??
                 'demo-bar';
@@ -45,7 +39,7 @@ let ApiAuthGuard = class ApiAuthGuard {
             };
             return true;
         }
-        if (!authorization) {
+        if (!token) {
             throw new common_1.UnauthorizedException('Authorization header missing');
         }
         const secret = this.configService.get('nextauth.secret');
@@ -53,7 +47,7 @@ let ApiAuthGuard = class ApiAuthGuard {
             throw new common_1.UnauthorizedException('Authentication is not configured');
         }
         try {
-            const payload = (0, jsonwebtoken_1.verify)(authorization, secret);
+            const payload = (0, jsonwebtoken_1.verify)(token, secret);
             if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
                 throw new common_1.UnauthorizedException('Token missing required claims');
             }
@@ -69,16 +63,17 @@ let ApiAuthGuard = class ApiAuthGuard {
             throw new common_1.UnauthorizedException('Invalid authentication token');
         }
     }
-    extractToken(request) {
-        const header = request.headers['authorization'] ?? request.headers['Authorization'];
-        if (!header)
+    extractBearer(headerValue) {
+        if (!headerValue)
             return null;
-        if (Array.isArray(header))
+        if (Array.isArray(headerValue))
             return null;
-        const [scheme, token] = header.split(' ');
-        if (scheme?.toLowerCase() !== 'bearer' || !token)
-            return null;
-        return token;
+        const trimmed = headerValue.trim();
+        if (/^bearer\s+/i.test(trimmed)) {
+            const [, tok] = trimmed.split(/\s+/, 2);
+            return tok?.trim() || null;
+        }
+        return trimmed || null;
     }
 };
 exports.ApiAuthGuard = ApiAuthGuard;
