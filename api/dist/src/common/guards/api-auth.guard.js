@@ -20,7 +20,7 @@ let ApiAuthGuard = class ApiAuthGuard {
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const authorization = this.extractToken(request);
-        const token = authorization?.trim();
+        const token = authorization?.replace(/^Bearer\s+/i, '').trim();
         const bypass = (process.env.API_DEV_TOKEN || '').trim();
         console.log('[DEV BYPASS DEBUG]', {
             NODE_ENV: process.env.NODE_ENV,
