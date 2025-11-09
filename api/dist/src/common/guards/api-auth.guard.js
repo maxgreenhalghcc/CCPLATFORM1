@@ -20,13 +20,15 @@ let ApiAuthGuard = class ApiAuthGuard {
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const authorization = this.extractToken(request);
-        if (process.env.NODE_ENV !== 'production' && authorization === process.env.API_DEV_TOKEN) {
+        if (process.env.NODE_ENV !== 'production' &&
+            authorization === process.env.API_DEV_TOKEN) {
             const requestedBar = request.params?.barId ??
                 request.params?.id ??
                 'demo-bar';
+            const role = 'staff';
             request.user = {
                 sub: 'dev',
-                role: 'staff',
+                role,
                 barId: requestedBar,
             };
             return true;
@@ -57,7 +59,9 @@ let ApiAuthGuard = class ApiAuthGuard {
     }
     extractToken(request) {
         const header = request.headers['authorization'] ?? request.headers['Authorization'];
-        if (!header || Array.isArray(header))
+        if (!header)
+            return null;
+        if (Array.isArray(header))
             return null;
         const [scheme, token] = header.split(' ');
         if (scheme?.toLowerCase() !== 'bearer' || !token)
