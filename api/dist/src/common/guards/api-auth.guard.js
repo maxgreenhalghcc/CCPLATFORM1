@@ -22,6 +22,13 @@ let ApiAuthGuard = class ApiAuthGuard {
         const authorization = this.extractToken(request);
         const token = authorization?.trim();
         const bypass = (process.env.API_DEV_TOKEN || '').trim();
+        console.log('[DEV BYPASS DEBUG]', {
+            NODE_ENV: process.env.NODE_ENV,
+            hasBypass: bypass.length > 0,
+            tokenPresent: !!token,
+            tokenFirst8: (token ?? '').slice(0, 8),
+            bypassFirst8: (bypass ?? '').slice(0, 8),
+        });
         if (process.env.NODE_ENV !== 'production' && token && token === bypass) {
             const requestedBar = request.params?.barId ??
                 request.params?.id ??
