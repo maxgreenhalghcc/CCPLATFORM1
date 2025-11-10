@@ -67,6 +67,7 @@ let ApiAuthGuard = class ApiAuthGuard {
                 slug: requestedBar,
                 barSlug: requestedBar,
             };
+            console.log('[DEV TOKEN BYPASS ACTIVE]', { bar: requestedBar });
             return true;
         }
         if (!token) {
