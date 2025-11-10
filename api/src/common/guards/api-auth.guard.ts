@@ -106,7 +106,6 @@ export class ApiAuthGuard implements CanActivate {
       throw new UnauthorizedException('Authentication is not configured');
     }
 
-    // Validate NextAuth/JWT and attach user info
     try {
       const payload = verify(token, secret) as JwtPayload & Partial<AuthenticatedUser>;
 
@@ -125,13 +124,8 @@ export class ApiAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid authentication token');
     }
-    // -------------------------------------------------------------------------
   }
 
-  /**
-   * Returns a token from an Authorization header value.
-   * - Accepts "Bearer <token>" or already-plain "<token>"
-   */
   private extractBearer(
     headerValue: string | string[] | undefined,
   ): string | null {
