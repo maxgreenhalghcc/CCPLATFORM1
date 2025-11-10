@@ -28,6 +28,36 @@ export class ApiAuthGuard implements CanActivate {
 
     const token = this.extractBearer(rawHeader); // plain token, no "Bearer "
     const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
+  
+
+    // ----- HARD DEV BYPASS (for local only) -----
+    // If you set FORCE_DEV_BYPASS=true in your .env, this skips all token checks.
+    if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
+      const requestedBar =
+        request.params?.barId ??
+        request.params?.id ??
+        request.params?.slug ??
+        request.params?.barSlug ??
+        'demo-bar';
+
+      request.user = {
+        sub: 'dev',
+        role: 'staff' as $Enums.UserRole,
+        barId: requestedBar,
+      };
+
+      (request as any).params = {
+        ...(request.params ?? {}),
+        barId: requestedBar,
+        id: requestedBar,
+        slug: requestedBar,
+        barSlug: requestedBar,
+      };
+
+      console.log('[HARD DEV BYPASS ACTIVE]', { bar: requestedBar });
+      return true;
+    }
+
 
     // Resolve one "bar id" from common param names (used by both paths)
     const requestedBar =
