@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+  // eslint-disable-next-line import/no-extraneous-dependencies
 import { verify, type JwtPayload } from 'jsonwebtoken';
 
 // type-only import so we can reference the Prisma enum type safely
@@ -28,37 +29,45 @@ export class ApiAuthGuard implements CanActivate {
     const token = this.extractBearer(rawHeader); // plain token, no "Bearer "
     const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
 
-    console.log('[DEV BYPASS DEBUG]', {
-       NODE_ENV: process.env.NODE_ENV,
-       hasBypass: !!bypass,
-       tokenFirst8: (token ?? '').slice(0, 8),
-      bypassFirst8: bypass.slice(0, 8),
-     });
-
-    if (process.env.NODE_ENV !== 'production' && token && bypass && token === bypass) {
-        const requestedBar =
+    // Resolve one "bar id" from common param names (used by both paths)
+    const requestedBar =
       request.params?.barId ??
       request.params?.id ??
       request.params?.slug ??
       request.params?.barSlug ??
       'demo-bar';
 
+    // Optional debug
+    // console.log('[DEV BYPASS DEBUG]', {
+    //   NODE_ENV: process.env.NODE_ENV,
+    //   hasBypass: !!bypass,
+    //   tokenFirst8: (token ?? '').slice(0, 8),
+    //   bypassFirst8: bypass.slice(0, 8),
+    // });
+
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      token &&
+      bypass &&
+      token === bypass
+    ) {
+      // Satisfy downstream guards/controllers
+      request.user = {
+        sub: 'dev',
+        role: 'staff' as $Enums.UserRole,
+        barId: requestedBar,
+      };
+
+      (request as any).params = {
+        ...(request.params ?? {}),
+        barId: requestedBar,
+        id: requestedBar,
+        slug: requestedBar,
+        barSlug: requestedBar,
+      };
+
+      return true; // <-- IMPORTANT: short-circuit in dev bypass
     }
-    request.user = {
-      sub: 'dev',
-      role: 'staff' as $Enums.UserRole,
-      barId: requestedBar,
-    };
-
-    // ensure every common param name is present so downstream checks agree
-    (request as any).params = {
-      ...(request.params ?? {}),
-      barId: requestedBar,
-      id: requestedBar,
-      slug: requestedBar,
-      barSlug: requestedBar,
-    };
-
     // --------------------------------------
 
     if (!token) {
@@ -71,7 +80,8 @@ export class ApiAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = verify(token, secret) as JwtPayload & Partial<AuthenticatedUser>;
+      const payload = verify(token, secret) as JwtPayload &
+        Partial<AuthenticatedUser>;
 
       if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
         throw new UnauthorizedException('Token missing required claims');
@@ -90,9 +100,7 @@ export class ApiAuthGuard implements CanActivate {
     }
   }
 
-  private extractBearer(
-    headerValue: string | string[] | undefined,
-  ): string | null {
+  private extractBearer(headerValue: string | string[] | undefined): string | null {
     if (!headerValue) return null;
     if (Array.isArray(headerValue)) return null;
 
