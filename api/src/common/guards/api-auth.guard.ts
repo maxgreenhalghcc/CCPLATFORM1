@@ -43,6 +43,7 @@ export class ApiAuthGuard implements CanActivate {
       request.params?.barSlug ??
       'demo-bar';
 
+    }
     request.user = {
       sub: 'dev',
       role: 'staff' as $Enums.UserRole,
@@ -87,7 +88,6 @@ export class ApiAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid authentication token');
     }
-  }
   }
 
   private extractBearer(
