@@ -23,18 +23,15 @@ let ApiAuthGuard = class ApiAuthGuard {
             request.headers?.Authorization;
         const token = this.extractBearer(rawHeader);
         const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
-        console.log('[DEV BYPASS DEBUG]', {
-            NODE_ENV: process.env.NODE_ENV,
-            hasBypass: !!bypass,
-            tokenFirst8: (token ?? '').slice(0, 8),
-            bypassFirst8: bypass.slice(0, 8),
-        });
-        if (process.env.NODE_ENV !== 'production' && token && bypass && token === bypass) {
-            const requestedBar = request.params?.barId ??
-                request.params?.id ??
-                request.params?.slug ??
-                request.params?.barSlug ??
-                'demo-bar';
+        const requestedBar = request.params?.barId ??
+            request.params?.id ??
+            request.params?.slug ??
+            request.params?.barSlug ??
+            'demo-bar';
+        if (process.env.NODE_ENV !== 'production' &&
+            token &&
+            bypass &&
+            token === bypass) {
             request.user = {
                 sub: 'dev',
                 role: 'staff',
@@ -47,29 +44,30 @@ let ApiAuthGuard = class ApiAuthGuard {
                 slug: requestedBar,
                 barSlug: requestedBar,
             };
-            if (!token) {
-                throw new common_1.UnauthorizedException('Authorization header missing');
+            return true;
+        }
+        if (!token) {
+            throw new common_1.UnauthorizedException('Authorization header missing');
+        }
+        const secret = this.configService.get('nextauth.secret');
+        if (!secret) {
+            throw new common_1.UnauthorizedException('Authentication is not configured');
+        }
+        try {
+            const payload = (0, jsonwebtoken_1.verify)(token, secret);
+            if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
+                throw new common_1.UnauthorizedException('Token missing required claims');
             }
-            const secret = this.configService.get('nextauth.secret');
-            if (!secret) {
-                throw new common_1.UnauthorizedException('Authentication is not configured');
-            }
-            try {
-                const payload = (0, jsonwebtoken_1.verify)(token, secret);
-                if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
-                    throw new common_1.UnauthorizedException('Token missing required claims');
-                }
-                request.user = {
-                    sub: String(payload.sub),
-                    email: payload.email ?? null,
-                    role: payload.role,
-                    barId: payload.barId ?? null,
-                };
-                return true;
-            }
-            catch {
-                throw new common_1.UnauthorizedException('Invalid authentication token');
-            }
+            request.user = {
+                sub: String(payload.sub),
+                email: payload.email ?? null,
+                role: payload.role,
+                barId: payload.barId ?? null,
+            };
+            return true;
+        }
+        catch {
+            throw new common_1.UnauthorizedException('Invalid authentication token');
         }
     }
     extractBearer(headerValue) {
