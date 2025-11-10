@@ -18,11 +18,12 @@ let ApiAuthGuard = class ApiAuthGuard {
         this.configService = configService;
     }
     canActivate(context) {
-        const request = context
-            .switchToHttp()
-            .getRequest();
-        if (process.env.NODE_ENV !== 'production' &&
-            process.env.FORCE_DEV_BYPASS === 'true') {
+        const request = context.switchToHttp().getRequest();
+        const rawHeader = request.headers?.authorization ??
+            request.headers?.Authorization;
+        const token = this.extractBearer(rawHeader);
+        const devBypassToken = (process.env.API_DEV_TOKEN ?? '').trim();
+        if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
             const requestedBar = request.params?.barId ??
                 request.params?.id ??
                 request.params?.slug ??
@@ -40,14 +41,8 @@ let ApiAuthGuard = class ApiAuthGuard {
                 slug: requestedBar,
                 barSlug: requestedBar,
             };
-            console.log('[DEV BYPASS DEBUG]', { token, bypass, devBypassToken: bypass, requestedBar, params: request.params });
-            console.log('[DEV USER SET]', request.user);
             return true;
         }
-        const rawHeader = request.headers?.authorization ??
-            request.headers?.Authorization;
-        const token = this.extractBearer(rawHeader);
-        const devBypassToken = (process.env.API_DEV_TOKEN ?? '').trim();
         if (process.env.NODE_ENV !== 'production' &&
             token &&
             devBypassToken &&
@@ -59,7 +54,7 @@ let ApiAuthGuard = class ApiAuthGuard {
                 'demo-bar';
             request.user = {
                 sub: 'dev',
-                role: 'admin',
+                role: 'staff',
                 barId: requestedBar,
             };
             request.params = {
@@ -69,7 +64,6 @@ let ApiAuthGuard = class ApiAuthGuard {
                 slug: requestedBar,
                 barSlug: requestedBar,
             };
-            console.log('[DEV TOKEN BYPASS ACTIVE]', { bar: requestedBar });
             return true;
         }
         if (!token) {
