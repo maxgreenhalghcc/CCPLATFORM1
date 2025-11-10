@@ -11,6 +11,12 @@ import type { AuthenticatedRequest } from '../interfaces/authenticated-request.i
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
+  canActivate(context: ExecutionContext): boolean {
+  if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
+    return true; // bypass all role checks in local dev
+  }
+  }
+
   canActivate(ctx: ExecutionContext): boolean {
     // requiredRoles is a list of Prisma enum TYPES
     const requiredRoles =
