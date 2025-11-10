@@ -5,7 +5,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-  // eslint-disable-next-line import/no-extraneous-dependencies
 import { verify, type JwtPayload } from 'jsonwebtoken';
 
 // type-only import so we can reference the Prisma enum type safely
@@ -19,20 +18,60 @@ export class ApiAuthGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const request = context
+      .switchToHttp()
+      .getRequest<AuthenticatedRequest>();
 
-    // ----- DEV BYPASS (API_DEV_TOKEN) -----
+    // ---------------------- HARD DEV BYPASS (env switch) ----------------------
+    // If you set FORCE_DEV_BYPASS=true in your .env (and you're not in production),
+    // we short-circuit all auth and act as a staff user on the requested bar.
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      process.env.FORCE_DEV_BYPASS === 'true'
+    ) {
+      const requestedBar =
+        request.params?.barId ??
+        request.params?.id ??
+        request.params?.slug ??
+        request.params?.barSlug ??
+        'demo-bar';
+
+      request.user = {
+        sub: 'dev',
+        role: 'staff' as $Enums.UserRole,
+        barId: requestedBar,
+      };
+
+      // Ensure all common param names exist for downstream guards/controllers
+      (request as any).params = {
+        ...(request.params ?? {}),
+        barId: requestedBar,
+        id: requestedBar,
+        slug: requestedBar,
+        barSlug: requestedBar,
+      };
+
+      // console.log('[HARD DEV BYPASS ACTIVE]', { bar: requestedBar });
+      return true; // IMPORTANT: exit early
+    }
+    // -------------------------------------------------------------------------
+
+    // ----------------------------- Normal auth path ---------------------------
+    // Extract header in a tolerant way (handles "Authorization" or "authorization")
     const rawHeader =
       (request.headers?.authorization as string | undefined) ??
       (request.headers as any)?.Authorization;
 
-    const token = this.extractBearer(rawHeader); // plain token, no "Bearer "
-    const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
-  
+    const token = this.extractBearer(rawHeader); // supports "Bearer x" or plain token
+    const devBypassToken = (process.env.API_DEV_TOKEN ?? '').trim();
 
-    // ----- HARD DEV BYPASS (for local only) -----
-    // If you set FORCE_DEV_BYPASS=true in your .env, this skips all token checks.
-    if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
+    // Secondary dev bypass: send the API_DEV_TOKEN as the bearer token
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      token &&
+      devBypassToken &&
+      token === devBypassToken
+    ) {
       const requestedBar =
         request.params?.barId ??
         request.params?.id ??
@@ -54,51 +93,9 @@ export class ApiAuthGuard implements CanActivate {
         barSlug: requestedBar,
       };
 
-      console.log('[HARD DEV BYPASS ACTIVE]', { bar: requestedBar });
-      return true;
+      // console.log('[DEV TOKEN BYPASS ACTIVE]', { bar: requestedBar });
+      return true; // short-circuit
     }
-
-
-    // Resolve one "bar id" from common param names (used by both paths)
-    const requestedBar =
-      request.params?.barId ??
-      request.params?.id ??
-      request.params?.slug ??
-      request.params?.barSlug ??
-      'demo-bar';
-
-    // Optional debug
-    // console.log('[DEV BYPASS DEBUG]', {
-    //   NODE_ENV: process.env.NODE_ENV,
-    //   hasBypass: !!bypass,
-    //   tokenFirst8: (token ?? '').slice(0, 8),
-    //   bypassFirst8: bypass.slice(0, 8),
-    // });
-
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      token &&
-      bypass &&
-      token === bypass
-    ) {
-      // Satisfy downstream guards/controllers
-      request.user = {
-        sub: 'dev',
-        role: 'staff' as $Enums.UserRole,
-        barId: requestedBar,
-      };
-
-      (request as any).params = {
-        ...(request.params ?? {}),
-        barId: requestedBar,
-        id: requestedBar,
-        slug: requestedBar,
-        barSlug: requestedBar,
-      };
-
-      return true; // <-- IMPORTANT: short-circuit in dev bypass
-    }
-    // --------------------------------------
 
     if (!token) {
       throw new UnauthorizedException('Authorization header missing');
@@ -109,6 +106,7 @@ export class ApiAuthGuard implements CanActivate {
       throw new UnauthorizedException('Authentication is not configured');
     }
 
+    // Validate NextAuth/JWT and attach user info
     try {
       const payload = verify(token, secret) as JwtPayload &
         Partial<AuthenticatedUser>;
@@ -128,13 +126,19 @@ export class ApiAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid authentication token');
     }
+    // -------------------------------------------------------------------------
   }
 
-  private extractBearer(headerValue: string | string[] | undefined): string | null {
+  /**
+   * Returns a token from an Authorization header value.
+   * - Accepts "Bearer <token>" or already-plain "<token>"
+   */
+  private extractBearer(
+    headerValue: string | string[] | undefined,
+  ): string | null {
     if (!headerValue) return null;
     if (Array.isArray(headerValue)) return null;
 
-    // Support both already-plain tokens and "Bearer <token>"
     const trimmed = headerValue.trim();
     if (/^bearer\s+/i.test(trimmed)) {
       const [, tok] = trimmed.split(/\s+/, 2);
