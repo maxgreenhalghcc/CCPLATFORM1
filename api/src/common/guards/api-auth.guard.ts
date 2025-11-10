@@ -19,6 +19,34 @@ export class ApiAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    // --- EMERGENCY DEV BYPASS (guaranteed) -------------------------
+    if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
+      const requestedBar =
+        request.params?.barId ??
+        request.params?.id ??
+        request.params?.slug ??
+        request.params?.barSlug ??
+        'demo-bar';
+
+      // pretend to be an admin on the requested bar
+      request.user = {
+        sub: 'dev',
+        role: 'admin' as any,
+        barId: requestedBar,
+      };
+
+      // normalize params so all downstream guards/controllers agree
+      (request as any).params = {
+        ...(request.params ?? {}),
+        barId: requestedBar,
+        id: requestedBar,
+        slug: requestedBar,
+        barSlug: requestedBar,
+      };
+
+      return true; // short-circuit auth in dev
+    }
+    // ---------------------------------------------------------------
 
     // ----- DEV BYPASS (API_DEV_TOKEN) -----
     const rawHeader =
