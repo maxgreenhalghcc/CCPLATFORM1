@@ -23,6 +23,27 @@ let ApiAuthGuard = class ApiAuthGuard {
             request.headers?.Authorization;
         const token = this.extractBearer(rawHeader);
         const bypass = (process.env.API_DEV_TOKEN ?? '').trim();
+        if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
+            const requestedBar = request.params?.barId ??
+                request.params?.id ??
+                request.params?.slug ??
+                request.params?.barSlug ??
+                'demo-bar';
+            request.user = {
+                sub: 'dev',
+                role: 'staff',
+                barId: requestedBar,
+            };
+            request.params = {
+                ...(request.params ?? {}),
+                barId: requestedBar,
+                id: requestedBar,
+                slug: requestedBar,
+                barSlug: requestedBar,
+            };
+            console.log('[HARD DEV BYPASS ACTIVE]', { bar: requestedBar });
+            return true;
+        }
         const requestedBar = request.params?.barId ??
             request.params?.id ??
             request.params?.slug ??
