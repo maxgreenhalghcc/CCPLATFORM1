@@ -50,6 +50,10 @@ export class ApiAuthGuard implements CanActivate {
         slug: requestedBar,
         barSlug: requestedBar,
       };
+      
+      console.log('[DEV BYPASS DEBUG]', { token, bypass, devBypassToken: bypass, requestedBar, params: request.params });
+      console.log('[DEV USER SET]', request.user);
+
 
       // console.log('[HARD DEV BYPASS ACTIVE]', { bar: requestedBar });
       return true; // IMPORTANT: exit early
