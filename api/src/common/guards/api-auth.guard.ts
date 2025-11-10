@@ -81,7 +81,7 @@ export class ApiAuthGuard implements CanActivate {
 
       request.user = {
         sub: 'dev',
-        role: 'staff' as $Enums.UserRole,
+        role: 'admin' as $Enums.UserRole,
         barId: requestedBar,
       };
 
