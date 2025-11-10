@@ -57,7 +57,7 @@ let ApiAuthGuard = class ApiAuthGuard {
                 'demo-bar';
             request.user = {
                 sub: 'dev',
-                role: 'staff',
+                role: 'admin',
                 barId: requestedBar,
             };
             request.params = {
