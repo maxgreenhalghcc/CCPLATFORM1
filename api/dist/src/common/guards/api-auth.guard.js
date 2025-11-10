@@ -40,6 +40,8 @@ let ApiAuthGuard = class ApiAuthGuard {
                 slug: requestedBar,
                 barSlug: requestedBar,
             };
+            console.log('[DEV BYPASS DEBUG]', { token, bypass, devBypassToken: bypass, requestedBar, params: request.params });
+            console.log('[DEV USER SET]', request.user);
             return true;
         }
         const rawHeader = request.headers?.authorization ??
