@@ -18,17 +18,24 @@ export class ApiAuthGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context
-      .switchToHttp()
-      .getRequest<AuthenticatedRequest>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    // ---------------------- HARD DEV BYPASS (env switch) ----------------------
-    // If you set FORCE_DEV_BYPASS=true in your .env (and you're not in production),
-    // we short-circuit all auth and act as a staff user on the requested bar.
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      process.env.FORCE_DEV_BYPASS === 'true'
-    ) {
+    // ----- DEV BYPASS (API_DEV_TOKEN) -----
+    const rawHeader =
+      (request.headers?.authorization as string | undefined) ??
+      (request.headers as any)?.Authorization;
+
+    // extract token (plain token or "Bearer <token>")
+    const token = this.extractBearer(rawHeader); // plain token, no "Bearer "
+    // dev token value from env (trim whitespace)
+    const devBypassToken = (process.env.API_DEV_TOKEN ?? '').trim();
+
+    // Optional debug log (now declared after token/devBypassToken)
+    // Use this to verify what token and env values are being seen by the guard
+    // console.log('[DEV BYPASS DEBUG]', { token, devBypassToken, params: request.params });
+
+    // HARD FORCE bypass: if you set FORCE_DEV_BYPASS=true in your .env, skip all checks
+    if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
       const requestedBar =
         request.params?.barId ??
         request.params?.id ??
@@ -36,6 +43,7 @@ export class ApiAuthGuard implements CanActivate {
         request.params?.barSlug ??
         'demo-bar';
 
+      // satisfy downstream guards/controllers
       request.user = {
         sub: 'dev',
         role: 'staff' as $Enums.UserRole,
@@ -50,26 +58,12 @@ export class ApiAuthGuard implements CanActivate {
         slug: requestedBar,
         barSlug: requestedBar,
       };
-      
-      console.log('[DEV BYPASS DEBUG]', { token, bypass, devBypassToken: bypass, requestedBar, params: request.params });
-      console.log('[DEV USER SET]', request.user);
-
 
       // console.log('[HARD DEV BYPASS ACTIVE]', { bar: requestedBar });
       return true; // IMPORTANT: exit early
     }
-    // -------------------------------------------------------------------------
 
-    // ----------------------------- Normal auth path ---------------------------
-    // Extract header in a tolerant way (handles "Authorization" or "authorization")
-    const rawHeader =
-      (request.headers?.authorization as string | undefined) ??
-      (request.headers as any)?.Authorization;
-
-    const token = this.extractBearer(rawHeader); // supports "Bearer x" or plain token
-    const devBypassToken = (process.env.API_DEV_TOKEN ?? '').trim();
-
-    // Secondary dev bypass: send the API_DEV_TOKEN as the bearer token
+    // Secondary dev bypass: if caller sends the API_DEV_TOKEN as the bearer token
     if (
       process.env.NODE_ENV !== 'production' &&
       token &&
@@ -85,7 +79,7 @@ export class ApiAuthGuard implements CanActivate {
 
       request.user = {
         sub: 'dev',
-        role: 'admin' as $Enums.UserRole,
+        role: 'staff' as $Enums.UserRole,
         barId: requestedBar,
       };
 
@@ -97,9 +91,11 @@ export class ApiAuthGuard implements CanActivate {
         barSlug: requestedBar,
       };
 
-      console.log('[DEV TOKEN BYPASS ACTIVE]', { bar: requestedBar });
-      return true; // short-circuit
+      // console.log('[DEV TOKEN BYPASS ACTIVE]', { token, devBypassToken, requestedBar, params: request.params });
+      return true; // short-circuit in dev bypass
     }
+
+    // --------------------------------------
 
     if (!token) {
       throw new UnauthorizedException('Authorization header missing');
@@ -112,8 +108,7 @@ export class ApiAuthGuard implements CanActivate {
 
     // Validate NextAuth/JWT and attach user info
     try {
-      const payload = verify(token, secret) as JwtPayload &
-        Partial<AuthenticatedUser>;
+      const payload = verify(token, secret) as JwtPayload & Partial<AuthenticatedUser>;
 
       if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
         throw new UnauthorizedException('Token missing required claims');
@@ -143,6 +138,7 @@ export class ApiAuthGuard implements CanActivate {
     if (!headerValue) return null;
     if (Array.isArray(headerValue)) return null;
 
+    // Support both already-plain tokens and "Bearer <token>"
     const trimmed = headerValue.trim();
     if (/^bearer\s+/i.test(trimmed)) {
       const [, tok] = trimmed.split(/\s+/, 2);
