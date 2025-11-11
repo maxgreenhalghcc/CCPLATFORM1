@@ -51,6 +51,12 @@ let BarOrdersController = class BarOrdersController {
         }
         return this.ordersService.listForBar(id, normalized, request.user);
     }
+    async createForBar(id, body, request) {
+        if (!Array.isArray(body?.items) || body.items.length === 0) {
+            throw new common_1.BadRequestException('items required');
+        }
+        return this.ordersService.createForBar(id, body, request.user);
+    }
 };
 exports.BarOrdersController = BarOrdersController;
 __decorate([
@@ -62,6 +68,16 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", Promise)
 ], BarOrdersController.prototype, "listForBar", null);
+__decorate([
+    (0, common_1.Post)(':id/orders'),
+    (0, common_1.HttpCode)(201),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], BarOrdersController.prototype, "createForBar", null);
 exports.BarOrdersController = BarOrdersController = __decorate([
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin, user_role_enum_1.UserRole.staff),

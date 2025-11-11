@@ -272,6 +272,23 @@ let OrdersService = class OrdersService {
             };
         });
     }
+    async createForBar(barId, body, user) {
+        const order = await this.prisma.order.create({
+            data: {
+                barId,
+                status: 'created',
+                amount: body.total ?? 0,
+                items: {
+                    create: body.items.map(i => ({
+                        sku: i.sku,
+                        qty: i.qty,
+                    })),
+                },
+            },
+            include: { items: true },
+        });
+        return order;
+    }
 };
 exports.OrdersService = OrdersService;
 exports.OrdersService = OrdersService = __decorate([
