@@ -31,8 +31,6 @@ async function main() {
     ],
     skipDuplicates: true,
   });
-
-  console.log('Seed complete:', { bar: bar.slug, user: user.email });
 }
 
 main()
