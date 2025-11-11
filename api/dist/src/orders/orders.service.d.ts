@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
@@ -43,6 +44,25 @@ export declare class OrdersService {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         fulfilledAt: string | null;
+    }>;
+    createForBar(barId: string, body: {
+        items: {
+            sku: string;
+            qty: number;
+        }[];
+        total?: number;
+    }, user: any): Promise<{
+        recipeJson: Prisma.JsonValue;
+        id: string;
+        barId: string;
+        sessionId: string;
+        recipeId: string | null;
+        amount: Prisma.Decimal;
+        currency: string;
+        status: import(".prisma/client").$Enums.OrderStatus;
+        stripeSessionId: string | null;
+        createdAt: Date;
+        fulfilledAt: Date | null;
     }>;
 }
 export {};
