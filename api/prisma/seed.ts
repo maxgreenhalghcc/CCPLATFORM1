@@ -1,44 +1,32 @@
-/* api/prisma/seed.ts */
-import { PrismaClient } from '@prisma/client';
+// prisma/seed.ts
+import { PrismaClient, $Enums } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 async function main() {
-  // 1) A demo bar
-  const bar = await prisma.bar.upsert({
+  // Ensure a demo bar exists
+  await prisma.bar.upsert({
     where: { slug: 'demo-bar' },
     update: {},
-    create: {
-      id: 'demo-bar', // if your schema uses a string id, use slug as id; else remove this field
-      name: 'Demo Bar',
-      slug: 'demo-bar',
-      // add any required fields your schema enforces
-    },
+    create: { id: 'bar_1', name: 'Demo Bar', slug: 'demo-bar', active: true },
   });
 
-  // 2) A staff/admin user tied to the bar
-  const user = await prisma.user.upsert({
-    where: { email: 'dev@demo.local' },
-    update: {},
-    create: {
-      email: 'dev@demo.local',
-      role: 'admin', // or 'staff' depending on your enum
-      barId: bar.id,
-      // add any required fields (name, password hash if applicable)
-    },
-  });
-
-  // 3) A few orders for that bar
+  // Optional: seed a couple of orders tied to demo-bar
+  // Adjust fields to match your actual schema
   await prisma.order.createMany({
     data: [
       {
-        barId: bar.id,
-        status: 'open', // or whatever your enum uses
-        total: 2450,    // cents if you store money as integers
+        id: 'order_1',
+        barId: 'bar_1',
+        // 👇 IMPORTANT: use enums, not strings
+        status: $Enums.OrderStatus.open,
+        total: 0,
       },
       {
-        barId: bar.id,
-        status: 'completed',
-        total: 5600,
+        id: 'order_2',
+        barId: 'bar_1',
+        status: $Enums.OrderStatus.completed,
+        total: 0,
       },
     ],
     skipDuplicates: true,
