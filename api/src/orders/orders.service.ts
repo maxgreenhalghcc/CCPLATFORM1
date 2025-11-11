@@ -339,4 +339,26 @@ export class OrdersService {
       };
     });
   }
+  async createForBar(
+    barId: string,
+    body: { items: { sku: string; qty: number }[]; total?: number },
+    user: any,
+  ) {
+    const order = await this.prisma.order.create({
+      data: {
+        barId,
+        status: 'created',
+        amount: body.total ?? 0,
+        items: {
+          create: body.items.map(i => ({
+            sku: i.sku,
+            qty: i.qty,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+
+    return order;
+  }
 }
