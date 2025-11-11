@@ -6,6 +6,9 @@ import {
   Query,
   Req,
   UseGuards,
+  Post,          // <-- add
+  Body,          // <-- add
+  HttpCode,  
 } from '@nestjs/common';
 
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
@@ -17,6 +20,12 @@ import { OrdersService } from './orders.service';
 
 // Prisma runtime (for $Enums) + TS types
 import { Prisma } from '@prisma/client';
+
+type CreateOrderBody = {
+  items: { sku: string; qty: number }[];
+  total?: number;
+};
+
 
 type OrderStatus = 'paid' | 'created' | 'cancelled' | 'fulfilled';
 
@@ -74,5 +83,20 @@ export class BarOrdersController {
 
     return this.ordersService.listForBar(id, normalized, request.user);
   }
+  
+  @Post(':id/orders')
+    @HttpCode(201)
+    async createForBar(
+      @Param('id') id: string,
+      @Body() body: CreateOrderBody,
+      @Req() request: AuthenticatedRequest,
+    ) {
+      if (!Array.isArray(body?.items) || body.items.length === 0) {
+        throw new BadRequestException('items required');
+      }
+
+      return this.ordersService.createForBar(id, body, request.user);
+    }
+
 }
 
