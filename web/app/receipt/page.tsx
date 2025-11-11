@@ -17,6 +17,12 @@ interface ReceiptPageProps {
   searchParams?: Record<string, string | string[] | undefined>;
 }
 
+/**
+ * Convert an ingredient entry into a human-readable label.
+ *
+ * @param entry - An ingredient specified either as a string or an object with optional `name` and `amount` properties.
+ * @returns The formatted ingredient string: `"amount — name"` when both are present and non-empty, the `name` when present, or the fallback `"Ingredient"` otherwise.
+ */
 function normalizeIngredient(entry: unknown): string {
   if (typeof entry === 'string') {
     return entry;
@@ -32,12 +38,25 @@ function normalizeIngredient(entry: unknown): string {
   return 'Ingredient';
 }
 
+/**
+ * Extracts and returns only string entries from a mixed array of values.
+ *
+ * @param entries - Array containing values of unknown types
+ * @returns An array of entries from `entries` that are strings
+ */
 function normalizeWarnings(entries: unknown[]): string[] {
   return entries
     .map((entry) => (typeof entry === 'string' ? entry : null))
     .filter((warning): warning is string => Boolean(warning));
 }
 
+/**
+ * Fetches the recipe for a given order from the API.
+ *
+ * @param orderId - The order identifier used to request the recipe
+ * @returns The recipe data as a `RecipeResponse`
+ * @throws The underlying fetch error (or a new `Error('Recipe not found')`) after calling `notFound()` when the request fails
+ */
 async function loadRecipe(orderId: string): Promise<RecipeResponse> {
   const url = `${getApiUrl()}/orders/${orderId}/recipe`;
 
@@ -49,6 +68,18 @@ async function loadRecipe(orderId: string): Promise<RecipeResponse> {
   }
 }
 
+/**
+ * Render the order receipt page using the recipe associated with the provided order ID.
+ *
+ * Loads recipe data for the order identified by `searchParams.orderId`, normalizes ingredients and warnings,
+ * and returns the composed receipt UI showing name, description, ingredients, method, presentation, and any
+ * allergy/dietary notes.
+ *
+ * If `orderId` is missing or the recipe cannot be loaded, this function calls `notFound()` to produce a 404 response.
+ *
+ * @param props.searchParams - Optional map of query parameters; expects `orderId` as a string or an array whose first element is used.
+ * @returns The rendered receipt page JSX for the specified order.
+ */
 export default async function ReceiptPage({ searchParams }: ReceiptPageProps) {
   const rawOrderId = searchParams?.orderId;
   const orderId = Array.isArray(rawOrderId) ? rawOrderId[0] : rawOrderId;

@@ -8,6 +8,11 @@ import prisma from './lib/prisma';
 
 const fromAddress = process.env.EMAIL_FROM ?? 'login@example.com';
 
+/**
+ * Create a Nodemailer transport using the EMAIL_SERVER environment value when provided, otherwise use a JSON transport.
+ *
+ * @returns A Nodemailer transport configured from `process.env.EMAIL_SERVER` if it is a non-empty string; otherwise a transport with `{ jsonTransport: true }`.
+ */
 function createTransport() {
   const server = process.env.EMAIL_SERVER;
   if (server && server.length > 0) {
@@ -91,6 +96,11 @@ export const authOptions: NextAuthOptions = {
   }
 };
 
+/**
+ * Retrieve the current server authentication session using the configured NextAuth options.
+ *
+ * @returns The session object for the current request, or `null` if there is no active session.
+ */
 export function auth() {
   return getServerSession(authOptions);
 }

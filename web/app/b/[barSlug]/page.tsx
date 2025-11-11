@@ -17,6 +17,13 @@ interface BarPageProps {
   params: { barSlug: string };
 }
 
+/**
+ * Load settings for a bar identified by its slug.
+ *
+ * @param barSlug - The slug identifier for the bar (from the route).
+ * @returns The bar's settings including name, slug, optional location, intro/outro text, theme, and optional pricing.
+ * @throws If the settings cannot be retrieved — calls `notFound()` and then rethrows the original error or a new `Error('Bar not found')`.
+ */
 async function loadBar(barSlug: string): Promise<BarSettingsResponse> {
   const url = `${getApiUrl()}/bars/${barSlug}/settings`;
 
@@ -28,6 +35,12 @@ async function loadBar(barSlug: string): Promise<BarSettingsResponse> {
   }
 }
 
+/**
+ * Render the landing page for a bar, including header, discovery CTA, and optional intro/outro sections.
+ *
+ * @param params - Route parameters containing `barSlug`, the slug identifying the bar to display
+ * @returns The rendered landing page for the specified bar
+ */
 export default async function BarLandingPage({ params }: BarPageProps) {
   const bar = await loadBar(params.barSlug);
 

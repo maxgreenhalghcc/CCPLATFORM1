@@ -16,6 +16,12 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
+/**
+ * Provides the application's root HTML layout, applying the global font, body classes, and wrapping content with app providers.
+ *
+ * @param children - The React nodes rendered inside the layout
+ * @returns The root React element containing the `<html>` and `<body>` structure with global classes and the `Providers`-wrapped `children`
+ */
 export default async function RootLayout({ children }: RootLayoutProps) {
   const session = await auth();
 

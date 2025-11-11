@@ -8,6 +8,14 @@ interface LoginFormProps {
   callbackUrl?: string;
 }
 
+/**
+ * Render a login form that sends a magic sign-in link to a staff or admin email.
+ *
+ * Handles submission by requesting an email magic link and displaying a success or error message.
+ *
+ * @param callbackUrl - Optional redirect URL used after sign-in; defaults to '/staff' when not provided
+ * @returns The React element for the login form
+ */
 export default function LoginForm({ callbackUrl }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'pending' | 'sent' | 'error'>('idle');

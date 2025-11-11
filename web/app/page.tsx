@@ -2,6 +2,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/navigation/main-nav';
 
+/**
+ * Renders the application's homepage containing the main navigation, a centered hero section with a badge, heading, description, and two CTA buttons linking to a sample bar and the admin console.
+ *
+ * @returns The React element for the homepage layout including navigation, hero content, and navigation CTAs.
+ */
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">

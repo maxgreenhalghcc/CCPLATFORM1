@@ -31,6 +31,13 @@ type RangeOption = '7d' | '30d' | '90d';
 
 const RANGE_OPTIONS: RangeOption[] = ['7d', '30d', '90d'];
 
+/**
+ * Format a numeric value as a localized currency string using the en-GB locale and an uppercased currency code.
+ *
+ * @param amount - The numeric amount to format
+ * @param currency - The ISO currency code (e.g., "gbp", "usd"); the code will be uppercased
+ * @returns The formatted currency string (for example, "£1,234.56")
+ */
 function formatCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -38,6 +45,12 @@ function formatCurrency(amount: number, currency: string) {
   }).format(amount);
 }
 
+/**
+ * Converts an ISO or parseable date string into a short month/day label or returns the original value if the string is not a valid date.
+ *
+ * @param value - A date string parsable by Date
+ * @returns The formatted date label like `Jan 5` for valid dates, or the original `value` when the input is invalid
+ */
 function formatDateLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -55,6 +68,14 @@ interface LineChartProps<T> {
   className?: string;
 }
 
+/**
+ * Renders a simple inline line chart for a series of data points.
+ *
+ * @param data - Array of data points to plot.
+ * @param getValue - Function that extracts the numeric value from a data point.
+ * @param className - Optional additional className applied to the root element.
+ * @returns A responsive SVG line chart with small point markers, or a centered placeholder when `data` is empty.
+ */
 function SimpleLineChart<T>({ data, getValue, className }: LineChartProps<T>) {
   if (!data.length) {
     return (
@@ -107,6 +128,14 @@ function SimpleLineChart<T>({ data, getValue, className }: LineChartProps<T>) {
   );
 }
 
+/**
+ * Renders the admin financials dashboard UI with range selection, optional bar filtering, metric cards, and charts.
+ *
+ * The component reads the current session token to fetch revenue and orders metrics for the selected range and optional bar ID,
+ * handles loading, retry, and abort on unmount, and displays totals, average order value, and daily series charts.
+ *
+ * @returns The rendered admin financials dashboard component.
+ */
 export default function AdminFinancialsClient() {
   const { data: session, status } = useSession();
   const [range, setRange] = useState<RangeOption>('30d');

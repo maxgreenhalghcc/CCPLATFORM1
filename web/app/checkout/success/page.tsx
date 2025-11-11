@@ -7,6 +7,12 @@ type SuccessPageProps = {
   };
 };
 
+/**
+ * Render the checkout success page showing payment confirmation and, when available, a link to the order receipt.
+ *
+ * @param searchParams - Optional query parameters; `orderId` (if present) is used to show a direct link to the receipt/recipe
+ * @returns A React element for the checkout success screen with conditional receipt navigation
+ */
 export default function CheckoutSuccessPage({ searchParams }: SuccessPageProps) {
   const orderId = searchParams?.orderId;
 

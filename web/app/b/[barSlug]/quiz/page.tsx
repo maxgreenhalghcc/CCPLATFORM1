@@ -13,6 +13,13 @@ interface BarSettingsResponse {
   outroText?: string | null;
 }
 
+/**
+ * Load the settings for a bar identified by its slug.
+ *
+ * @param barSlug - The bar's slug used to construct the API endpoint.
+ * @returns The bar settings object with `name`, `slug`, and optional `introText` and `outroText`.
+ * @throws Error when the settings cannot be retrieved; calls `notFound()` before throwing.
+ */
 async function loadBar(barSlug: string): Promise<BarSettingsResponse> {
   const url = `${getApiUrl()}/bars/${barSlug}/settings`;
   try {
@@ -23,6 +30,15 @@ async function loadBar(barSlug: string): Promise<BarSettingsResponse> {
   }
 }
 
+/**
+ * Render the quiz page for a specific bar identified by the route parameter.
+ *
+ * Loads the bar's settings and renders the page header (including optional intro text)
+ * and the QuizFlow component configured for that bar.
+ *
+ * @param params - Route parameters object containing `barSlug`, the bar's slug
+ * @returns The page JSX that displays the quiz for the specified bar
+ */
 export default async function QuizPage({ params }: QuizPageProps) {
   const bar = await loadBar(params.barSlug);
 

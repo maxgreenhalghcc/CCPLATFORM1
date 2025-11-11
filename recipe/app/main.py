@@ -12,6 +12,17 @@ from .core.config import get_settings
 
 
 def _scrub_event(event: dict) -> dict:
+    """
+    Redact sensitive request fields in a Sentry event payload.
+    
+    Removes the `authorization` and `cookie` headers from `event['request']['headers']` (if present) and replaces `event['request']['data']` with the string "[redacted]" when a `data` field exists. The input event dictionary is mutated in place and returned.
+    
+    Parameters:
+        event (dict): Sentry event payload containing an optional `request` mapping.
+    
+    Returns:
+        dict: The sanitized event dictionary (the same object passed in, potentially mutated).
+    """
     request_data = event.get('request') or {}
     headers = dict(request_data.get('headers') or {})
     headers.pop('authorization', None)
@@ -51,6 +62,16 @@ app.include_router(api_router)
 
 @app.middleware("http")
 async def log_timing(request, call_next):
+    """
+    Log the HTTP request method, path, duration in milliseconds, and request id, then return the downstream response.
+    
+    Parameters:
+        request: The incoming Starlette/FastAPI request.
+        call_next: Callable that accepts the request and returns the downstream response.
+    
+    Returns:
+        The response returned by the downstream handler.
+    """
     start = time.time()
     response = await call_next(request)
     duration_ms = int((time.time() - start) * 1000)
@@ -62,6 +83,17 @@ async def log_timing(request, call_next):
 
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
+    """
+    Return application health metadata.
+    
+    Returns:
+        dict[str, str]: Health information containing:
+            - "status": overall health status, set to "ok".
+            - "service": service name, "recipe".
+            - "version": application version from APP_VERSION env or the FastAPI app version.
+            - "commit": Git commit SHA from GIT_SHA env or "unknown".
+            - "environment": runtime environment from settings.environment.
+    """
     return {
         "status": "ok",
         "service": "recipe",
@@ -73,6 +105,19 @@ async def health() -> dict[str, str]:
 
 @app.get("/status", tags=["health"])
 async def status() -> dict[str, object]:
+    """
+    Report service status and metadata including uptime and whether Sentry is enabled.
+    
+    Returns:
+        dict: {
+            "ok": True if the service is healthy,
+            "service": service name,
+            "version": application version string,
+            "commit": git commit SHA or "unknown",
+            "uptime": seconds since process start (int),
+            "sentry": {"enabled": True if SENTRY_DSN is set, False otherwise}
+        }
+    """
     uptime = int(time.time() - START_TIME)
     return {
         "ok": True,

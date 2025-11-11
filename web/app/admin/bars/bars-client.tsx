@@ -30,6 +30,12 @@ type ActiveFilter = 'all' | 'active' | 'inactive';
 
 const PAGE_SIZE = 10;
 
+/**
+ * Formats a numeric value as a GBP currency string or returns a placeholder when the value is missing.
+ *
+ * @param value - The monetary amount in British pounds, or `null` if not set
+ * @returns The formatted GBP string (for example `£1,234.56`), or `—` when `value` is `null` or `NaN`
+ */
 function formatPrice(value: number | null) {
   if (value === null || Number.isNaN(value)) {
     return '—';
@@ -40,6 +46,15 @@ function formatPrice(value: number | null) {
   }).format(value);
 }
 
+/**
+ * Admin UI component that displays and manages a paginated, filterable list of bars.
+ *
+ * Fetches bar data when an authenticated session is available and provides a debounced
+ * search input, active/inactive filter, pagination controls, loading/error/empty states,
+ * and per-bar management links.
+ *
+ * @returns The rendered React element for the bars management interface.
+ */
 export default function BarsClient() {
   const { data: session, status } = useSession();
   const [search, setSearch] = useState('');

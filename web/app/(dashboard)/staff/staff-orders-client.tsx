@@ -27,6 +27,12 @@ interface UpdateStatusResponse {
   fulfilledAt: string | null;
 }
 
+/**
+ * Convert an internal order status identifier into a human-readable label.
+ *
+ * @param status - The internal order status to convert.
+ * @returns The user-facing label: "Awaiting payment" for `created`, "Ready to mix" for `paid`, "Served" for `fulfilled`, "Cancelled" for `cancelled`, or the original `status` string if it is unrecognized.
+ */
 function formatStatus(status: OrderStatus) {
   switch (status) {
     case 'created':
@@ -42,6 +48,12 @@ function formatStatus(status: OrderStatus) {
   }
 }
 
+/**
+ * Format a date/time string into a locale-aware human-readable representation.
+ *
+ * @param value - The date/time string to parse and format; may be ISO or any string accepted by the Date constructor.
+ * @returns The localized date/time string when `value` parses to a valid Date, or the original `value` when parsing fails.
+ */
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -50,6 +62,12 @@ function formatDate(value: string) {
   return date.toLocaleString();
 }
 
+/**
+ * Format a timestamp into a locale-specific hour:minute time string.
+ *
+ * @param value - An ISO date/time string or `null`
+ * @returns The localized `HH:MM` time string for `value`, or `null` if `value` is `null` or not a valid date
+ */
 function formatFulfilledAt(value: string | null) {
   if (!value) {
     return null;
@@ -61,6 +79,18 @@ function formatFulfilledAt(value: string | null) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * Renders a staff-facing orders table with controls to view orders and mark paid orders as served.
+ *
+ * Renders the provided `initialOrders`, displays any error, and allows marking a paid order as fulfilled.
+ * Marking an order performs an optimistic UI update, sends a PATCH to the orders API to persist the change,
+ * and will revert the optimistic update and surface an error message if the network request fails.
+ * The action requires a valid session API token; if the token is missing the component sets a session-expired error.
+ *
+ * @param initialOrders - Initial list of orders to display
+ * @param initialError - Optional initial error message to show above the table
+ * @returns The JSX element for the staff orders list and its controls
+ */
 export default function StaffOrdersClient({ initialOrders, initialError = null }: Props) {
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
   const [error, setError] = useState<string | null>(initialError);

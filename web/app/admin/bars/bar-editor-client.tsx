@@ -41,6 +41,12 @@ const DEFAULT_THEME: Record<ThemeField, string> = {
   card: '#1f1f2e'
 };
 
+/**
+ * Produce a complete theme by applying any provided overrides to the default theme.
+ *
+ * @param theme - Optional partial mapping of theme fields (expected keys: `background`, `foreground`, `primary`, `card`) whose values override the defaults.
+ * @returns A theme object mapping each `ThemeField` to its resolved color value.
+ */
 function mergeTheme(theme?: Record<string, string>): Record<ThemeField, string> {
   return {
     ...DEFAULT_THEME,
@@ -48,6 +54,17 @@ function mergeTheme(theme?: Record<string, string>): Record<ThemeField, string> 
   } as Record<ThemeField, string>;
 }
 
+/**
+ * Fetches JSON from the given request and returns the parsed response.
+ *
+ * Attempts to extract a human-friendly error message from the response body when the HTTP status is not ok,
+ * then throws an Error with that message and a numeric `status` property set to the HTTP status.
+ *
+ * @param input - Request URL or RequestInfo to fetch
+ * @param init - Optional fetch init options
+ * @returns The parsed JSON response typed as `T`
+ * @throws Error - When the response has a non-ok status; the error's `message` is derived from the response body (string or `body.message`) and it has a numeric `status` property
+ */
 async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await apiFetch(input, init);
   if (!response.ok) {
@@ -69,6 +86,14 @@ async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Pro
   return (await response.json()) as T;
 }
 
+/**
+ * Render a bar creation and editing interface with tabbed "Details" and "Settings" panels and a live theme/price preview.
+ *
+ * The component loads existing bar data and settings when `barId` is provided and the user is authenticated, and supports creating a new bar when `barId` is absent. It provides client-side validation, save flows for details and settings, and an interactive theme preview.
+ *
+ * @param props.barId - Optional bar identifier. When provided the editor loads and updates that bar; when omitted the editor creates a new bar.
+ * @returns The React element for the bar editor UI.
+ */
 export default function BarEditorClient({ barId }: BarEditorClientProps) {
   const isNew = !barId;
   const router = useRouter();

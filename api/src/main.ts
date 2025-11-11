@@ -43,6 +43,11 @@ if (SENTRY_DSN) {
   });
 }
 
+/**
+ * Bootstraps and starts the NestJS application with common middleware, integrations, and configuration.
+ *
+ * Initializes the application, attaches the application logger, conditionally wires Sentry request/tracing/error handlers when a DSN is configured, applies global validation, rate limiting, CORS, JSON and raw body parsing for the Stripe webhook endpoint, sets the API global prefix, and starts listening on the configured port while logging the running URL.
+ */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,

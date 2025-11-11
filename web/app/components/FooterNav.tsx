@@ -12,6 +12,18 @@ interface FooterNavProps {
   isSubmitting?: boolean;
 }
 
+/**
+ * Render a responsive footer navigation with an optional back action and a primary action button.
+ *
+ * @param showBack - Whether to render the back button (preserves layout with a hidden placeholder when false)
+ * @param onBack - Callback invoked when the back button is clicked
+ * @param onNext - Callback invoked when the primary action button is clicked
+ * @param nextLabel - Label for the primary action button
+ * @param backLabel - Label for the back button (defaults to `"Back"`)
+ * @param disabled - When true, disables the primary action button
+ * @param isSubmitting - When true, replaces the primary button label with `"Mixing your cocktail…"`
+ * @returns A React element containing the footer navigation markup
+ */
 export function FooterNav({
   showBack,
   onBack,

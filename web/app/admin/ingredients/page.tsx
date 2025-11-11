@@ -1,3 +1,11 @@
+/**
+ * Renders the Ingredients admin page UI for managing the master ingredient library.
+ *
+ * Displays a header with page title and description and a bordered content card as a placeholder
+ * for the ingredient management interface (to be connected to admin metrics and CRUD endpoints).
+ *
+ * @returns The JSX element for the Ingredients admin page.
+ */
 export default function AdminIngredientsPage() {
   return (
     <div className="space-y-6 px-6 py-16">

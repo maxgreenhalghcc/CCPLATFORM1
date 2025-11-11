@@ -37,6 +37,12 @@ interface UpdateStatusResponse {
   fulfilledAt: string | null;
 }
 
+/**
+ * Map an order status to its human-readable label.
+ *
+ * @param status - The order status to convert into a display label
+ * @returns The corresponding label: `'Awaiting payment'` for `created`, `'Ready to mix'` for `paid`, `'Served'` for `fulfilled`, `'Cancelled'` for `cancelled`; otherwise returns the original `status`
+ */
 function formatStatusLabel(status: OrderStatus) {
   switch (status) {
     case 'created':
@@ -52,6 +58,12 @@ function formatStatusLabel(status: OrderStatus) {
   }
 }
 
+/**
+ * Normalize an ingredient entry into a trimmed object or return `null` when the entry is empty.
+ *
+ * @param entry - Ingredient entry with optional `name` and `amount`
+ * @returns `{ name: string; amount: string }` with trimmed values and `name` defaulting to `"Ingredient"` when empty, or `null` if both `name` and `amount` are empty
+ */
 function normalizeIngredient(entry: IngredientEntry) {
   const name = entry.name?.trim() ?? '';
   const amount = entry.amount?.trim() ?? '';
@@ -64,6 +76,12 @@ function normalizeIngredient(entry: IngredientEntry) {
   };
 }
 
+/**
+ * Format a timestamp string as a localized `HH:mm` time or return null when the input is missing or invalid.
+ *
+ * @param value - An ISO-8601 timestamp string or `null`
+ * @returns A localized time string in `HH:mm` format, or `null` if `value` is `null` or not a valid date
+ */
 function formatFulfilledAt(value: string | null) {
   if (!value) {
     return null;
@@ -75,6 +93,17 @@ function formatFulfilledAt(value: string | null) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * Renders staff-facing order details and controls for updating order status.
+ *
+ * Displays the recipe, normalized ingredients, and metadata (method, glassware, garnish).
+ * When the order status is `paid`, shows a "Mark served" action that, after confirmation,
+ * performs an optimistic update to `fulfilled` and PATCHes the new status to the API;
+ * on error the UI state is reverted and an error message is shown.
+ *
+ * @param initialOrder - The initial order data to display and operate on (id, status, fulfilledAt, and recipe).
+ * @returns The React element for the staff order detail view.
+ */
 export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProps) {
   const [status, setStatus] = useState<OrderStatus>(initialOrder.status);
   const [fulfilledAt, setFulfilledAt] = useState<string | null>(initialOrder.fulfilledAt);

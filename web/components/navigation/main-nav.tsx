@@ -13,6 +13,15 @@ const links: Array<{ href: string; label: string; roles?: Array<'admin' | 'staff
   { href: '/admin', label: 'Admin Console', roles: ['admin'] }
 ];
 
+/**
+ * Render the main top navigation bar with brand, role-filtered links, and sign-in/sign-out controls.
+ *
+ * Renders a header containing the brand link (with an optional Beta badge), a set of navigation links
+ * filtered by the current user's role, and authentication controls that show the user's email and a
+ * sign-out button when signed in or a sign-in link when not.
+ *
+ * @returns The header element containing the brand, optional Beta badge, visible navigation links, and authentication controls.
+ */
 export function MainNav() {
   const { data: session } = useSession();
   const role = session?.user.role;

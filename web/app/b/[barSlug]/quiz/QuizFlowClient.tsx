@@ -31,6 +31,13 @@ interface QuizAnswerPayload {
   value: { choice: string };
 }
 
+/**
+ * Normalize a checkout redirect value into either an absolute URL, an internal path, or a fallback receipt path.
+ *
+ * @param checkoutUrl - Raw checkout URL returned by the API; may be an absolute URL, a relative path, or malformed.
+ * @param orderId - Order identifier used to construct the fallback receipt path when `checkoutUrl` cannot be used.
+ * @returns The absolute URL string if `checkoutUrl` parses as a valid URL; if `checkoutUrl` is a relative path (starts with `/`), returns it unchanged; otherwise returns `/receipt?orderId={orderId}` as a fallback.
+ */
 function resolveCheckoutPath(checkoutUrl: string, orderId: string): string {
   try {
     const parsed = new URL(checkoutUrl);
@@ -43,6 +50,17 @@ function resolveCheckoutPath(checkoutUrl: string, orderId: string): string {
   }
 }
 
+/**
+ * Renders the interactive multi-step quiz UI for a given bar slug.
+ *
+ * The component manages session creation, per-question answers, navigation, and final submission
+ * (including conditional checkout flow). It displays the current question, selectable options,
+ * an optional contact input on the last step, progress, error messages, and navigation controls.
+ *
+ * @param barSlug - The bar identifier slug used to start a quiz session and build API requests.
+ * @param outroText - Optional small text rendered below the navigation area.
+ * @returns The quiz UI element for answering questions and submitting responses, or `null` when no current question is available.
+ */
 export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
   const router = useRouter();
   const apiUrl = useMemo(getApiUrl, []);

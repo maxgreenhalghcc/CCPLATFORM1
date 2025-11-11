@@ -21,6 +21,13 @@ const cards = [
   }
 ];
 
+/**
+ * Renders the admin dashboard UI and enforces admin-only access.
+ *
+ * If the current session is missing or the user is not an admin, redirects to the login page with `callbackUrl=/admin`.
+ *
+ * @returns A React element representing the admin console interface with cards linking to admin sections.
+ */
 export default async function AdminDashboardPage() {
   const session = await auth();
   if (!session || session.user.role !== 'admin') {

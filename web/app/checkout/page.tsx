@@ -1,3 +1,8 @@
+/**
+ * Render a static placeholder page that explains the upcoming Stripe Checkout integration and development workflow.
+ *
+ * @returns A JSX element displaying a header, explanatory text about the `/v1/orders/{id}/checkout` checkout URL, and a boxed note instructing how to simulate `checkout.session.completed` events to `/v1/webhooks/stripe`.
+ */
 export default function CheckoutPlaceholderPage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-6 py-16">

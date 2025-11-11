@@ -9,6 +9,13 @@ if (!shouldSeed) {
 
 const prisma = new PrismaClient();
 
+/**
+ * Populates the database with initial demo data for development and testing.
+ *
+ * Upserts a demo bar and a sample bar with their settings, ensures a set of common ingredients exist,
+ * creates a verification timestamp, and upserts an admin user and a staff user (the staff user is
+ * associated with the demo bar). Logs the created demo bar id on completion.
+ */
 async function main() {
   const introCopy =
     'Welcome to Demo Bar. Answer a few questions and we will craft a cocktail just for you.';

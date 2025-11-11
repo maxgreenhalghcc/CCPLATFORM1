@@ -7,6 +7,21 @@ interface OrderPageProps {
   params: { orderId: string };
 }
 
+/**
+ * Fetches and normalizes an order's recipe and metadata for the given order ID.
+ *
+ * @param orderId - The order identifier to fetch.
+ * @param token - Optional API bearer token used for the Authorization header.
+ * @returns An object with:
+ *  - `orderId`: the returned order id or the provided `orderId` if absent,
+ *  - `status`: one of `"created" | "paid" | "cancelled" | "fulfilled"`,
+ *  - `fulfilledAt`: a timestamp string or `null`,
+ *  - `recipe`: an object containing `name`, `description`, `ingredients` (array of `{ name?: string; amount?: string }`), `method`, `glassware`, `garnish`, and `warnings` (string[]).
+ *
+ * Observables:
+ *  - Invokes `notFound()` if the API responds with HTTP 404.
+ *  - Throws `Error('Unable to load order')` for other non-OK HTTP responses.
+ */
 async function fetchOrder(orderId: string, token?: string) {
   const baseUrl = getApiBaseUrl();
   const res = await apiFetch(`${baseUrl}/v1/orders/${orderId}/recipe`, {
@@ -56,6 +71,15 @@ async function fetchOrder(orderId: string, token?: string) {
   };
 }
 
+/**
+ * Server page component that verifies staff access, fetches an order, and renders the staff order detail client.
+ *
+ * If there is no active staff session the user is redirected to the login page with a callback back to this order.
+ * If fetching the order fails, the user is redirected to the staff overview page.
+ *
+ * @param params - Route parameters containing `orderId`, the ID of the order to fetch and display
+ * @returns The StaffOrderDetailClient React element initialized with the fetched order data
+ */
 export default async function StaffOrderDetailPage({ params }: OrderPageProps) {
   const session = await auth();
 

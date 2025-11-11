@@ -7,6 +7,12 @@ type CancelPageProps = {
   };
 };
 
+/**
+ * Render the checkout cancellation page that explains the checkout was not completed and provides next steps.
+ *
+ * @param searchParams - Optional query parameters from the URL. If `searchParams.orderId` is present, the page includes a "Return to receipt" action that links to `/receipt?orderId={orderId}`.
+ * @returns A JSX element showing the cancellation message, an optional resume action when an orderId is available, and a note that a new Stripe link will be generated on reattempt.
+ */
 export default function CheckoutCancelPage({ searchParams }: CancelPageProps) {
   const orderId = searchParams?.orderId;
 
