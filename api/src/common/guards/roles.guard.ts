@@ -8,7 +8,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class RolesGuard implements CanActivate { 
   constructor(private readonly reflector: Reflector) {}
 
   /**
