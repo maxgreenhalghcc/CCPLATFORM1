@@ -51,7 +51,18 @@ export declare class OrdersService {
             qty: number;
         }[];
         total?: number;
-    }, user: any): Promise<{
+    }, user: {
+        sessionId?: string;
+    } | any): Promise<{
+        items: {
+            id: string;
+            createdAt: Date;
+            sku: string;
+            qty: number;
+            updatedAt: Date;
+            orderId: string;
+        }[];
+    } & {
         recipeJson: Prisma.JsonValue;
         id: string;
         barId: string;

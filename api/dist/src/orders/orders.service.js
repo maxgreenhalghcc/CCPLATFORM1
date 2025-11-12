@@ -276,6 +276,7 @@ let OrdersService = class OrdersService {
         const order = await this.prisma.order.create({
             data: {
                 barId,
+                sessionId,
                 status: 'created',
                 amount: body.total ?? 0,
                 items: {
