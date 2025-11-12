@@ -176,7 +176,7 @@ model Order {
   fulfilledAt     DateTime?
 
   bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session QuizSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   recipe  Recipe?     @relation(fields: [recipeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   payments Payment[]
 
