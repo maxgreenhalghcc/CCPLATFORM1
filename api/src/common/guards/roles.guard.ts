@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
@@ -36,54 +35,15 @@ export class RolesGuard implements CanActivate {
       );
 
     // If the route/controller didn't specify roles, allow
-=======
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { UserRole } from '@prisma/client';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
-
-@Injectable()
-export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
-
-  canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass()
-    ]);
-
->>>>>>> pr-22
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-<<<<<<< HEAD
     const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = req.user;
     if (!user) return false;
 
     // user.role should already match $Enums.UserRole; cast to satisfy TS
     return requiredRoles.includes(user.role as $Enums.UserRole);
-=======
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const user = request.user;
-
-    if (!user) {
-      throw new UnauthorizedException();
-    }
-
-    if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Insufficient permissions');
-    }
-
-    return true;
->>>>>>> pr-22
   }
 }
