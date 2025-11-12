@@ -7,13 +7,18 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+<<<<<<< HEAD
 import { Prisma } from '@prisma/client';
 import { UserRole } from '../common/roles/user-role.enum';
+=======
+import { OrderStatus as PrismaOrderStatus, Prisma, QuizSessionStatus, UserRole } from '@prisma/client';
+>>>>>>> pr-22
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import * as Sentry from '@sentry/node';
+<<<<<<< HEAD
 
 // Runtime-safe map of valid statuses + a type that matches your DB enum values
 const OrderStatusValues = {
@@ -24,6 +29,10 @@ const OrderStatusValues = {
 } as const;
 
 type PrismaOrderStatus = typeof OrderStatusValues[keyof typeof OrderStatusValues];
+=======
+import { RecipesService } from '../recipes/recipes.service';
+import { CreateOrderDto } from './dto/create-order.dto';
+>>>>>>> pr-22
 
 interface NormalizedRecipeBody {
   ingredients?: unknown;
@@ -37,7 +46,12 @@ interface NormalizedRecipeBody {
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
+<<<<<<< HEAD
     private readonly configService: ConfigService
+=======
+    private readonly configService: ConfigService,
+    private readonly recipes: RecipesService
+>>>>>>> pr-22
   ) {}
 
   private stripeClient?: Stripe;
@@ -219,14 +233,24 @@ export class OrdersService {
       }
     }
 
+<<<<<<< HEAD
    if (status && !Object.values(OrderStatusValues).includes(status as PrismaOrderStatus)) {
     throw new BadRequestException('Invalid status filter');
    }
+=======
+    if (status && !Object.values(PrismaOrderStatus).includes(status)) {
+      throw new BadRequestException('Invalid status filter');
+    }
+>>>>>>> pr-22
 
     const orders = await this.prisma.order.findMany({
       where: {
         barId: bar.id,
+<<<<<<< HEAD
         ...(status ? { status: status as PrismaOrderStatus } : {})
+=======
+        ...(status ? { status } : {})
+>>>>>>> pr-22
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -238,6 +262,7 @@ export class OrdersService {
       }
     });
 
+<<<<<<< HEAD
   return {
     items: orders.map(
       (o: {
@@ -253,6 +278,16 @@ export class OrdersService {
       })
     ),
   };
+=======
+    return {
+      items: orders.map((order) => ({
+        id: order.id,
+        status: order.status,
+        createdAt: order.createdAt.toISOString(),
+        fulfilledAt: order.fulfilledAt?.toISOString() ?? null
+      }))
+    };
+>>>>>>> pr-22
   }
 
   async updateStatus(orderId: string, status: 'fulfilled', requester?: AuthenticatedUser) {
@@ -285,7 +320,11 @@ export class OrdersService {
         }
       }
 
+<<<<<<< HEAD
       if (order.status === OrderStatusValues.fulfilled) {
+=======
+      if (order.status === PrismaOrderStatus.fulfilled) {
+>>>>>>> pr-22
         if (!order.fulfilledAt) {
           const updated = await this.prisma.order.update({
             where: { id: order.id },
@@ -313,7 +352,11 @@ export class OrdersService {
         };
       }
 
+<<<<<<< HEAD
       if (order.status !== OrderStatusValues.paid) {
+=======
+      if (order.status !== PrismaOrderStatus.paid) {
+>>>>>>> pr-22
         throw new ConflictException('Only paid orders can be fulfilled');
       }
 
@@ -322,7 +365,11 @@ export class OrdersService {
       const updated = await this.prisma.order.update({
         where: { id: order.id },
         data: {
+<<<<<<< HEAD
           status: OrderStatusValues.fulfilled as PrismaOrderStatus,
+=======
+          status: PrismaOrderStatus.fulfilled,
+>>>>>>> pr-22
           fulfilledAt
         },
         select: {
@@ -339,6 +386,7 @@ export class OrdersService {
       };
     });
   }
+<<<<<<< HEAD
   async createForBar(
     barId: string,
     body: { items: { sku: string; qty: number }[]; total?: number },
@@ -364,5 +412,44 @@ export class OrdersService {
       });
 
       return order;
+=======
+
+  // === Added for recipe integration ===
+  async createForBar(barId: string, dto: CreateOrderDto) {
+    const session = await this.prisma.quizSession.create({
+      data: {
+        barId,
+        status: QuizSessionStatus.submitted,
+      },
+    });
+
+    const items = Array.isArray(dto.items) ? dto.items : [];
+    const amount = dto.total ?? 0;
+
+    return this.prisma.order.create({
+      data: {
+        barId,
+        sessionId: session.id,
+        amount: new Prisma.Decimal(amount),
+        currency: 'gbp',
+        status: PrismaOrderStatus.created,
+        items: {
+          create: items.map((item) => ({ sku: item.sku, qty: item.qty })),
+        },
+      },
+      include: { items: true },
+    });
+  }
+
+  async checkout(orderId: string) {
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: PrismaOrderStatus.paid },
+    });
+
+    const recipe = await this.recipes.generateForOrder(orderId);
+
+    return { ok: true, recipeId: recipe.id };
+>>>>>>> pr-22
   }
 }

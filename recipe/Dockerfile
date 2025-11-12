@@ -7,7 +7,10 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir fastapi==0.111.0 uvicorn[standard]==0.29.0 pydantic==2.7.1 python-dotenv==1.0.1 pyjwt[crypto]==2.8.0
+<<<<<<< HEAD
 RUN pip install --no-cache-dir sentry-sdk==1.40.4
+=======
+>>>>>>> pr-22
 
 COPY app ./app
 EXPOSE 5000
