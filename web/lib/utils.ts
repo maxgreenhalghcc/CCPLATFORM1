@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 // web/lib/utils.ts
 import type { ClassValue } from 'clsx';
 import { clsx } from 'clsx';
+=======
+import { type ClassValue, clsx } from 'clsx';
+>>>>>>> pr-22
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -26,6 +30,7 @@ export function getApiUrl(): string {
     throw new Error('NEXT_PUBLIC_API_URL is not configured');
   }
   const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+<<<<<<< HEAD
   return `${normalized}/v1`;
 }
 
@@ -48,6 +53,13 @@ export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise
   }
 
   const response = await fetch(url, { ...init, headers });
+=======
+  return normalized.endsWith('/v1') ? normalized : `${normalized}/v1`;
+}
+
+export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
+>>>>>>> pr-22
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
   }

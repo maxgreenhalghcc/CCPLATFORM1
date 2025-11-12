@@ -7,8 +7,13 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-super-secret-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-custom_cocktails}
+<<<<<<< HEAD
       MYSQL_USER: ${MYSQL_USER:-ccai}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-SuperStrongPass}
+=======
+      MYSQL_USER: ${MYSQL_USER:-custom}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-custom}
+>>>>>>> pr-22
     volumes:
       - mysql-data:/var/lib/mysql
     ports:
@@ -25,7 +30,11 @@ services:
     env_file:
       - ../.env
     environment:
+<<<<<<< HEAD
       DATABASE_URL: mysql://ccai:SuperStrongPass@mysql:3306/custom_cocktails
+=======
+      DATABASE_URL: ${DATABASE_URL:-mysql://custom:custom@mysql:3306/custom_cocktails}
+>>>>>>> pr-22
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     depends_on:
       mysql:
@@ -46,6 +55,7 @@ services:
     env_file:
       - ../.env
     ports:
+<<<<<<< HEAD
       - "5000:5000"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:5000/health', timeout=2).status==200 else sys.exit(1)\""]
@@ -53,6 +63,14 @@ services:
       timeout: 3s
       retries: 5
 
+=======
+      - '5000:5000'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:5000/status || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+>>>>>>> pr-22
 
   web:
     build:
