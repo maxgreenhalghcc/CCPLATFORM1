@@ -344,22 +344,25 @@ export class OrdersService {
     body: { items: { sku: string; qty: number }[]; total?: number },
     user: { sessionId?: string } | any,
   ) {
-    const order = await this.prisma.order.create({
-      data: {
-        barId,
-        sessionId, 
-        status: 'created',
-        amount: body.total ?? 0,
-        items: {
-          create: body.items.map(i => ({
-            sku: i.sku,
-            qty: i.qty,
-          })),
-        },
-      },
-      include: { items: true },
-    });
 
-    return order;
+      const sessionId: string | undefined = user?.sessionId ?? undefined;
+      
+      const order = await this.prisma.order.create({
+        data: {
+          barId,
+          sessionId, 
+          status: 'created',
+          amount: body.total ?? 0,
+          items: {
+            create: body.items.map(i => ({
+              sku: i.sku,
+              qty: i.qty,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      return order;
   }
 }
