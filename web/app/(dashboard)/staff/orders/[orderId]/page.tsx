@@ -1,14 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
-<<<<<<< HEAD
 import StaffOrderDetailClient from '../order-detail-client';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 
-=======
-import { auth } from '@/auth';
-import StaffOrderDetailClient from './order-detail-client';
->>>>>>> pr-22
 
 interface OrderPageProps {
   params: { orderId: string };
@@ -64,11 +59,7 @@ async function fetchOrder(orderId: string, token?: string) {
 }
 
 export default async function StaffOrderDetailPage({ params }: OrderPageProps) {
-<<<<<<< HEAD
   const session = await getServerSession(authOptions);
-=======
-  const session = await auth();
->>>>>>> pr-22
 
   if (!session || session.user.role !== 'staff') {
     redirect(`/login?callbackUrl=${encodeURIComponent(`/staff/orders/${params.orderId}`)}`);
