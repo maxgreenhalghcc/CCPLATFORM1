@@ -1,25 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-<<<<<<< HEAD
 import LoginForm from './login-form';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 
-=======
-import { auth } from '@/auth';
-import LoginForm from './login-form';
->>>>>>> pr-22
 
 interface LoginPageProps {
   searchParams?: Record<string, string | string[] | undefined>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-<<<<<<< HEAD
   const session = await getServerSession(authOptions);
-=======
-  const session = await auth();
->>>>>>> pr-22
   const callbackParam = searchParams?.callbackUrl;
   const callbackUrl = typeof callbackParam === 'string' ? callbackParam : undefined;
 

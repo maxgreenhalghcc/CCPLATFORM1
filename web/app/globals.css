@@ -23,10 +23,7 @@
   --card: 0 0% 100%;
   --card-foreground: 224 71.4% 4.1%;
   --radius: 0.75rem;
-<<<<<<< HEAD
 }
-=======
->>>>>>> pr-22
 
 [data-theme='dark'] {
   --bg: hsl(224 71.4% 4.1%);
