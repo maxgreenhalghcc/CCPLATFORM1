@@ -43,6 +43,7 @@ CREATE TABLE `VerificationToken` (
 );
 
 -- AddForeignKey
+<<<<<<< HEAD
 ALTER TABLE `Account` MODIFY `userId` VARCHAR(191) NOT NULL;
   ADD CONSTRAINT `Account_userId_fkey`
   FOREIGN KEY (`userId`) REFERENCES `User`(`id`)
@@ -51,4 +52,11 @@ ALTER TABLE `Account` MODIFY `userId` VARCHAR(191) NOT NULL;
 
 -- AddForeignKey
 ALTER TABLE `Session` MODIFY `userId` VARCHAR(191) NOT NULL;
+=======
+ALTER TABLE `Account`
+    ADD CONSTRAINT `Account_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Session`
+>>>>>>> pr-22
     ADD CONSTRAINT `Session_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
