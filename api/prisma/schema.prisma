@@ -5,11 +5,8 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
-<<<<<<< HEAD
   binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x"]
   engineType    = "library"       // (safer inside containers)
-=======
->>>>>>> pr-22
 }
 
 enum UserRole {
@@ -158,10 +155,6 @@ model Recipe {
   description String
   body        Json
   abvEstimate Float?
-<<<<<<< HEAD
-=======
-  result      Json?
->>>>>>> pr-22
 
   bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -169,17 +162,11 @@ model Recipe {
 }
 
 model Order {
-<<<<<<< HEAD
   recipeJson   Json?      @db.Json
   items        OrderItem[]
   id              String        @id @default(cuid())
   barId           String
   sessionId       String?
-=======
-  id              String        @id @default(cuid())
-  barId           String
-  sessionId       String
->>>>>>> pr-22
   recipeId        String?
   amount          Decimal       @db.Decimal(10, 2)
   currency        String        @default("gbp")
@@ -187,16 +174,9 @@ model Order {
   stripeSessionId String?
   createdAt       DateTime      @default(now())
   fulfilledAt     DateTime?
-<<<<<<< HEAD
 
   bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   session QuizSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-=======
-  items           OrderItem[]
-
-  bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
->>>>>>> pr-22
   recipe  Recipe?     @relation(fields: [recipeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   payments Payment[]
 
@@ -204,18 +184,6 @@ model Order {
   @@unique([stripeSessionId])
 }
 
-<<<<<<< HEAD
-=======
-model OrderItem {
-  id      String @id @default(cuid())
-  orderId String
-  sku     String
-  qty     Int
-
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-}
-
->>>>>>> pr-22
 model Payment {
   id        String   @id @default(cuid())
   orderId   String
@@ -230,7 +198,6 @@ model Payment {
 
   @@unique([intentId])
 }
-<<<<<<< HEAD
 
 model OrderItem {
   id        String  @id @default(cuid())
@@ -241,5 +208,3 @@ model OrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-=======
->>>>>>> pr-22

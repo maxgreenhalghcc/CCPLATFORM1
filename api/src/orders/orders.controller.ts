@@ -5,14 +5,8 @@ import { UpdateOrderStatusDto } from './dto/update-status.dto';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-<<<<<<< HEAD
 import { UserRole } from '../common/roles/user-role.enum';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
-=======
-import { UserRole } from '@prisma/client';
-import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
-import { CreateOrderDto } from './dto/create-order.dto';
->>>>>>> pr-22
 
 @Controller('orders')
 export class OrdersController {
@@ -38,18 +32,4 @@ export class OrdersController {
   ) {
     return this.ordersService.updateStatus(id, dto.status, request.user);
   }
-<<<<<<< HEAD
-=======
-
-  // === Added for recipe integration ===
-  @Post('/bars/:barId/orders')
-  createForBar(@Param('barId') barId: string, @Body() dto: CreateOrderDto) {
-    return this.ordersService.createForBar(barId, dto);
-  }
-
-  @Post('/orders/:id/checkout')
-  checkout(@Param('id') id: string) {
-    return this.ordersService.checkout(id);
-  }
->>>>>>> pr-22
 }
