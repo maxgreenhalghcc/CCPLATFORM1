@@ -20,15 +20,6 @@ export declare class BarOrdersController {
         }[];
     }>;
     createForBar(id: string, body: CreateOrderBody, request: AuthenticatedRequest): Promise<{
-        items: {
-            id: string;
-            createdAt: Date;
-            sku: string;
-            qty: number;
-            updatedAt: Date;
-            orderId: string;
-        }[];
-    } & {
         recipeJson: Prisma.JsonValue;
         id: string;
         barId: string;

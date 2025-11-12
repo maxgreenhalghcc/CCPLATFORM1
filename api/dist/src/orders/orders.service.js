@@ -273,6 +273,7 @@ let OrdersService = class OrdersService {
         });
     }
     async createForBar(barId, body, user) {
+        const sessionId = user?.sessionId ?? undefined;
         const order = await this.prisma.order.create({
             data: {
                 barId,
