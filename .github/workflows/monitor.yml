@@ -9,6 +9,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+<<<<<<< HEAD
 
     # IMPORTANT: give the token enough permissions for scheduled runs
     permissions:
@@ -39,6 +40,12 @@ jobs:
 
       - name: Run smoke against API
         if: ${{ steps.validate.outputs.ok == 'true' }}
+=======
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run smoke against API
+>>>>>>> pr-22
         env:
           BASE_URL: ${{ secrets.MONITOR_API_BASE_URL }}
           BAR_SLUG: ${{ secrets.MONITOR_BAR_SLUG }}
@@ -51,15 +58,24 @@ jobs:
             ./scripts/smoke.sh "$BASE_URL" "$BAR_SLUG"
           fi
 
+<<<<<<< HEAD
       - name: Open incident issue
         if: failure() && steps.validate.outputs.ok == 'true'
+=======
+      - if: failure()
+        name: Open incident issue
+>>>>>>> pr-22
         uses: actions-ecosystem/action-create-issue@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           title: "Production smoke failed ❌"
           body: |
+<<<<<<< HEAD
             The scheduled smoke check failed.
 
+=======
+            The scheduled smoke checks failed.
+>>>>>>> pr-22
             - Workflow: ${{ github.workflow }}
             - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             - Time (UTC): ${{ github.run_started_at }}
