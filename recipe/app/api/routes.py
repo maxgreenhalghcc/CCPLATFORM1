@@ -1,28 +1,13 @@
-<<<<<<< HEAD
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Annotated
 
 import jwt
 import sentry_sdk
-=======
-from datetime import datetime, timezone
-from typing import Annotated
-
-from __future__ import annotations
-
-import jwt
-import sentry_sdk
-from datetime import datetime, timezone
->>>>>>> pr-22
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jwt import InvalidTokenError
 from sentry_sdk import configure_scope
 from starlette.middleware.base import BaseHTTPMiddleware
-<<<<<<< HEAD
-=======
-from typing import Annotated
->>>>>>> pr-22
 from uuid import uuid4
 
 from ..core.config import get_settings, Settings
@@ -49,11 +34,7 @@ def get_app_settings() -> Settings:
 
 
 def verify_authorization(
-<<<<<<< HEAD
     authorization: Annotated[str | None, Header()] = None,
-=======
-    authorization: Annotated[str | None, Header(default=None)],
->>>>>>> pr-22
     settings: Settings = Depends(get_app_settings)
 ) -> None:
     if not authorization or not authorization.startswith("Bearer "):
@@ -95,9 +76,6 @@ async def generate_endpoint(
 ) -> GenerateResponse:
     with sentry_sdk.start_span(op="service", description="recipe.generate"):
         return generate_recipe(payload)
-<<<<<<< HEAD
 @router.get("/health")
 def health():
     return {"status": "ok"}
-=======
->>>>>>> pr-22

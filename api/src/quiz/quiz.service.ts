@@ -275,18 +275,11 @@ export class QuizService {
           create: {
             sessionId: session.id,
             questionId: answer.questionId,
-<<<<<<< HEAD
             value: answer.value as Prisma.InputJsonValue
 
           },
           update: {
             value: answer.value as Prisma.InputJsonValue
-=======
-            value: answer.value as unknown as Prisma.JsonValue
-          },
-          update: {
-            value: answer.value as unknown as Prisma.JsonValue
->>>>>>> pr-22
           }
         })
       ),

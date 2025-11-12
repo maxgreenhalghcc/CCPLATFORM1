@@ -2,7 +2,6 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-<<<<<<< HEAD
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -13,14 +12,6 @@ import type { $Enums } from '@prisma/client';
 
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import type { AuthenticatedUser } from '../interfaces/authenticated-user.interface';
-=======
-  UnauthorizedException
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { verify, JwtPayload } from 'jsonwebtoken';
-import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
-import { AuthenticatedUser } from '../interfaces/authenticated-user.interface';
->>>>>>> pr-22
 
 @Injectable()
 export class ApiAuthGuard implements CanActivate {
@@ -28,7 +19,6 @@ export class ApiAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-<<<<<<< HEAD
     // --- EMERGENCY DEV BYPASS (guaranteed) -------------------------
     if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
       const requestedBar =
@@ -140,33 +130,18 @@ export class ApiAuthGuard implements CanActivate {
     }
 
     const secret = this.configService.get<string>('nextauth.secret');
-=======
-    const authorization = this.extractToken(request);
-
-    if (!authorization) {
-      throw new UnauthorizedException('Authorization token is missing');
-    }
-
-    const secret = this.configService.get<string>('nextAuth.secret');
-
->>>>>>> pr-22
     if (!secret) {
       throw new UnauthorizedException('Authentication is not configured');
     }
 
     try {
-<<<<<<< HEAD
       const payload = verify(token, secret) as JwtPayload & Partial<AuthenticatedUser>;
-=======
-      const payload = verify(authorization, secret) as JwtPayload & AuthenticatedUser;
->>>>>>> pr-22
 
       if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
         throw new UnauthorizedException('Token missing required claims');
       }
 
       request.user = {
-<<<<<<< HEAD
         sub: String(payload.sub),
         email: (payload as any).email ?? null,
         role: (payload.role as unknown) as $Enums.UserRole,
@@ -175,20 +150,10 @@ export class ApiAuthGuard implements CanActivate {
 
       return true;
     } catch {
-=======
-        sub: payload.sub as string,
-        email: payload.email,
-        role: payload.role,
-        barId: payload.barId ?? null
-      };
-      return true;
-    } catch (error) {
->>>>>>> pr-22
       throw new UnauthorizedException('Invalid authentication token');
     }
   }
 
-<<<<<<< HEAD
   private extractBearer(
     headerValue: string | string[] | undefined,
   ): string | null {
@@ -202,24 +167,5 @@ export class ApiAuthGuard implements CanActivate {
       return tok?.trim() || null;
     }
     return trimmed || null;
-=======
-  private extractToken(request: AuthenticatedRequest): string | null {
-    const header = request.headers['authorization'] ?? request.headers['Authorization'];
-
-    if (!header) {
-      return null;
-    }
-
-    if (Array.isArray(header)) {
-      return null;
-    }
-
-    const [scheme, token] = header.split(' ');
-    if (scheme?.toLowerCase() !== 'bearer' || !token) {
-      return null;
-    }
-
-    return token;
->>>>>>> pr-22
   }
 }

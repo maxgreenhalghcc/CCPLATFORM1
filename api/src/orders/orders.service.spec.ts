@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { Prisma,} from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { UserRole } from '../common/roles/user-role.enum';
@@ -15,14 +14,6 @@ const OrderStatus = {
 } as const;
 type OrderStatus = keyof typeof OrderStatus | (typeof OrderStatus)[keyof typeof OrderStatus];
 
-=======
-import { ConfigService } from '@nestjs/config';
-import { OrderStatus, Prisma, UserRole } from '@prisma/client';
-import { ForbiddenException } from '@nestjs/common';
-import { OrdersService } from './orders.service';
-import { PrismaService } from '../prisma/prisma.service';
-import type { RecipesService } from '../recipes/recipes.service';
->>>>>>> pr-22
 
 describe('OrdersService.listForBar', () => {
   let prisma: PrismaService;
@@ -30,7 +21,6 @@ describe('OrdersService.listForBar', () => {
   const configService = {
     get: jest.fn()
   } as unknown as ConfigService;
-<<<<<<< HEAD
 
   // Make sure Prisma sees a mysql:// URL when running jest locally
 process.env.DATABASE_URL ??= 'mysql://root:SuperStrongPass3@127.0.0.1:3306/custom_cocktails';
@@ -80,57 +70,6 @@ beforeAll(async () => {
   service = new OrdersService(prisma, configService);
 });
 
-=======
-  const recipesService = {
-    generateForOrder: jest.fn()
-  } as unknown as RecipesService;
-
-  beforeAll(async () => {
-    prisma = new PrismaService({
-      datasources: {
-        db: {
-          url: 'file:memdb1?mode=memory&cache=shared'
-        }
-      }
-    });
-
-    await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = ON;`);
-    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Order";`);
-    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Bar";`);
-
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE "Bar" (
-        "id" TEXT PRIMARY KEY,
-        "name" TEXT NOT NULL,
-        "slug" TEXT NOT NULL UNIQUE,
-        "location" TEXT,
-        "active" BOOLEAN NOT NULL DEFAULT 1
-      );
-    `);
-
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE "Order" (
-        "id" TEXT PRIMARY KEY,
-        "barId" TEXT NOT NULL,
-        "sessionId" TEXT NOT NULL,
-        "recipeId" TEXT,
-        "amount" REAL NOT NULL,
-        "currency" TEXT NOT NULL DEFAULT 'gbp',
-        "status" TEXT NOT NULL DEFAULT 'created',
-        "stripeSessionId" TEXT,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "fulfilledAt" DATETIME,
-        FOREIGN KEY ("barId") REFERENCES "Bar"("id") ON DELETE CASCADE ON UPDATE CASCADE
-      );
-    `);
-
-    await prisma.$executeRawUnsafe(
-      `CREATE INDEX IF NOT EXISTS "Order_barId_status_idx" ON "Order"("barId", "status");`
-    );
-
-    service = new OrdersService(prisma, configService, recipesService);
-  });
->>>>>>> pr-22
 
   beforeEach(async () => {
     await prisma.order.deleteMany();
@@ -150,11 +89,7 @@ beforeAll(async () => {
         id: 'order_created',
         barId: bar.id,
         sessionId: 'session_created',
-<<<<<<< HEAD
         amount: '10.00',
-=======
-        amount: new Prisma.Decimal('10.00'),
->>>>>>> pr-22
         currency: 'gbp',
         status: OrderStatus.created,
         createdAt: new Date('2024-01-01T10:00:00.000Z')
@@ -166,11 +101,7 @@ beforeAll(async () => {
         id: 'order_paid',
         barId: bar.id,
         sessionId: 'session_paid',
-<<<<<<< HEAD
         amount: '12.00',
-=======
-        amount: new Prisma.Decimal('12.00'),
->>>>>>> pr-22
         currency: 'gbp',
         status: OrderStatus.paid,
         createdAt: new Date('2024-01-01T11:00:00.000Z')
@@ -182,11 +113,7 @@ beforeAll(async () => {
         id: 'order_cancelled',
         barId: bar.id,
         sessionId: 'session_cancelled',
-<<<<<<< HEAD
         amount: '8.00',
-=======
-        amount: new Prisma.Decimal('8.00'),
->>>>>>> pr-22
         currency: 'gbp',
         status: OrderStatus.cancelled,
         createdAt: new Date('2024-01-01T09:30:00.000Z')
@@ -198,11 +125,7 @@ beforeAll(async () => {
         id: 'order_fulfilled',
         barId: bar.id,
         sessionId: 'session_fulfilled',
-<<<<<<< HEAD
         amount: '15.00',
-=======
-        amount: new Prisma.Decimal('15.00'),
->>>>>>> pr-22
         currency: 'gbp',
         status: OrderStatus.fulfilled,
         fulfilledAt: new Date('2024-01-01T12:00:00.000Z'),
@@ -217,22 +140,14 @@ beforeAll(async () => {
 
   it('lists the most recent orders for a bar slug', async () => {
     const result = await service.listForBar('demo-bar');
-<<<<<<< HEAD
     expect(result.items.map((item: { id: string }) => item.id)).toEqual([
-=======
-    expect(result.items.map((item) => item.id)).toEqual([
->>>>>>> pr-22
       'order_paid',
       'order_created',
       'order_cancelled',
       'order_fulfilled'
     ]);
 
-<<<<<<< HEAD
     const fulfilled = result.items.find((item: { id: string }) => item.id === 'order_fulfilled');
-=======
-    const fulfilled = result.items.find((item) => item.id === 'order_fulfilled');
->>>>>>> pr-22
     expect(fulfilled?.fulfilledAt).toBeTruthy();
   });
 
@@ -293,11 +208,7 @@ beforeAll(async () => {
           id: 'order_other_bar',
           barId: 'bar_3',
           sessionId: 'session_other_bar',
-<<<<<<< HEAD
           amount: '9.00',
-=======
-          amount: new Prisma.Decimal('9.00'),
->>>>>>> pr-22
           currency: 'gbp',
           status: OrderStatus.paid
         }

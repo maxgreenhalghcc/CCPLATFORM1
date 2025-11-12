@@ -54,25 +54,16 @@ export declare class OrdersService {
     }, user: {
         sessionId?: string;
     } | any): Promise<{
-        items: {
-            id: string;
-            createdAt: Date;
-            orderId: string;
-            sku: string;
-            qty: number;
-            updatedAt: Date;
-        }[];
-    } & {
+        recipeJson: Prisma.JsonValue;
         id: string;
         barId: string;
-        createdAt: Date;
-        status: import(".prisma/client").$Enums.OrderStatus;
-        recipeJson: Prisma.JsonValue;
-        sessionId: string | null;
+        sessionId: string;
         recipeId: string | null;
         amount: Prisma.Decimal;
         currency: string;
+        status: import(".prisma/client").$Enums.OrderStatus;
         stripeSessionId: string | null;
+        createdAt: Date;
         fulfilledAt: Date | null;
     }>;
 }
