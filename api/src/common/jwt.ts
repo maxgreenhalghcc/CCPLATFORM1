@@ -44,7 +44,7 @@ export const signJwtHS256 = (
     body.sub = options.subject;
   }
 
-  if (options.expiresInSeconds) {
+  if (typeof options.expiresInSeconds === 'number') {{
     body.exp = issuedAt + options.expiresInSeconds;
   }
 
