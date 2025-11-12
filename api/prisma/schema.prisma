@@ -166,7 +166,7 @@ model Order {
   items        OrderItem[]
   id              String        @id @default(cuid())
   barId           String
-  sessionId       String
+  sessionId       String?
   recipeId        String?
   amount          Decimal       @db.Decimal(10, 2)
   currency        String        @default("gbp")
