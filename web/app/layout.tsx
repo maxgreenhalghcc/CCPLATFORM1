@@ -4,12 +4,9 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { auth } from '@/auth';
-<<<<<<< HEAD
 // v4 uses getServerSession
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
-=======
->>>>>>> pr-22
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -22,14 +19,8 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-<<<<<<< HEAD
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
-=======
-export default async function RootLayout({ children }: RootLayoutProps) {
-  const session = await auth();
-
->>>>>>> pr-22
   return (
     <html className={inter.variable} lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
@@ -38,7 +29,4 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     </html>
   );
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> pr-22

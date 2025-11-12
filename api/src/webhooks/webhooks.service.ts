@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { Prisma, OrderStatus } from '@prisma/client';
-=======
->>>>>>> pr-22
 import {
   BadRequestException,
   Injectable,
@@ -9,10 +6,6 @@ import {
   Logger
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-<<<<<<< HEAD
-=======
-import { OrderStatus, Prisma } from '@prisma/client';
->>>>>>> pr-22
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -125,11 +118,7 @@ export class WebhooksService {
           data: {
             amount,
             status: paymentStatus,
-<<<<<<< HEAD
             raw: event as unknown as Prisma.InputJsonValue
-=======
-            raw: event as unknown as Prisma.JsonValue
->>>>>>> pr-22
           }
         });
         return;
@@ -141,11 +130,7 @@ export class WebhooksService {
           intentId: intentReference,
           amount,
           status: paymentStatus,
-<<<<<<< HEAD
           raw: event as unknown as Prisma.InputJsonValue
-=======
-          raw: event as unknown as Prisma.JsonValue
->>>>>>> pr-22
         }
       });
     }
