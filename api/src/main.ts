@@ -94,6 +94,7 @@ async function bootstrap() {
     httpAdapter.use(Sentry.Handlers.errorHandler());
   }
 
+<<<<<<< HEAD
   // 🔍 Log all Express routes to help debug endpoints
   const server: any = app.getHttpServer();
   const router = server._events?.request?._router;
@@ -111,6 +112,8 @@ async function bootstrap() {
   }
 
   
+=======
+>>>>>>> pr-22
   await app.listen(port);
   // FIX(build): use Nest logger.log for compatibility with Logger interface.
   logger.log(`🚀 API is running on http://localhost:${port}/${globalPrefix}`);

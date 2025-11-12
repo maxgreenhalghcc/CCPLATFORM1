@@ -8,7 +8,11 @@ import {
   Query,
   UseGuards
 } from '@nestjs/common';
+<<<<<<< HEAD
 import { UserRole } from '../common/roles/user-role.enum';
+=======
+import { UserRole } from '@prisma/client';
+>>>>>>> pr-22
 import { BarsService } from './bars.service';
 import type {
   BarListResponse,

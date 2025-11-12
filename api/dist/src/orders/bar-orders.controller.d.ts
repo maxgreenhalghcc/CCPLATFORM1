@@ -14,22 +14,31 @@ export declare class BarOrdersController {
     listForBar(id: string, request: AuthenticatedRequest, status?: string): Promise<{
         items: {
             id: string;
-            status: "created" | "paid" | "cancelled" | "fulfilled";
+            status: "created" | "paid" | "fulfilled" | "cancelled";
             createdAt: string;
             fulfilledAt: string | null;
         }[];
     }>;
     createForBar(id: string, body: CreateOrderBody, request: AuthenticatedRequest): Promise<{
-        recipeJson: Prisma.JsonValue;
+        items: {
+            id: string;
+            createdAt: Date;
+            orderId: string;
+            sku: string;
+            qty: number;
+            updatedAt: Date;
+        }[];
+    } & {
         id: string;
         barId: string;
-        sessionId: string;
+        createdAt: Date;
+        status: import(".prisma/client").$Enums.OrderStatus;
+        recipeJson: Prisma.JsonValue;
+        sessionId: string | null;
         recipeId: string | null;
         amount: Prisma.Decimal;
         currency: string;
-        status: import(".prisma/client").$Enums.OrderStatus;
         stripeSessionId: string | null;
-        createdAt: Date;
         fulfilledAt: Date | null;
     }>;
 }
