@@ -148,7 +148,7 @@ recipe = await this.recipesClient.buildRecipe(bar.id, answerMap, requestId);
         name: recipe.cocktailName ?? 'Custom cocktail',
         description: recipe.notes ?? '',
         body: recipeBody,
-        result: recipe,
+        result: recipe as unknown as Prisma.InputJsonValue,
       },
     });
 
