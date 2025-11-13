@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from '@/auth';
 
 const cards = [
   {
@@ -23,7 +22,7 @@ const cards = [
 ];
 
 export default async function AdminDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || session.user.role !== 'admin') {
     redirect(`/login?callbackUrl=${encodeURIComponent('/admin')}`);
   }

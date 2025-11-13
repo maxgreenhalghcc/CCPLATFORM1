@@ -3,6 +3,10 @@ import { PrismaClient, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  constructor(options?: Prisma.PrismaClientOptions) {
+    super(options);
+  }
+
   async onModuleInit() {
     await this.$connect();
   }
@@ -12,7 +16,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async enableShutdownHooks(app: INestApplication) {
-    (this as any).$on('beforeExit', async () => {
+    this.$on('beforeExit', async () => {
       await app.close();
     });
   }
