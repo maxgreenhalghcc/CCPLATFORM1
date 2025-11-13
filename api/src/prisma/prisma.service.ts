@@ -1,10 +1,21 @@
-import { INestApplication, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import {
+  INestApplication,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  constructor(options?: Prisma.PrismaClientOptions) {
-    super(options);
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  // No injected constructor params – Nest can instantiate this just fine.
+  constructor() {
+    // If you want to tweak prisma options, pass them here:
+    // super({ log: ['query'] });
+    super();
   }
 
   async onModuleInit() {
@@ -16,7 +27,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async enableShutdownHooks(app: INestApplication) {
-    (this as any).$on('beforeExit', async () => {
+    this.$on('beforeExit', async () => {
       await app.close();
     });
   }
