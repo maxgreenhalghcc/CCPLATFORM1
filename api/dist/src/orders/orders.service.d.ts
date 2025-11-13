@@ -25,16 +25,16 @@ export declare class OrdersService {
     private resolveFrontendUrl;
     createFromRecipe(params: CreateOrderFromRecipeParams): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.OrderStatus;
         barId: string;
-        currency: string;
-        recipeJson: Prisma.JsonValue;
-        sessionId: string | null;
+        sessionId: string;
         recipeId: string | null;
         amount: Prisma.Decimal;
+        currency: string;
+        status: import(".prisma/client").$Enums.OrderStatus;
         stripeSessionId: string | null;
         createdAt: Date;
         fulfilledAt: Date | null;
+        recipeJson: Prisma.JsonValue;
     }>;
     createCheckout(orderId: string, dto?: CreateCheckoutDto): Promise<{
         checkout_url: string;

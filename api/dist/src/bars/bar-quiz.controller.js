@@ -34,7 +34,7 @@ __decorate([
     __param(0, (0, common_1.Param)('slug')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], BarQuizController.prototype, "getSkin", null);
 __decorate([
     (0, common_1.Post)('submit'),
@@ -43,7 +43,7 @@ __decorate([
     __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, quiz_submit_dto_1.QuizSubmitDto, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], BarQuizController.prototype, "submit", null);
 exports.BarQuizController = BarQuizController = __decorate([
     (0, common_1.Controller)('bars/:slug/quiz'),
