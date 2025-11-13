@@ -93,7 +93,13 @@ let BarQuizService = BarQuizService_1 = class BarQuizService {
         });
         let recipe;
         try {
-            recipe = await this.recipesClient.buildRecipe(bar.id, dto.answers, requestId);
+            const answerMap = {};
+            Object.entries(dto.answers).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    answerMap[key] = String(value);
+                }
+            });
+            recipe = await this.recipesClient.buildRecipe(bar.id, answerMap, requestId);
         }
         catch (error) {
             this.logger.error('Recipe generation failed', error instanceof Error ? error.message : String(error));
