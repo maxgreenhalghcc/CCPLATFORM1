@@ -118,7 +118,7 @@ export class WebhooksService {
           data: {
             amount,
             status: paymentStatus,
-            raw: event as unknown as Prisma.JsonValue
+            raw: event as unknown as Prisma.InputJsonValue
           }
         });
         return;
@@ -130,7 +130,7 @@ export class WebhooksService {
           intentId: intentReference,
           amount,
           status: paymentStatus,
-          raw: event as unknown as Prisma.JsonValue
+          raw: event as unknown as Prisma.InputJsonValue
         }
       });
     }
