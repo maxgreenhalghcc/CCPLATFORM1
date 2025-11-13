@@ -9,7 +9,8 @@ const SHOW_BETA_BADGE =
 
 const links: Array<{ href: string; label: string; roles?: Array<'admin' | 'staff'> }> = [
   { href: '/b/sample-bar', label: 'Sample Bar' },
-  { href: '/staff', label: 'Staff Dashboard', roles: ['staff'] },
+  { href: '/staff', label: 'Staff Orders', roles: ['staff'] },
+  { href: '/staff/details', label: 'Staff Details', roles: ['staff'] },
   { href: '/admin', label: 'Admin Console', roles: ['admin'] }
 ];
 

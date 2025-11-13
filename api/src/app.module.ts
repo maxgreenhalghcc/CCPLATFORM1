@@ -1,8 +1,8 @@
-import { Params, LoggerModule } from 'nestjs-pino';
-import { IncomingMessage, ServerResponse } from 'http';
 import { MiddlewareConsumer, Module, NestModule, Catch, ArgumentsHost } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LoggerModule } from 'nestjs-pino';
+import type { LoggerModuleOptions } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
@@ -11,7 +11,6 @@ import { AuthModule } from './auth/auth.module';
 import { BarsModule } from './bars/bars.module';
 import { QuizModule } from './quiz/quiz.module';
 import { OrdersModule } from './orders/orders.module';
-import { RecipesModule } from './recipes/recipes.module';
 import { AdminModule } from './admin/admin.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { HealthModule } from './health/health.module';
@@ -58,39 +57,51 @@ class SentryFilter extends BaseExceptionFilter {
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService): Params => {
+      // FIX(build): ensure logger factory matches nestjs-pino expected options type.
+      useFactory: (configService: ConfigService): LoggerModuleOptions => {
+        const nodeEnv = configService.get<string>('nodeEnv');
         const level = configService.get<string>('logLevel') ?? 'info';
         return {
           pinoHttp: {
             level,
-            // pretty printing in dev; keep or remove as you like
-            transport: { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } },
-            // Note the correct parameter types here:
-            customProps: (_req: IncomingMessage, _res: ServerResponse) => ({
-              requestId: (_req as any)?.requestId,
-              userId: (_req as any)?.user?.id ?? null,
+            customProps: (req: Record<string, unknown>) => ({
+              requestId: (req as any)?.requestId,
+              userId: (req as any)?.user?.id ?? null,
             }),
             redact: {
               paths: [
                 'req.headers.authorization',
                 'req.headers.cookie',
+                'req.headers.x-staff-token',
                 'req.headers["x-staff-token"]',
                 'req.headers["x-api-token"]',
                 'res.headers["set-cookie"]',
+                'req.body.contact',
+                'req.body.answers',
+                'user.email',
+                'req.user.email',
               ],
               censor: '[redacted]',
             },
+            transport:
+              nodeEnv === 'development'
+                ? {
+                    target: 'pino-pretty',
+                    options: {
+                      translateTime: 'SYS:standard',
+                      colorize: true,
+                    },
+                  }
+                : undefined,
           },
         };
       },
     }),
-
     PrismaModule,
     AuthModule,
     BarsModule,
     QuizModule,
     OrdersModule,
-    RecipesModule,
     AdminModule,
     WebhooksModule,
     HealthModule,
