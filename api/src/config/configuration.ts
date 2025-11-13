@@ -39,7 +39,7 @@ export default () => {
     },
     quiz: {
       enabled: (process.env.QUIZ_ENABLED ?? 'false').toLowerCase() === 'true',
-      recipeApiBase: process.env.RECIPE_API_BASE ?? '',
+      recipeApiBase: process.env.RECIPE_API_BASE ?? process.env.RECIPE_SERVICE_URL ?? '',
       mockRecipes: (process.env.MOCK_RECIPES ?? 'false').toLowerCase() === 'true',
     },
     sentry: {
