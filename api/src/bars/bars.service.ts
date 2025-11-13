@@ -90,9 +90,9 @@ export class BarsService {
       const term = query.search.trim();
       if (term.length > 0) {
         where.OR = [
-          { name: { contains: term, mode: 'insensitive' } },
-          { slug: { contains: term, mode: 'insensitive' } },
-          { location: { contains: term, mode: 'insensitive' } }
+          { name: { contains: term } },
+          { slug: { contains: term } },
+          { location: { contains: term } }
         ];
       }
     }
