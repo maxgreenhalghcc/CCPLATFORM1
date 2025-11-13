@@ -78,7 +78,7 @@ exports.AppModule = AppModule = __decorate([
                     return {
                         pinoHttp: {
                             level,
-                            customProps: (req) => ({
+                            customProps: (req, _res) => ({
                                 requestId: req?.requestId,
                                 userId: req?.user?.id ?? null,
                             }),
