@@ -118,20 +118,28 @@ export class BarQuizService {
     let recipe: RecipeBuildResult;
 
     try {
-      recipe = await this.recipesClient.buildRecipe(bar.id, dto.answers, requestId);
+      const answerMap: Record<string, string> = {};
+      Object.entries(dto.answers as any).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          answerMap[key] = String(value);
+        }
+      });
+
+recipe = await this.recipesClient.buildRecipe(bar.id, answerMap, requestId);  
+
     } catch (error) {
       this.logger.error('Recipe generation failed', error instanceof Error ? error.message : String(error));
       throw new ServiceUnavailableException('Unable to generate recipe');
     }
 
-    const recipeBody = {
+    const recipeBody: Prisma.InputJsonValue = {
       ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
       method: recipe.method ?? '',
       glassware: recipe.glassware ?? '',
       garnish: recipe.garnish ?? '',
       warnings: [],
       notes: recipe.notes ?? '',
-    };
+    } as any;
 
     const storedRecipe = await this.prisma.recipe.create({
       data: {
