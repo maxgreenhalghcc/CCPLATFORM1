@@ -111,7 +111,7 @@ export class BarQuizService {
           answers: dto.answers,
           customer: dto.customer,
           notes: dto.notes ?? '',
-        },
+        } as unknown as Prisma.InputJsonValue,
       },
     });
 
