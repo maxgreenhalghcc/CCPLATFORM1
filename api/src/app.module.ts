@@ -1,7 +1,19 @@
-import { MiddlewareConsumer, Module, NestModule, Catch, ArgumentsHost } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  Catch,
+  ArgumentsHost,
+} from '@nestjs/common';
+import {
+  APP_FILTER,
+  APP_INTERCEPTOR,
+  BaseExceptionFilter,
+  HttpAdapterHost,
+} from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import type { Params } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
@@ -56,16 +68,17 @@ class SentryFilter extends BaseExceptionFilter {
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
+      useFactory: (configService: ConfigService): Params => {
         const nodeEnv = configService.get<string>('nodeEnv');
         const level = configService.get<string>('logLevel') ?? 'info';
 
         return {
           pinoHttp: {
             level,
-            customProps: (req: Record<string, unknown>) => ({
-              requestId: (req as any)?.requestId,
-              userId: (req as any)?.user?.id ?? null,
+            // Signature (req, res) matches nestjs-pino expectations
+            customProps: (req: any, _res: any) => ({
+              requestId: req?.requestId,
+              userId: req?.user?.id ?? null,
             }),
             redact: {
               paths: [
