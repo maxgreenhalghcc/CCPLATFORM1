@@ -84,7 +84,6 @@ class SentryFilter extends BaseExceptionFilter {
               paths: [
                 'req.headers.authorization',
                 'req.headers.cookie',
-                'req.headers.x-staff-token',
                 'req.headers["x-staff-token"]',
                 'req.headers["x-api-token"]',
                 'res.headers["set-cookie"]',
