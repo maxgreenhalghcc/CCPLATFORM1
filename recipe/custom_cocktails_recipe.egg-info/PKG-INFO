@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: custom-cocktails-recipe
+Version: 1.0.1rc1
+Summary: Recipe generation microservice for Custom Cocktails
+Author: Custom Cocktails
+Requires-Python: >=3.11
+Requires-Dist: fastapi==0.111.0
+Requires-Dist: uvicorn[standard]==0.29.0
+Requires-Dist: pydantic==2.7.1
+Requires-Dist: python-dotenv==1.0.1
+Requires-Dist: pyjwt[crypto]==2.8.0
+Requires-Dist: sentry-sdk==1.45.0
+Provides-Extra: dev
+Requires-Dist: ruff==0.4.4; extra == "dev"
+Requires-Dist: pytest==8.1.1; extra == "dev"
