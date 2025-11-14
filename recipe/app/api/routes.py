@@ -37,7 +37,7 @@ def get_app_settings() -> Settings:
 
 
 def verify_authorization(
-    authorization: Annotated[str | None, Header(default=None)],
+    authorization: Annotated[str | None, Header()] = None,
     settings: Settings = Depends(get_app_settings)
 ) -> None:
     if not authorization or not authorization.startswith("Bearer "):
