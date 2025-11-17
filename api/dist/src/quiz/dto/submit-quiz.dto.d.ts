@@ -6,6 +6,7 @@ declare class QuizAnswerDto {
     value: QuizAnswerValueDto;
 }
 export declare class SubmitQuizDto {
+    contact?: string;
     final?: boolean;
     answers?: QuizAnswerDto[];
 }

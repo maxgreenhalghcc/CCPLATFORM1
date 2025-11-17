@@ -185,6 +185,7 @@ model Order {
   fulfilledAt     DateTime?
   items           OrderItem[]
   recipeJson      Json?
+  contact  String?
 
   bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)

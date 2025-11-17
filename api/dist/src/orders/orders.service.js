@@ -100,29 +100,41 @@ let OrdersService = class OrdersService {
             const cancelUrl = dto?.cancelUrl ?? this.resolveFrontendUrl(`/checkout/cancel?orderId=${order.id}`);
             const currency = (dto?.currency ?? order.currency).toLowerCase();
             const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
-            const session = await stripe.checkout.sessions.create({
-                mode: 'payment',
-                payment_method_types: ['card'],
-                metadata: {
-                    orderId: order.id,
-                    barId: order.barId,
-                    sessionId: order.sessionId
-                },
-                line_items: [
-                    {
-                        quantity: 1,
-                        price_data: {
-                            currency,
-                            unit_amount: amountInMinorUnits,
-                            product_data: {
-                                name: `${order.bar.name} custom cocktail`
-                            }
-                        }
-                    }
-                ],
-                success_url: successUrl,
-                cancel_url: cancelUrl
-            });
+            let session;
+            try {
+                session = await stripe.checkout.sessions.create({
+                    mode: 'payment',
+                    payment_method_types: ['card'],
+                    metadata: {
+                        orderId: String(order.id),
+                        barId: String(order.barId),
+                        sessionId: String(order.sessionId),
+                    },
+                    line_items: [
+                        {
+                            quantity: 1,
+                            price_data: {
+                                currency,
+                                unit_amount: amountInMinorUnits,
+                                product_data: {
+                                    name: `${order.bar.name} custom cocktail`,
+                                },
+                            },
+                        },
+                    ],
+                    success_url: successUrl,
+                    cancel_url: cancelUrl,
+                });
+            }
+            catch (error) {
+                console.error('Stripe error creating checkout session', {
+                    message: error?.message,
+                    type: error?.type,
+                    code: error?.code,
+                    raw: error,
+                });
+                throw error;
+            }
             await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
@@ -201,7 +213,10 @@ let OrdersService = class OrdersService {
                 id: true,
                 status: true,
                 createdAt: true,
-                fulfilledAt: true
+                fulfilledAt: true,
+                recipe: {
+                    select: { name: true },
+                }
             }
         });
         return {
@@ -209,7 +224,8 @@ let OrdersService = class OrdersService {
                 id: order.id,
                 status: order.status,
                 createdAt: order.createdAt.toISOString(),
-                fulfilledAt: order.fulfilledAt?.toISOString() ?? null
+                fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
+                recipeName: order.recipe?.name ?? 'Custom cocktail',
             }))
         };
     }
@@ -286,6 +302,14 @@ let OrdersService = class OrdersService {
                 status: updated.status,
                 fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
             };
+        });
+    }
+    async saveContact(orderId, contact) {
+        await this.prisma.order.update({
+            where: { id: orderId },
+            data: {
+                contact,
+            },
         });
     }
 };

@@ -10,6 +10,7 @@ export declare class BarOrdersController {
             status: import(".prisma/client").$Enums.OrderStatus;
             createdAt: string;
             fulfilledAt: string | null;
+            recipeName: string;
         }[];
     }>;
 }

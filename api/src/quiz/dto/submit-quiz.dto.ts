@@ -5,7 +5,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  ValidateNested
+  ValidateNested,
 } from 'class-validator';
 
 class QuizAnswerValueDto {
@@ -24,6 +24,11 @@ class QuizAnswerDto {
 }
 
 export class SubmitQuizDto {
+  // 👇 this is the important new bit
+  @IsOptional()
+  @IsString()
+  contact?: string;
+
   @IsOptional()
   @IsBoolean()
   final?: boolean;

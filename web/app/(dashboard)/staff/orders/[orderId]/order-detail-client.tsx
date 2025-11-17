@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import { useSession } from 'next-auth/react';
-import type { OrderStatus } from '../staff-orders-client';
+import type { OrderStatus } from '../../staff-orders-client';
 import * as Sentry from '@sentry/nextjs';
 
 interface IngredientEntry {
@@ -55,23 +55,26 @@ function formatStatusLabel(status: OrderStatus) {
 function normalizeIngredient(entry: IngredientEntry) {
   const name = entry.name?.trim() ?? '';
   const amount = entry.amount?.trim() ?? '';
+
+  // Drop completely empty rows from the UI
   if (!name && !amount) {
     return null;
   }
+
   return {
     name: name || 'Ingredient',
-    amount
+    amount,
   };
 }
 
 function formatFulfilledAt(value: string | null) {
-  if (!value) {
-    return null;
-  }
+  if (!value) return null;
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
+
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -98,19 +101,23 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
     const previousStatus = status;
     const previousFulfilled = fulfilledAt;
     const optimisticTimestamp = new Date().toISOString();
+
     setPending(true);
     setError(null);
     setStatus('fulfilled');
     setFulfilledAt(optimisticTimestamp);
 
     try {
-      const result = await Sentry.startSpan({ name: 'orders.fulfill', op: 'ui.action' }, () =>
-        patchJson<UpdateStatusResponse>(
-          `${baseUrl}/v1/orders/${initialOrder.orderId}/status`,
-          { status: 'fulfilled' },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+      const result = await Sentry.startSpan(
+        { name: 'orders.fulfill', op: 'ui.action' },
+        () =>
+          patchJson<UpdateStatusResponse>(
+            `${baseUrl}/v1/orders/${initialOrder.orderId}/status`,
+            { status: 'fulfilled' },
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
       );
+
       setStatus(result.status);
       setFulfilledAt(result.fulfilledAt);
     } catch (err) {
@@ -131,16 +138,23 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-16">
       <header className="space-y-2">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Order #{initialOrder.orderId}</p>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Order #{initialOrder.orderId}
+        </p>
+
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-semibold leading-tight">{initialOrder.recipe.name}</h1>
+          <h1 className="text-3xl font-semibold leading-tight">
+            {initialOrder.recipe.name}
+          </h1>
           <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs capitalize text-muted-foreground">
             {formatStatusLabel(status)}
           </span>
         </div>
+
         {status === 'fulfilled' && servedLabel ? (
           <p className="text-sm text-muted-foreground">Served at {servedLabel}</p>
         ) : null}
+
         {status === 'paid' ? (
           <div>
             <Button onClick={markServed} disabled={pending}>
@@ -148,6 +162,7 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
             </Button>
           </div>
         ) : null}
+
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </header>
 
@@ -157,15 +172,22 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
           <ul className="mt-4 space-y-2 text-sm">
             {normalizedIngredients.length > 0 ? (
               normalizedIngredients.map((ingredient) => (
-                <li className="flex items-center justify-between" key={ingredient.name}>
+                <li
+                  className="flex items-center justify-between"
+                  key={`${ingredient.name}-${ingredient.amount}`}
+                >
                   <span>{ingredient.name}</span>
                   {ingredient.amount ? (
-                    <span className="font-mono text-xs text-muted-foreground">{ingredient.amount}</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {ingredient.amount}
+                    </span>
                   ) : null}
                 </li>
               ))
             ) : (
-              <li className="text-muted-foreground">Ingredients will be confirmed at the bar.</li>
+              <li className="text-muted-foreground">
+                Ingredients will be confirmed at the bar.
+              </li>
             )}
           </ul>
         </div>
@@ -173,13 +195,17 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
         <div className="space-y-4 text-sm text-muted-foreground">
           <p>
             <strong>Method:</strong>{' '}
-            {initialOrder.recipe.method ? initialOrder.recipe.method : 'Refer to the recipe engine output.'}
+            {initialOrder.recipe.method
+              ? initialOrder.recipe.method
+              : 'Refer to the recipe engine output.'}
           </p>
           <p>
-            <strong>Glassware:</strong> {initialOrder.recipe.glassware || "Bartender's choice"}
+            <strong>Glassware:</strong>{' '}
+            {initialOrder.recipe.glassware || "Bartender's choice"}
           </p>
           <p>
-            <strong>Garnish:</strong> {initialOrder.recipe.garnish || 'To be decided by staff'}
+            <strong>Garnish:</strong>{' '}
+            {initialOrder.recipe.garnish || 'To be decided by staff'}
           </p>
         </div>
       </section>
