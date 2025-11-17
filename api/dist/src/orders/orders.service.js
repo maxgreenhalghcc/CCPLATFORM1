@@ -12,16 +12,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const user_role_enum_1 = require("../common/roles/user-role.enum");
+const client_1 = require("@prisma/client");
 const stripe_1 = require("stripe");
 const prisma_service_1 = require("../prisma/prisma.service");
 const Sentry = require("@sentry/node");
-const OrderStatusValues = {
-    created: 'created',
-    paid: 'paid',
-    cancelled: 'cancelled',
-    fulfilled: 'fulfilled',
-};
 let OrdersService = class OrdersService {
     constructor(prisma, configService) {
         this.prisma = prisma;
@@ -46,6 +40,28 @@ let OrdersService = class OrdersService {
             'http://localhost:3000';
         const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
         return `${normalizedBase}${path.startsWith('/') ? path : `/${path}`}`;
+    }
+    async createFromRecipe(params) {
+        if (!Array.isArray(params.items) || params.items.length === 0) {
+            throw new common_1.BadRequestException('Order requires at least one item');
+        }
+        return this.prisma.order.create({
+            data: {
+                barId: params.barId,
+                sessionId: params.sessionId,
+                recipeId: params.recipeId,
+                amount: params.amount,
+                currency: (params.currency ?? 'gbp').toLowerCase(),
+                status: client_1.OrderStatus.created,
+                recipeJson: params.recipeJson,
+                items: {
+                    create: params.items.map((item) => ({
+                        sku: item.sku,
+                        qty: item.qty,
+                    })),
+                },
+            },
+        });
     }
     async createCheckout(orderId, dto) {
         return Sentry.startSpan({ name: 'orders.checkout', op: 'service' }, async () => {
@@ -84,29 +100,41 @@ let OrdersService = class OrdersService {
             const cancelUrl = dto?.cancelUrl ?? this.resolveFrontendUrl(`/checkout/cancel?orderId=${order.id}`);
             const currency = (dto?.currency ?? order.currency).toLowerCase();
             const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
-            const session = await stripe.checkout.sessions.create({
-                mode: 'payment',
-                payment_method_types: ['card'],
-                metadata: {
-                    orderId: order.id,
-                    barId: order.barId,
-                    sessionId: order.sessionId
-                },
-                line_items: [
-                    {
-                        quantity: 1,
-                        price_data: {
-                            currency,
-                            unit_amount: amountInMinorUnits,
-                            product_data: {
-                                name: `${order.bar.name} custom cocktail`
-                            }
-                        }
-                    }
-                ],
-                success_url: successUrl,
-                cancel_url: cancelUrl
-            });
+            let session;
+            try {
+                session = await stripe.checkout.sessions.create({
+                    mode: 'payment',
+                    payment_method_types: ['card'],
+                    metadata: {
+                        orderId: String(order.id),
+                        barId: String(order.barId),
+                        sessionId: String(order.sessionId),
+                    },
+                    line_items: [
+                        {
+                            quantity: 1,
+                            price_data: {
+                                currency,
+                                unit_amount: amountInMinorUnits,
+                                product_data: {
+                                    name: `${order.bar.name} custom cocktail`,
+                                },
+                            },
+                        },
+                    ],
+                    success_url: successUrl,
+                    cancel_url: cancelUrl,
+                });
+            }
+            catch (error) {
+                console.error('Stripe error creating checkout session', {
+                    message: error?.message,
+                    type: error?.type,
+                    code: error?.code,
+                    raw: error,
+                });
+                throw error;
+            }
             await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
@@ -162,22 +190,22 @@ let OrdersService = class OrdersService {
             throw new common_1.NotFoundException('Bar not found');
         }
         if (requester) {
-            if (requester.role === user_role_enum_1.UserRole.staff) {
+            if (requester.role === client_1.UserRole.staff) {
                 if (!requester.barId || requester.barId !== bar.id) {
                     throw new common_1.ForbiddenException('Staff users can only access their assigned bar');
                 }
             }
-            else if (requester.role !== user_role_enum_1.UserRole.admin) {
+            else if (requester.role !== client_1.UserRole.admin) {
                 throw new common_1.ForbiddenException('User is not permitted to view orders');
             }
         }
-        if (status && !Object.values(OrderStatusValues).includes(status)) {
+        if (status && !Object.values(client_1.OrderStatus).includes(status)) {
             throw new common_1.BadRequestException('Invalid status filter');
         }
         const orders = await this.prisma.order.findMany({
             where: {
                 barId: bar.id,
-                ...(status ? { status: status } : {})
+                ...(status ? { status } : {})
             },
             orderBy: { createdAt: 'desc' },
             take: 100,
@@ -185,16 +213,20 @@ let OrdersService = class OrdersService {
                 id: true,
                 status: true,
                 createdAt: true,
-                fulfilledAt: true
+                fulfilledAt: true,
+                recipe: {
+                    select: { name: true },
+                }
             }
         });
         return {
-            items: orders.map((o) => ({
-                id: o.id,
-                status: o.status,
-                createdAt: o.createdAt.toISOString(),
-                fulfilledAt: o.fulfilledAt?.toISOString() ?? null,
-            })),
+            items: orders.map((order) => ({
+                id: order.id,
+                status: order.status,
+                createdAt: order.createdAt.toISOString(),
+                fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
+                recipeName: order.recipe?.name ?? 'Custom cocktail',
+            }))
         };
     }
     async updateStatus(orderId, status, requester) {
@@ -215,16 +247,16 @@ let OrdersService = class OrdersService {
                 throw new common_1.NotFoundException('Order not found');
             }
             if (requester) {
-                if (requester.role === user_role_enum_1.UserRole.staff) {
+                if (requester.role === client_1.UserRole.staff) {
                     if (!requester.barId || requester.barId !== order.barId) {
                         throw new common_1.ForbiddenException('Staff users can only update orders for their bar');
                     }
                 }
-                else if (requester.role !== user_role_enum_1.UserRole.admin) {
+                else if (requester.role !== client_1.UserRole.admin) {
                     throw new common_1.ForbiddenException('User is not permitted to update orders');
                 }
             }
-            if (order.status === OrderStatusValues.fulfilled) {
+            if (order.status === client_1.OrderStatus.fulfilled) {
                 if (!order.fulfilledAt) {
                     const updated = await this.prisma.order.update({
                         where: { id: order.id },
@@ -249,14 +281,14 @@ let OrdersService = class OrdersService {
                     fulfilledAt: order.fulfilledAt?.toISOString() ?? null
                 };
             }
-            if (order.status !== OrderStatusValues.paid) {
+            if (order.status !== client_1.OrderStatus.paid) {
                 throw new common_1.ConflictException('Only paid orders can be fulfilled');
             }
             const fulfilledAt = new Date();
             const updated = await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
-                    status: OrderStatusValues.fulfilled,
+                    status: client_1.OrderStatus.fulfilled,
                     fulfilledAt
                 },
                 select: {
@@ -272,24 +304,13 @@ let OrdersService = class OrdersService {
             };
         });
     }
-    async createForBar(barId, body, user) {
-        const sessionId = user?.sessionId ?? undefined;
-        const order = await this.prisma.order.create({
+    async saveContact(orderId, contact) {
+        await this.prisma.order.update({
+            where: { id: orderId },
             data: {
-                barId,
-                sessionId,
-                status: 'created',
-                amount: body.total ?? 0,
-                items: {
-                    create: body.items.map(i => ({
-                        sku: i.sku,
-                        qty: i.qty,
-                    })),
-                },
+                contact,
             },
-            include: { items: true },
         });
-        return order;
     }
 };
 exports.OrdersService = OrdersService;

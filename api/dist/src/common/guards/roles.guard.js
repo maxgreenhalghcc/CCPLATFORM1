@@ -18,19 +18,22 @@ let RolesGuard = class RolesGuard {
         this.reflector = reflector;
     }
     canActivate(context) {
-        if (process.env.NODE_ENV !== 'production' &&
-            process.env.FORCE_DEV_BYPASS === 'true') {
-            return true;
-        }
-        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [context.getHandler(), context.getClass()]);
+        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [
+            context.getHandler(),
+            context.getClass()
+        ]);
         if (!requiredRoles || requiredRoles.length === 0) {
             return true;
         }
-        const req = context.switchToHttp().getRequest();
-        const user = req.user;
-        if (!user)
-            return false;
-        return requiredRoles.includes(user.role);
+        const request = context.switchToHttp().getRequest();
+        const user = request.user;
+        if (!user) {
+            throw new common_1.UnauthorizedException();
+        }
+        if (!requiredRoles.includes(user.role)) {
+            throw new common_1.ForbiddenException('Insufficient permissions');
+        }
+        return true;
     }
 };
 exports.RolesGuard = RolesGuard;

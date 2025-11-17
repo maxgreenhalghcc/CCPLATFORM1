@@ -7,6 +7,7 @@ This repository contains the source for the Custom Cocktails platform described 
 /           # Documentation and shared configuration
 ├── api     # NestJS API service (auth, quiz, orders, admin)
 ├── web     # Next.js frontend (customers, staff, admin)
+├── web/quiz  # Lightweight Vite SPA for the QR-code customer quiz
 ├── recipe  # FastAPI recipe generation microservice
 └── infra   # Docker Compose definitions and infra notes
 ```
@@ -16,10 +17,13 @@ This repository contains the source for the Custom Cocktails platform described 
 2. Install dependencies for each service:
    - `cd api && npm install`
    - `cd web && npm install`
+   - `cd web/quiz && npm install`
    - `cd recipe && pip install -e .`
 3. Generate Prisma client code where required: `cd api && npx prisma generate`.
 4. Boot the full stack: `docker compose -f infra/docker-compose.yml up --build`.
-5. Visit `http://localhost:3000` for the web app, `http://localhost:4000/v1/health` for the API, and `http://localhost:5000/health` for the recipe service.
+5. Visit `http://localhost:3000` for the staff/admin web app, `http://localhost:4000/v1/health` for the API, and `http://localhost:5000/health` for the recipe service. The standalone quiz SPA runs on `http://localhost:3100/bars/demo-bar/build` once `QUIZ_ENABLED=true` and `VITE_API_BASE_URL` are configured.
+
+> Copy `web/quiz/.env.example` to `web/quiz/.env.local` (or export `VITE_API_BASE_URL`) before running `npm run dev` inside `web/quiz`.
 
 ### Authentication & sign-in flow
 NextAuth powers staff and admin access using passwordless email links backed by Prisma. Local development uses Nodemailer’s JSON transport so no external SMTP service is required.

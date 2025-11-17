@@ -14,10 +14,15 @@ const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const DEFAULT_THEME = {
-    primary: '#7c3aed',
-    background: '#0b0b12',
-    foreground: '#ffffff',
-    card: '#1f1f2e'
+    primary: '#2f27ce',
+    background: '#050315',
+    foreground: '#fbfbfe',
+    card: '#121129'
+};
+const DEFAULT_PALETTE = {
+    dominant: '#050315',
+    secondary: '#2f27ce',
+    accent: '#dedcff'
 };
 let BarsService = class BarsService {
     constructor(prisma) {
@@ -78,7 +83,19 @@ let BarsService = class BarsService {
                             theme: DEFAULT_THEME,
                             introText: null,
                             outroText: null,
-                            pricingPounds: new client_1.Prisma.Decimal(12)
+                            pricingPounds: new client_1.Prisma.Decimal(12),
+                            contactName: null,
+                            contactEmail: null,
+                            contactPhone: null,
+                            address: this.prepareJsonValue(null),
+                            openingHours: this.prepareJsonValue(null),
+                            stock: this.prepareJsonValue([]),
+                            stockListUrl: null,
+                            bankDetails: this.prepareJsonValue(null),
+                            stripeConnectId: null,
+                            stripeConnectLink: null,
+                            brandPalette: this.prepareJsonValue(DEFAULT_PALETTE),
+                            logoUrl: null
                         }
                     }
                 },
@@ -141,32 +158,73 @@ let BarsService = class BarsService {
     }
     async updateSettings(identifier, dto) {
         const bar = await this.ensureBar(identifier, true);
-        const existingTheme = bar.settings?.theme ?? undefined;
+        const existingSettings = bar.settings ?? null;
+        const existingTheme = existingSettings?.theme ?? undefined;
         const mergedTheme = dto.theme
             ? { ...DEFAULT_THEME, ...(existingTheme ?? {}), ...dto.theme }
             : existingTheme ?? DEFAULT_THEME;
+        const existingAddress = this.normalizeRecord(existingSettings?.address ?? null);
+        const existingOpening = this.normalizeRecord(existingSettings?.openingHours ?? null);
+        const existingBank = this.normalizeRecord(existingSettings?.bankDetails ?? null);
+        const existingPalette = this.normalizeRecord(existingSettings?.brandPalette ?? null);
+        const existingStock = this.normalizeStringArray(existingSettings?.stock ?? null);
+        const sanitizedAddress = dto.address !== undefined ? this.sanitizeRecord(dto.address) : undefined;
+        const sanitizedOpening = dto.openingHours !== undefined ? this.sanitizeRecord(dto.openingHours) : undefined;
+        const sanitizedBank = dto.bankDetails !== undefined ? this.sanitizeRecord(dto.bankDetails) : undefined;
+        const sanitizedPalette = dto.brandPalette !== undefined ? this.sanitizeRecord(dto.brandPalette) : undefined;
+        const sanitizedStock = dto.stock !== undefined ? this.sanitizeStock(dto.stock) : undefined;
+        const createPalette = sanitizedPalette
+            ? { ...DEFAULT_PALETTE, ...sanitizedPalette }
+            : existingPalette
+                ? { ...DEFAULT_PALETTE, ...existingPalette }
+                : DEFAULT_PALETTE;
+        const updatePalette = sanitizedPalette !== undefined
+            ? sanitizedPalette
+                ? { ...DEFAULT_PALETTE, ...sanitizedPalette }
+                : DEFAULT_PALETTE
+            : undefined;
         await this.prisma.barSettings.upsert({
             where: { barId: bar.id },
             create: {
                 barId: bar.id,
                 theme: mergedTheme,
-                introText: dto.introText ?? bar.settings?.introText ?? null,
-                outroText: dto.outroText ?? bar.settings?.outroText ?? null,
-                pricingPounds: dto.pricingPounds
+                introText: dto.introText ?? existingSettings?.introText ?? null,
+                outroText: dto.outroText ?? existingSettings?.outroText ?? null,
+                pricingPounds: typeof dto.pricingPounds === 'number'
                     ? new client_1.Prisma.Decimal(dto.pricingPounds)
-                    : new client_1.Prisma.Decimal(12)
+                    : existingSettings?.pricingPounds ?? new client_1.Prisma.Decimal(12),
+                contactName: dto.contactName ?? existingSettings?.contactName ?? null,
+                contactEmail: dto.contactEmail ?? existingSettings?.contactEmail ?? null,
+                contactPhone: dto.contactPhone ?? existingSettings?.contactPhone ?? null,
+                address: this.prepareJsonValue(sanitizedAddress ?? existingAddress ?? null),
+                openingHours: this.prepareJsonValue(sanitizedOpening ?? existingOpening ?? null),
+                stock: this.prepareJsonValue(sanitizedStock ?? existingStock ?? []),
+                stockListUrl: dto.stockListUrl ?? existingSettings?.stockListUrl ?? null,
+                bankDetails: this.prepareJsonValue(sanitizedBank ?? existingBank ?? null),
+                stripeConnectId: dto.stripeConnectId ?? existingSettings?.stripeConnectId ?? null,
+                stripeConnectLink: dto.stripeConnectLink ?? existingSettings?.stripeConnectLink ?? null,
+                brandPalette: this.prepareJsonValue(createPalette),
+                logoUrl: dto.logoUrl ?? existingSettings?.logoUrl ?? null,
             },
             update: {
                 theme: mergedTheme,
-                introText: dto.introText !== undefined
-                    ? dto.introText
-                    : bar.settings?.introText ?? null,
-                outroText: dto.outroText !== undefined
-                    ? dto.outroText
-                    : bar.settings?.outroText ?? null,
+                introText: dto.introText !== undefined ? dto.introText : undefined,
+                outroText: dto.outroText !== undefined ? dto.outroText : undefined,
                 pricingPounds: typeof dto.pricingPounds === 'number'
                     ? new client_1.Prisma.Decimal(dto.pricingPounds)
-                    : bar.settings?.pricingPounds ?? new client_1.Prisma.Decimal(12)
+                    : undefined,
+                contactName: dto.contactName !== undefined ? dto.contactName ?? null : undefined,
+                contactEmail: dto.contactEmail !== undefined ? dto.contactEmail ?? null : undefined,
+                contactPhone: dto.contactPhone !== undefined ? dto.contactPhone ?? null : undefined,
+                address: this.prepareJsonUpdate(sanitizedAddress !== undefined ? sanitizedAddress ?? null : undefined),
+                openingHours: this.prepareJsonUpdate(sanitizedOpening !== undefined ? sanitizedOpening ?? null : undefined),
+                stock: this.prepareJsonUpdate(sanitizedStock !== undefined ? sanitizedStock : undefined),
+                stockListUrl: dto.stockListUrl !== undefined ? dto.stockListUrl ?? null : undefined,
+                bankDetails: this.prepareJsonUpdate(sanitizedBank !== undefined ? sanitizedBank ?? null : undefined),
+                stripeConnectId: dto.stripeConnectId !== undefined ? dto.stripeConnectId ?? null : undefined,
+                stripeConnectLink: dto.stripeConnectLink !== undefined ? dto.stripeConnectLink ?? null : undefined,
+                brandPalette: this.prepareJsonUpdate(updatePalette),
+                logoUrl: dto.logoUrl !== undefined ? dto.logoUrl ?? null : undefined,
             }
         });
         const refreshed = await this.prisma.bar.findUnique({
@@ -217,6 +275,14 @@ let BarsService = class BarsService {
         };
         const pricing = Number(this.normalizeDecimal(bar.settings.pricingPounds));
         const safePricing = Number.isNaN(pricing) ? 0 : pricing;
+        const address = this.normalizeRecord(bar.settings.address ?? null);
+        const openingHours = this.normalizeRecord(bar.settings.openingHours ?? null);
+        const stock = this.normalizeStringArray(bar.settings.stock ?? null);
+        const bankDetails = this.normalizeRecord(bar.settings.bankDetails ?? null);
+        const paletteRecord = this.normalizeRecord(bar.settings.brandPalette ?? null);
+        const brandPalette = paletteRecord
+            ? { ...DEFAULT_PALETTE, ...paletteRecord }
+            : { ...DEFAULT_PALETTE };
         return {
             id: bar.id,
             name: bar.name,
@@ -224,7 +290,19 @@ let BarsService = class BarsService {
             introText: bar.settings.introText ?? null,
             outroText: bar.settings.outroText ?? null,
             theme,
-            pricingPounds: safePricing
+            pricingPounds: safePricing,
+            contactName: bar.settings.contactName ?? null,
+            contactEmail: bar.settings.contactEmail ?? null,
+            contactPhone: bar.settings.contactPhone ?? null,
+            address,
+            openingHours,
+            stock,
+            stockListUrl: bar.settings.stockListUrl ?? null,
+            bankDetails,
+            stripeConnectId: bar.settings.stripeConnectId ?? null,
+            stripeConnectLink: bar.settings.stripeConnectLink ?? null,
+            brandPalette,
+            logoUrl: bar.settings.logoUrl ?? null
         };
     }
     async ensureBar(identifier, includeSettings = false) {
@@ -244,6 +322,75 @@ let BarsService = class BarsService {
             return value;
         }
         return value.toNumber();
+    }
+    sanitizeRecord(input) {
+        if (!input) {
+            return null;
+        }
+        const trimmedEntries = Object.entries(input).reduce((acc, [key, value]) => {
+            if (typeof value !== 'string') {
+                return acc;
+            }
+            const trimmed = value.trim();
+            if (trimmed.length === 0) {
+                return acc;
+            }
+            acc[key] = trimmed;
+            return acc;
+        }, {});
+        return Object.keys(trimmedEntries).length > 0 ? trimmedEntries : null;
+    }
+    sanitizeStock(items) {
+        return items
+            .map((item) => (typeof item === 'string' ? item.trim() : ''))
+            .filter((item) => item.length > 0);
+    }
+    normalizeRecord(value) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return null;
+        }
+        const entries = Object.entries(value).reduce((acc, [key, val]) => {
+            if (typeof val !== 'string') {
+                return acc;
+            }
+            const trimmed = val.trim();
+            if (trimmed.length === 0) {
+                return acc;
+            }
+            acc[key] = trimmed;
+            return acc;
+        }, {});
+        return Object.keys(entries).length > 0 ? entries : null;
+    }
+    normalizeStringArray(value) {
+        if (!value) {
+            return [];
+        }
+        if (Array.isArray(value)) {
+            return value
+                .filter((entry) => typeof entry === 'string')
+                .map((entry) => entry.trim())
+                .filter((entry) => entry.length > 0);
+        }
+        if (typeof value === 'object') {
+            return Object.values(value)
+                .filter((entry) => typeof entry === 'string')
+                .map((entry) => entry.trim())
+                .filter((entry) => entry.length > 0);
+        }
+        return [];
+    }
+    prepareJsonValue(value) {
+        if (value === null || value === undefined) {
+            return client_1.Prisma.JsonNull;
+        }
+        return value;
+    }
+    prepareJsonUpdate(value) {
+        if (value === undefined) {
+            return undefined;
+        }
+        return this.prepareJsonValue(value);
     }
     handleUniqueConstraint(error) {
         if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

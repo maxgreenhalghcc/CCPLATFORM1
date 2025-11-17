@@ -20,7 +20,7 @@ const update_status_dto_1 = require("./dto/update-status.dto");
 const api_auth_guard_1 = require("../common/guards/api-auth.guard");
 const roles_guard_1 = require("../common/guards/roles.guard");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
-const user_role_enum_1 = require("../common/roles/user-role.enum");
+const client_1 = require("@prisma/client");
 let OrdersController = class OrdersController {
     constructor(ordersService) {
         this.ordersService = ordersService;
@@ -53,7 +53,7 @@ __decorate([
 ], OrdersController.prototype, "getRecipe", null);
 __decorate([
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin, user_role_enum_1.UserRole.staff),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin, client_1.UserRole.staff),
     (0, common_1.Patch)(':id/status'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),

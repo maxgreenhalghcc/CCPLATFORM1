@@ -177,7 +177,8 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
           },
           body: JSON.stringify({
             final: true,
-            answers: answerPayload
+            answers: answerPayload,
+            contact: contact.trim(),
           })
         });
 
@@ -272,21 +273,25 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
 
         {isLastStep ? (
           <div className="mt-6 rounded-2xl border border-border/60 bg-background/70 p-5">
-            <label className="flex flex-col gap-2 text-sm font-medium" htmlFor="contact-preference">
-              Stay in the loop
+            <label
+              className="flex flex-col gap-2 text-sm font-medium"
+              htmlFor="customer-name"
+            >
+              Who is this cocktail for?
               <span className="text-xs font-normal text-muted-foreground">
-                Drop an email or phone number if you&apos;d like a copy of your recipe.
+                Add the guest&apos;s name so the bar team knows who to serve.
               </span>
             </label>
+
             <input
-              id="contact-preference"
+              id="customer-name"
               type="text"
-              inputMode="email"
-              autoComplete="email"
+              inputMode="text"
+              autoComplete="name"
               value={contact}
               onChange={(event) => setContact(event.target.value)}
-              placeholder="you@example.com"
-              className="mt-3 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              placeholder="e.g. Alex"
+              className="mt-3 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>
         ) : null}

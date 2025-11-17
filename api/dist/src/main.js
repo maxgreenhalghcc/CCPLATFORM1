@@ -78,20 +78,6 @@ async function bootstrap() {
     if (SENTRY_DSN) {
         httpAdapter.use(Sentry.Handlers.errorHandler());
     }
-    const server = app.getHttpServer();
-    const router = server._events?.request?._router;
-    if (router?.stack) {
-        console.log('--- Registered routes ---');
-        router.stack
-            .filter((layer) => layer.route)
-            .forEach((layer) => {
-            const methods = Object.keys(layer.route.methods)
-                .map(m => m.toUpperCase())
-                .join(',');
-            console.log(`${methods} ${layer.route.path}`);
-        });
-        console.log('-------------------------');
-    }
     await app.listen(port);
     logger.log(`🚀 API is running on http://localhost:${port}/${globalPrefix}`);
 }

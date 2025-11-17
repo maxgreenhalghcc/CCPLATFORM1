@@ -8,7 +8,7 @@ exports.default = () => {
         .filter((origin) => origin.length > 0);
     return {
         nodeEnv: process.env.NODE_ENV ?? 'development',
-        port: parseInt(process.env.API_PORT ?? '4000', 10),
+        port: parseInt(process.env.API_PORT ?? process.env.PORT ?? '4000', 10),
         logLevel: process.env.LOG_LEVEL ?? 'info',
         databaseUrl: process.env.DATABASE_URL ?? '',
         cors: {
@@ -37,6 +37,11 @@ exports.default = () => {
             secret: process.env.RECIPE_SERVICE_JWT_SECRET ?? '',
             audience: process.env.RECIPE_SERVICE_JWT_AUDIENCE ?? 'recipe-engine',
             issuer: process.env.RECIPE_SERVICE_JWT_ISSUER ?? 'custom-cocktails-api',
+        },
+        quiz: {
+            enabled: (process.env.QUIZ_ENABLED ?? 'false').toLowerCase() === 'true',
+            recipeApiBase: process.env.RECIPE_API_BASE ?? process.env.RECIPE_SERVICE_URL ?? '',
+            mockRecipes: (process.env.MOCK_RECIPES ?? 'false').toLowerCase() === 'true',
         },
         sentry: {
             dsn: process.env.SENTRY_DSN ??

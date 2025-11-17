@@ -11,9 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var WebhooksService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhooksService = void 0;
-const client_1 = require("@prisma/client");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const client_1 = require("@prisma/client");
 const stripe_1 = require("stripe");
 const prisma_service_1 = require("../prisma/prisma.service");
 let WebhooksService = WebhooksService_1 = class WebhooksService {

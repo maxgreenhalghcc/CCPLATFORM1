@@ -21,10 +21,10 @@ type Hsl = {
 };
 
 const FALLBACK_THEME = {
-  background: '#0b0b12',
-  foreground: '#ffffff',
-  primary: '#7c3aed',
-  card: '#131321'
+  background: '#050315',
+  foreground: '#fbfbfe',
+  primary: '#2f27ce',
+  card: '#101226'
 };
 
 async function getBarSettings(barSlug: string): Promise<BarSettingsResponse> {
