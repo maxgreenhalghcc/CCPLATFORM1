@@ -153,15 +153,20 @@ export class QuizService {
           session.id,
           normalizedAnswers,
           ingredientWhitelist,
-          requestId
+          requestId,
         );
+
+        const cocktailName =
+        dto.contact?.trim() ||
+        recipeResponse.name ||
+        'Custom Cocktail';
 
         const recipe = await this.prisma.recipe.create({
           data: {
             barId: session.barId,
             sessionId: session.id,
-            name: recipeResponse.name,
-            description: recipeResponse.description,
+            name: cocktailName,
+            description: recipeResponse.description ?? 'A bespoke cocktail created from your quiz answers.',
             body: {
               ingredients: recipeResponse.ingredients ?? [],
               method: recipeResponse.method ?? '',

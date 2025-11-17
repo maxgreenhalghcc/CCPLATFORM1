@@ -177,7 +177,8 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
           },
           body: JSON.stringify({
             final: true,
-            answers: answerPayload
+            answers: answerPayload,
+            contact: contact.trim(),
           })
         });
 

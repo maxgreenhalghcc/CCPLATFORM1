@@ -14,6 +14,7 @@ export interface OrderSummary {
   status: OrderStatus;
   createdAt: string;
   fulfilledAt: string | null;
+  recipeName: string;
 }
 
 interface Props {
@@ -146,7 +147,9 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
                     <span>{formatDate(order.createdAt)}</span>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-foreground">Custom cocktail</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {order.recipeName || 'Custom cocktail'}
+                    </p>
                     <p className="text-xs text-muted-foreground">Guest order</p>
                   </div>
                   <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
