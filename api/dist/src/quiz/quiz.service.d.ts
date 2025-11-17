@@ -10,6 +10,7 @@ export declare class QuizService {
     private readonly configService;
     private readonly logger;
     constructor(prisma: PrismaService, httpService: HttpService, configService: ConfigService);
+    private getAnswerChoice;
     createSession(slug: string, _dto: CreateSessionDto): Promise<{
         sessionId: string;
     }>;

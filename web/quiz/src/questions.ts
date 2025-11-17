@@ -8,14 +8,17 @@ export interface QuestionOption {
 export interface QuizQuestion {
   id:
     | 'season'
-    | 'house'
-    | 'taste'
-    | 'music'
-    | 'scent'
-    | 'base'
-    | 'afterMeal'
-    | 'colour'
-    | 'sweetness';
+    | 'house_type'
+    | 'dining_style'
+    | 'music_preference'
+    | 'aroma_preference'
+    | 'base_spirit'
+    | 'bitterness_tolerance'
+    | 'sweetener_question'
+    | 'carbonation_texture'
+    | 'foam_toggle'
+    | 'abv_lane'
+    | 'allergens';
   title: string;
   prompt: string;
   options: QuestionOption[];
@@ -34,91 +37,101 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
-    id: 'house',
+    id: 'house_type',
     title: 'Choose a dream escape',
     prompt: 'Where would you sip this drink?',
     options: [
-      { value: 'beach', label: 'Beach house' },
-      { value: 'mountain', label: 'Mountain hideaway' },
-      { value: 'city', label: 'City penthouse' },
-      { value: 'forest', label: 'Forest cabin' },
+      { value: 'beach house', label: 'Beach house' },
+      { value: 'modern house', label: 'Modern house' },
+      { value: 'haunted house', label: 'Haunted house' },
+      { value: 'tree house', label: 'Tree house' },
     ],
   },
   {
-    id: 'taste',
-    title: 'Describe your ideal flavour',
+    id: 'dining_style',
+    title: 'Describe your ideal experience',
     prompt: 'Pick the statement that resonates with your palate.',
     options: [
-      { value: 'bold', label: 'Bold & adventurous' },
-      { value: 'classic', label: 'Timeless classic' },
-      { value: 'fresh', label: 'Zesty & fresh' },
-      { value: 'smooth', label: 'Silky smooth' },
+      {
+        label: 'A balanced blend of flavours',
+        value: 'a balanced blend of flavours',
+      },
+      {
+        label: 'Subtle tastes which advertise freshness',
+        value: 'subtle tastes which advertise freshness',
+      },
+      {
+        label: 'Refreshing and vibrant flavours which awaken my senses',
+        value: 'refreshing and vibrant flavours which awaken my senses',
+      },
+      {
+        label: 'A sweet tooth indulging in rich flavours',
+        value: 'a sweet tooth indulging in rich flavours',
+      },
     ],
   },
   {
-    id: 'music',
+    id: 'music_preference',
     title: 'Set the soundtrack',
     prompt: 'What’s playing in the background?',
     options: [
-      { value: 'jazz', label: 'Late-night jazz' },
-      { value: 'soul', label: 'Soul & r&b' },
-      { value: 'electronic', label: 'Ambient electronic' },
-      { value: 'indie', label: 'Indie favourites' },
+      { value: 'jazz/blues', label: 'Late-night jazz' },
+      { value: 'rap', label: 'Soul & R&B' },
+      { value: 'pop', label: 'Ambient electronic' },
+      { value: 'rock', label: 'Indie favourites' },
     ],
   },
   {
-    id: 'scent',
+    id: 'aroma_preference',
     title: 'Choose an aroma',
     prompt: 'Pick the fragrance that draws you in.',
     options: [
       { value: 'citrus', label: 'Citrus zest' },
-      { value: 'herbal', label: 'Fresh herbs' },
+      { value: 'woody', label: 'Campfire wood' },
       { value: 'floral', label: 'Floral bouquet' },
-      { value: 'smoke', label: 'Smoky embers' },
+      { value: 'sweet', label: 'Sweet sugar' },
     ],
   },
   {
-    id: 'base',
+    id: 'base_spirit',
     title: 'Pick a base spirit',
     prompt: 'Select the spirit to anchor your cocktail.',
     options: [
       { value: 'gin', label: 'Gin' },
       { value: 'vodka', label: 'Vodka' },
       { value: 'rum', label: 'Rum' },
-      { value: 'whiskey', label: 'Whiskey' },
+      { value: 'tequila', label: 'Tequila' },
     ],
   },
   {
-    id: 'afterMeal',
-    title: 'Post-meal vibe',
-    prompt: 'How should this drink feel after dinner?',
+    id: 'bitterness_tolerance',
+    title: 'Bitterness level',
+    prompt: 'How do you feel about bitterness?',
     options: [
-      { value: 'fruit', label: 'Light & fruity' },
-      { value: 'digestif', label: 'Digestif-style' },
-      { value: 'coffee', label: 'Coffee-infused' },
-      { value: 'dessert', label: 'Dessert-like' },
+      { label: 'Low', value: 'low' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'High', value: 'high' },
     ],
   },
   {
-    id: 'colour',
-    title: 'Pick a colour palette',
-    prompt: 'Which hue should the cocktail lean into?',
-    options: [
-      { value: 'gold', label: 'Golden' },
-      { value: 'pink', label: 'Blush pink' },
-      { value: 'amber', label: 'Amber' },
-      { value: 'emerald', label: 'Emerald' },
-    ],
-  },
-  {
-    id: 'sweetness',
+    id: 'sweetener_question',
     title: 'How sweet should it be?',
     prompt: 'Dial in the sweetness level.',
     options: [
-      { value: 'dry', label: 'Dry' },
-      { value: 'medium', label: 'Balanced' },
-      { value: 'sweet', label: 'Dessert-like' },
-      { value: 'surprise', label: 'Surprise me' },
+      { label: 'Classic', value: 'classic' },
+      { label: 'Rich', value: 'rich' },
+      { label: 'Floral', value: 'floral' },
+      { label: 'Zesty', value: 'zesty' },
+    ],
+  },
+  {
+    id: 'abv_lane',
+    title: 'How strong should it be?',
+    prompt: 'Dial in the booze level.',
+    options: [
+      { label: 'Low', value: 'low' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'Strong', value: 'strong' },
     ],
   },
 ];

@@ -35,6 +35,7 @@ export declare class OrdersService {
         createdAt: Date;
         fulfilledAt: Date | null;
         recipeJson: Prisma.JsonValue;
+        contact: string | null;
     }>;
     createCheckout(orderId: string, dto?: CreateCheckoutDto): Promise<{
         checkout_url: string;
@@ -57,6 +58,7 @@ export declare class OrdersService {
             status: import(".prisma/client").$Enums.OrderStatus;
             createdAt: string;
             fulfilledAt: string | null;
+            recipeName: string;
         }[];
     }>;
     updateStatus(orderId: string, status: 'fulfilled', requester?: AuthenticatedUser): Promise<{
@@ -64,5 +66,6 @@ export declare class OrdersService {
         status: import(".prisma/client").$Enums.OrderStatus;
         fulfilledAt: string | null;
     }>;
+    saveContact(orderId: string, contact: string): Promise<void>;
 }
 export {};
