@@ -1,8 +1,7 @@
-import { $Enums } from '@prisma/client';
-export type UserRole = $Enums.UserRole;
+import { UserRole } from '@prisma/client';
 export interface AuthenticatedUser {
     sub: string;
     email?: string;
     role: UserRole;
-    barId: string | null;
+    barId?: string | null;
 }

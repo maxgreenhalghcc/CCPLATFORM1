@@ -30,6 +30,11 @@ declare const _default: () => {
         audience: string;
         issuer: string;
     };
+    quiz: {
+        enabled: boolean;
+        recipeApiBase: string;
+        mockRecipes: boolean;
+    };
     sentry: {
         dsn: string;
         environment: string;

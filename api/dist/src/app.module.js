@@ -10,10 +10,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
-const nestjs_pino_1 = require("nestjs-pino");
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const config_1 = require("@nestjs/config");
+const nestjs_pino_1 = require("nestjs-pino");
 const Sentry = require("@sentry/node");
 const configuration_1 = require("./config/configuration");
 const validation_1 = require("./config/validation");
@@ -22,7 +22,6 @@ const auth_module_1 = require("./auth/auth.module");
 const bars_module_1 = require("./bars/bars.module");
 const quiz_module_1 = require("./quiz/quiz.module");
 const orders_module_1 = require("./orders/orders.module");
-const recipes_module_1 = require("./recipes/recipes.module");
 const admin_module_1 = require("./admin/admin.module");
 const webhooks_module_1 = require("./webhooks/webhooks.module");
 const health_module_1 = require("./health/health.module");
@@ -74,14 +73,14 @@ exports.AppModule = AppModule = __decorate([
             nestjs_pino_1.LoggerModule.forRootAsync({
                 inject: [config_1.ConfigService],
                 useFactory: (configService) => {
+                    const nodeEnv = configService.get('nodeEnv');
                     const level = configService.get('logLevel') ?? 'info';
                     return {
                         pinoHttp: {
                             level,
-                            transport: { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } },
-                            customProps: (_req, _res) => ({
-                                requestId: _req?.requestId,
-                                userId: _req?.user?.id ?? null,
+                            customProps: (req, _res) => ({
+                                requestId: req?.requestId,
+                                userId: req?.user?.id ?? null,
                             }),
                             redact: {
                                 paths: [
@@ -90,9 +89,22 @@ exports.AppModule = AppModule = __decorate([
                                     'req.headers["x-staff-token"]',
                                     'req.headers["x-api-token"]',
                                     'res.headers["set-cookie"]',
+                                    'req.body.contact',
+                                    'req.body.answers',
+                                    'user.email',
+                                    'req.user.email',
                                 ],
                                 censor: '[redacted]',
                             },
+                            transport: nodeEnv === 'development'
+                                ? {
+                                    target: 'pino-pretty',
+                                    options: {
+                                        translateTime: 'SYS:standard',
+                                        colorize: true,
+                                    },
+                                }
+                                : undefined,
                         },
                     };
                 },
@@ -102,7 +114,6 @@ exports.AppModule = AppModule = __decorate([
             bars_module_1.BarsModule,
             quiz_module_1.QuizModule,
             orders_module_1.OrdersModule,
-            recipes_module_1.RecipesModule,
             admin_module_1.AdminModule,
             webhooks_module_1.WebhooksModule,
             health_module_1.HealthModule,

@@ -19,108 +19,44 @@ let ApiAuthGuard = class ApiAuthGuard {
     }
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
-        if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
-            const requestedBar = request.params?.barId ??
-                request.params?.id ??
-                request.params?.slug ??
-                request.params?.barSlug ??
-                'demo-bar';
-            request.user = {
-                sub: 'dev',
-                role: 'admin',
-                barId: requestedBar,
-            };
-            request.params = {
-                ...(request.params ?? {}),
-                barId: requestedBar,
-                id: requestedBar,
-                slug: requestedBar,
-                barSlug: requestedBar,
-            };
-            return true;
+        const authorization = this.extractToken(request);
+        if (!authorization) {
+            throw new common_1.UnauthorizedException('Authorization token is missing');
         }
-        const rawHeader = request.headers?.authorization ??
-            request.headers?.Authorization;
-        const token = this.extractBearer(rawHeader);
-        const devBypassToken = (process.env.API_DEV_TOKEN ?? '').trim();
-        if (process.env.NODE_ENV !== 'production' && process.env.FORCE_DEV_BYPASS === 'true') {
-            const requestedBar = request.params?.barId ??
-                request.params?.id ??
-                request.params?.slug ??
-                request.params?.barSlug ??
-                'demo-bar';
-            request.user = {
-                sub: 'dev',
-                role: 'staff',
-                barId: requestedBar,
-            };
-            request.params = {
-                ...(request.params ?? {}),
-                barId: requestedBar,
-                id: requestedBar,
-                slug: requestedBar,
-                barSlug: requestedBar,
-            };
-            return true;
-        }
-        if (process.env.NODE_ENV !== 'production' &&
-            token &&
-            devBypassToken &&
-            token === devBypassToken) {
-            const requestedBar = request.params?.barId ??
-                request.params?.id ??
-                request.params?.slug ??
-                request.params?.barSlug ??
-                'demo-bar';
-            request.user = {
-                sub: 'dev',
-                role: 'staff',
-                barId: requestedBar,
-            };
-            request.params = {
-                ...(request.params ?? {}),
-                barId: requestedBar,
-                id: requestedBar,
-                slug: requestedBar,
-                barSlug: requestedBar,
-            };
-            return true;
-        }
-        if (!token) {
-            throw new common_1.UnauthorizedException('Authorization header missing');
-        }
-        const secret = this.configService.get('nextauth.secret');
+        const secret = this.configService.get('nextAuth.secret');
         if (!secret) {
             throw new common_1.UnauthorizedException('Authentication is not configured');
         }
         try {
-            const payload = (0, jsonwebtoken_1.verify)(token, secret);
+            const payload = (0, jsonwebtoken_1.verify)(authorization, secret);
             if (!payload.role || typeof payload.role !== 'string' || !payload.sub) {
                 throw new common_1.UnauthorizedException('Token missing required claims');
             }
             request.user = {
-                sub: String(payload.sub),
-                email: payload.email ?? null,
+                sub: payload.sub,
+                email: payload.email,
                 role: payload.role,
-                barId: payload.barId ?? null,
+                barId: payload.barId ?? null
             };
             return true;
         }
-        catch {
+        catch (error) {
             throw new common_1.UnauthorizedException('Invalid authentication token');
         }
     }
-    extractBearer(headerValue) {
-        if (!headerValue)
+    extractToken(request) {
+        const header = request.headers['authorization'] ?? request.headers['Authorization'];
+        if (!header) {
             return null;
-        if (Array.isArray(headerValue))
-            return null;
-        const trimmed = headerValue.trim();
-        if (/^bearer\s+/i.test(trimmed)) {
-            const [, tok] = trimmed.split(/\s+/, 2);
-            return tok?.trim() || null;
         }
-        return trimmed || null;
+        if (Array.isArray(header)) {
+            return null;
+        }
+        const [scheme, token] = header.split(' ');
+        if (scheme?.toLowerCase() !== 'bearer' || !token) {
+            return null;
+        }
+        return token;
     }
 };
 exports.ApiAuthGuard = ApiAuthGuard;

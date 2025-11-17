@@ -10,13 +10,19 @@ exports.BarsModule = void 0;
 const common_1 = require("@nestjs/common");
 const bars_controller_1 = require("./bars.controller");
 const bars_service_1 = require("./bars.service");
+const bar_quiz_controller_1 = require("./bar-quiz.controller");
+const bar_quiz_service_1 = require("./bar-quiz.service");
+const orders_module_1 = require("../orders/orders.module");
+const recipes_module_1 = require("../recipes/recipes.module");
 let BarsModule = class BarsModule {
 };
 exports.BarsModule = BarsModule;
 exports.BarsModule = BarsModule = __decorate([
     (0, common_1.Module)({
-        controllers: [bars_controller_1.BarsController],
-        providers: [bars_service_1.BarsService]
+        imports: [orders_module_1.OrdersModule, recipes_module_1.RecipesModule],
+        controllers: [bars_controller_1.BarsController, bar_quiz_controller_1.BarQuizController],
+        providers: [bars_service_1.BarsService, bar_quiz_service_1.BarQuizService],
+        exports: [bars_service_1.BarsService],
     })
 ], BarsModule);
 //# sourceMappingURL=bars.module.js.map

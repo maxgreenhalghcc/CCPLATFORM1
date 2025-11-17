@@ -20,6 +20,9 @@ const crypto_1 = require("crypto");
 const prisma_service_1 = require("../prisma/prisma.service");
 const jwt_1 = require("../common/jwt");
 const Sentry = require("@sentry/node");
+function randomChoice(options) {
+    return options[Math.floor(Math.random() * options.length)];
+}
 let QuizService = QuizService_1 = class QuizService {
     constructor(prisma, httpService, configService) {
         this.prisma = prisma;
@@ -27,37 +30,41 @@ let QuizService = QuizService_1 = class QuizService {
         this.configService = configService;
         this.logger = new common_1.Logger(QuizService_1.name);
     }
+    getAnswerChoice(answers, id) {
+        const found = answers.find((a) => a.questionId === id);
+        return found?.value.choice;
+    }
     async createSession(slug, _dto) {
         const bar = await this.prisma.bar.findFirst({
             where: {
                 slug,
-                active: true
+                active: true,
             },
-            select: { id: true }
+            select: { id: true },
         });
         if (!bar) {
             throw new common_1.NotFoundException('Bar not found');
         }
         const session = await this.prisma.quizSession.create({
             data: {
-                barId: bar.id
-            }
+                barId: bar.id,
+            },
         });
         return {
-            sessionId: session.id
+            sessionId: session.id,
         };
     }
     async recordAnswer(sessionId, dto) {
         const session = await this.prisma.quizSession.findUnique({
             where: { id: sessionId },
-            select: { id: true, answerRecord: true }
+            select: { id: true, answerRecord: true },
         });
         if (!session) {
             throw new common_1.NotFoundException('Quiz session not found');
         }
         const answer = {
             questionId: dto.questionId,
-            value: this.normalizeAnswerValue(dto.value?.choice)
+            value: this.normalizeAnswerValue(dto.value?.choice),
         };
         await this.persistAnswers(session, [answer]);
         return { status: 'recorded' };
@@ -69,10 +76,10 @@ let QuizService = QuizService_1 = class QuizService {
                 include: {
                     bar: {
                         include: {
-                            settings: true
-                        }
-                    }
-                }
+                            settings: true,
+                        },
+                    },
+                },
             });
             if (!session) {
                 throw new common_1.NotFoundException('Quiz session not found');
@@ -80,23 +87,23 @@ let QuizService = QuizService_1 = class QuizService {
             if (dto.answers?.length) {
                 const normalized = dto.answers.map((answer) => ({
                     questionId: answer.questionId,
-                    value: this.normalizeAnswerValue(answer.value.choice)
+                    value: this.normalizeAnswerValue(answer.value.choice),
                 }));
                 await this.persistAnswers({ id: session.id, answerRecord: session.answerRecord ?? null }, normalized);
             }
             const existingOrder = await this.prisma.order.findFirst({
                 where: { sessionId: session.id },
-                select: { id: true }
+                select: { id: true },
             });
             if (existingOrder) {
                 return { orderId: existingOrder.id };
             }
             const storedAnswers = await this.prisma.quizAnswer.findMany({
-                where: { sessionId: session.id }
+                where: { sessionId: session.id },
             });
             const normalizedAnswers = storedAnswers.map((entry) => ({
                 questionId: entry.questionId,
-                value: this.normalizeStoredAnswer(entry.value)
+                value: this.normalizeStoredAnswer(entry.value),
             }));
             const defaultPrice = new client_1.Prisma.Decimal(12);
             const amount = session.bar.settings?.pricingPounds ?? defaultPrice;
@@ -106,35 +113,37 @@ let QuizService = QuizService_1 = class QuizService {
                     sessionId: session.id,
                     amount,
                     currency: 'gbp',
-                    status: client_1.OrderStatus.created
-                }
+                    status: client_1.OrderStatus.created,
+                },
             });
             try {
                 const ingredientWhitelist = await this.loadIngredientWhitelist(session.barId);
-                const recipeResponse = await this.requestRecipe(session.barId, session.id, normalizedAnswers, ingredientWhitelist, requestId);
+                const recipeResponse = await this.requestRecipe(session.bar.slug, session.id, normalizedAnswers, ingredientWhitelist, requestId);
+                const cocktailName = dto.contact?.trim() || recipeResponse.name || 'Custom Cocktail';
                 const recipe = await this.prisma.recipe.create({
                     data: {
                         barId: session.barId,
                         sessionId: session.id,
-                        name: recipeResponse.name,
-                        description: recipeResponse.description,
+                        name: cocktailName,
+                        description: recipeResponse.description ??
+                            'A bespoke cocktail created from your quiz answers.',
                         body: {
                             ingredients: recipeResponse.ingredients ?? [],
                             method: recipeResponse.method ?? '',
                             glassware: recipeResponse.glassware ?? '',
                             garnish: recipeResponse.garnish ?? '',
-                            warnings: recipeResponse.warnings ?? []
+                            warnings: recipeResponse.warnings ?? [],
                         },
-                        abvEstimate: recipeResponse.abv_estimate ?? null
-                    }
+                        abvEstimate: recipeResponse.abv_estimate ?? null,
+                    },
                 });
                 await this.prisma.order.update({
                     where: { id: order.id },
-                    data: { recipeId: recipe.id }
+                    data: { recipeId: recipe.id },
                 });
                 await this.prisma.quizSession.update({
                     where: { id: session.id },
-                    data: { status: client_1.QuizSessionStatus.submitted }
+                    data: { status: client_1.QuizSessionStatus.submitted },
                 });
                 return { orderId: order.id };
             }
@@ -142,12 +151,14 @@ let QuizService = QuizService_1 = class QuizService {
                 await this.prisma.order
                     .delete({ where: { id: order.id } })
                     .catch((deleteError) => {
-                    const rollbackMessage = deleteError instanceof Error ? deleteError.message : String(deleteError);
+                    const rollbackMessage = deleteError instanceof Error
+                        ? deleteError.message
+                        : String(deleteError);
                     this.logger.error(`Failed to rollback order ${order.id}: ${rollbackMessage}`, deleteError instanceof Error ? deleteError.stack : undefined);
                 });
                 await this.prisma.quizSession.update({
                     where: { id: session.id },
-                    data: { status: client_1.QuizSessionStatus.in_progress }
+                    data: { status: client_1.QuizSessionStatus.in_progress },
                 });
                 if (error instanceof common_1.NotFoundException) {
                     throw error;
@@ -195,22 +206,22 @@ let QuizService = QuizService_1 = class QuizService {
                 where: {
                     sessionId_questionId: {
                         sessionId: session.id,
-                        questionId: answer.questionId
-                    }
+                        questionId: answer.questionId,
+                    },
                 },
                 create: {
                     sessionId: session.id,
                     questionId: answer.questionId,
-                    value: answer.value
+                    value: answer.value,
                 },
                 update: {
-                    value: answer.value
-                }
+                    value: answer.value,
+                },
             })),
             this.prisma.quizSession.update({
                 where: { id: session.id },
-                data: { answerRecord: updatedRecord }
-            })
+                data: { answerRecord: updatedRecord },
+            }),
         ]);
     }
     async loadIngredientWhitelist(barId) {
@@ -218,23 +229,23 @@ let QuizService = QuizService_1 = class QuizService {
             where: {
                 barId,
                 ingredient: {
-                    active: true
-                }
+                    active: true,
+                },
             },
             select: {
                 ingredient: {
                     select: {
-                        name: true
-                    }
-                }
-            }
+                        name: true,
+                    },
+                },
+            },
         });
         if (whitelist.length) {
             return whitelist.map((entry) => entry.ingredient.name);
         }
         const globalActive = await this.prisma.ingredient.findMany({
             where: { active: true },
-            select: { name: true }
+            select: { name: true },
         });
         return globalActive.map((ingredient) => ingredient.name);
     }
@@ -260,37 +271,48 @@ let QuizService = QuizService_1 = class QuizService {
                 'custom-cocktails-api';
             const seedBuffer = (0, crypto_1.createHash)('sha256').update(sessionId).digest();
             const seed = seedBuffer.readUInt32BE(0);
-            const token = (0, jwt_1.signJwtHS256)({ sub: sessionId }, recipeSecret, {
-                audience,
-                issuer,
-                expiresInSeconds: 300
-            });
-            const payloadAnswers = answers.map((answer) => ({
-                question_id: answer.questionId,
-                value: { ...answer.value }
-            }));
+            const token = (0, jwt_1.signJwtHS256)({
+                sub: sessionId,
+                aud: audience,
+                iss: issuer,
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000) + 300,
+            }, recipeSecret);
+            const choice = (id) => this.getAnswerChoice(answers, id);
+            const recipeRequestBody = {
+                bar: barId,
+                base_spirit: choice('base_spirit'),
+                season: choice('season'),
+                house_type: choice('house_type'),
+                dining_style: choice('dining_style'),
+                music_preference: choice('music_preference'),
+                aroma_preference: choice('aroma_preference'),
+                bitterness_tolerance: choice('bitterness_tolerance'),
+                sweetener_question: choice('sweetener_question'),
+                carbonation_texture: randomChoice([
+                    'still & silky',
+                    'lightly fizzy',
+                    'properly sparkling',
+                ]),
+                foam_toggle: randomChoice(['yes', 'no']),
+                abv_lane: choice('abv_lane'),
+                allergens: '',
+                seed,
+            };
             const headers = {
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             };
             if (requestId) {
                 headers['x-request-id'] = requestId;
             }
             try {
-                const response = await (0, rxjs_1.lastValueFrom)(this.httpService.post(`${recipeUrl.replace(/\/$/, '')}/generate`, {
-                    bar_id: barId,
-                    session_id: sessionId,
-                    answers: payloadAnswers,
-                    ingredient_whitelist: ingredientWhitelist,
-                    seed
-                }, {
-                    headers
-                }));
+                const response = await (0, rxjs_1.lastValueFrom)(this.httpService.post(`${recipeUrl.replace(/\/$/, '')}/generate`, recipeRequestBody, { headers }));
                 return response.data;
             }
             catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 this.logger.error(`Recipe engine request failed: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
-                throw new common_1.InternalServerErrorException('Recipe engine request failed');
+                throw error;
             }
         });
     }

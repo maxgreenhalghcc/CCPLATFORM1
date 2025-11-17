@@ -14,7 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BarsController = void 0;
 const common_1 = require("@nestjs/common");
-const user_role_enum_1 = require("../common/roles/user-role.enum");
+const client_1 = require("@prisma/client");
 const bars_service_1 = require("./bars.service");
 const create_bar_dto_1 = require("./dto/create-bar.dto");
 const update_bar_dto_1 = require("./dto/update-bar.dto");
@@ -53,7 +53,7 @@ exports.BarsController = BarsController;
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin),
     __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [list_bars_query_dto_1.ListBarsQueryDto]),
@@ -62,7 +62,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_bar_dto_1.CreateBarDto]),
@@ -71,7 +71,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':id'),
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -80,7 +80,7 @@ __decorate([
 __decorate([
     (0, common_1.Put)(':id'),
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -97,7 +97,7 @@ __decorate([
 __decorate([
     (0, common_1.Put)(':id/settings'),
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -107,7 +107,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)(':id/assets'),
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.admin),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

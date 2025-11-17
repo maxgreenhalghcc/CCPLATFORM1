@@ -1,16 +1,14 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { auth } from '@/auth';
 import LoginForm from './login-form';
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
-
 
 interface LoginPageProps {
   searchParams?: Record<string, string | string[] | undefined>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const callbackParam = searchParams?.callbackUrl;
   const callbackUrl = typeof callbackParam === 'string' ? callbackParam : undefined;
 

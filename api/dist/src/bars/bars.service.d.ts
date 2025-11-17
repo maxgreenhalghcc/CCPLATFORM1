@@ -12,6 +12,7 @@ export interface BarSummary {
     theme: Record<string, string> | null;
     pricingPounds: number | null;
 }
+export type StructuredRecord = Record<string, string>;
 export interface BarSettingsResponse {
     id: string;
     name: string;
@@ -20,6 +21,18 @@ export interface BarSettingsResponse {
     outroText: string | null;
     theme: Record<string, string>;
     pricingPounds: number;
+    contactName: string | null;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    address: StructuredRecord | null;
+    openingHours: StructuredRecord | null;
+    stock: string[];
+    stockListUrl: string | null;
+    bankDetails: StructuredRecord | null;
+    stripeConnectId: string | null;
+    stripeConnectLink: string | null;
+    brandPalette: StructuredRecord | null;
+    logoUrl: string | null;
 }
 export interface BarListResponse {
     items: BarSummary[];
@@ -48,5 +61,11 @@ export declare class BarsService {
     private mapSettings;
     private ensureBar;
     private normalizeDecimal;
+    private sanitizeRecord;
+    private sanitizeStock;
+    private normalizeRecord;
+    private normalizeStringArray;
+    private prepareJsonValue;
+    private prepareJsonUpdate;
     private handleUniqueConstraint;
 }

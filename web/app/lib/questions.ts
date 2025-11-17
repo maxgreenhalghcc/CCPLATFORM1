@@ -1,115 +1,139 @@
-export interface QuizOption {
+// web/app/b/[barSlug]/quiz/questions.ts
+
+export interface QuestionOption {
   value: string;
   label: string;
   description?: string;
+  icon?: string;
 }
 
 export interface QuizQuestion {
-  id: string;
+  id:
+    | 'season'
+    | 'house_type'
+    | 'dining_style'
+    | 'music_preference'
+    | 'aroma_preference'
+    | 'base_spirit'
+    | 'bitterness_tolerance'
+    | 'sweetener_question'
+    | 'abv_lane';
   title: string;
   prompt: string;
-  options: QuizOption[];
+  options: QuestionOption[];
 }
 
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: 'season',
-    title: 'Choose your season',
-    prompt: 'Which time of year matches your current vibe?',
+    title: 'Pick a season',
+    prompt: 'When do you want this cocktail to shine?',
     options: [
-      { value: 'spring', label: 'Spring Bloom', description: 'Crisp botanicals and fresh starts.' },
-      { value: 'summer', label: 'Summer Heat', description: 'Tropical fruit and long evenings.' },
-      { value: 'autumn', label: 'Autumn Spice', description: 'Warm notes and comforting spice.' },
-      { value: 'winter', label: 'Winter Hearth', description: 'Rich flavours by the fire.' }
-    ]
+      { value: 'spring', label: 'Spring', description: 'Fresh & floral' },
+      { value: 'summer', label: 'Summer', description: 'Bright & vibrant' },
+      { value: 'autumn', label: 'Autumn', description: 'Warm & spiced' },
+      { value: 'winter', label: 'Winter', description: 'Rich & comforting' },
+    ],
   },
   {
-    id: 'house',
-    title: 'Pick a bar interior',
-    prompt: 'Where are you taking your friends tonight?',
+    id: 'house_type',
+    title: 'Choose a dream escape',
+    prompt: 'Where would you sip this drink?',
     options: [
-      { value: 'art_deco', label: 'Art Deco Lounge', description: 'Glamour, velvet and brass accents.' },
-      { value: 'tropical', label: 'Tropical Hideaway', description: 'Palm fronds, neon and tiki energy.' },
-      { value: 'minimal', label: 'Minimal Loft', description: 'Clean lines, curated playlists.' },
-      { value: 'speakeasy', label: 'Secret Speakeasy', description: 'Low lights and whispered passwords.' }
-    ]
+      { value: 'beach house', label: 'Beach house' },
+      { value: 'modern house', label: 'Modern house' },
+      { value: 'haunted house', label: 'Haunted house' },
+      { value: 'tree house', label: 'Tree house' },
+    ],
   },
   {
-    id: 'taste_sentence',
-    title: 'Finish the sentence',
-    prompt: 'Tonight I want something…',
+    id: 'dining_style',
+    title: 'Describe your ideal experience',
+    prompt: 'Pick the statement that resonates with your palate.',
     options: [
-      { value: 'bright', label: 'Bright & Zesty', description: 'Citrus-led with sparkling lift.' },
-      { value: 'spiced', label: 'Spiced & Complex', description: 'Layers of warmth and intrigue.' },
-      { value: 'herbal', label: 'Herbal & Refreshing', description: 'Green, vibrant and garden-fresh.' },
-      { value: 'indulgent', label: 'Indulgent & Silky', description: 'Luxurious texture with depth.' }
-    ]
+      {
+        label: 'A balanced blend of flavours',
+        value: 'a balanced blend of flavours',
+      },
+      {
+        label: 'Subtle tastes which advertise freshness',
+        value: 'subtle tastes which advertise freshness',
+      },
+      {
+        label: 'Refreshing and vibrant flavours which awaken my senses',
+        value: 'refreshing and vibrant flavours which awaken my senses',
+      },
+      {
+        label: 'A sweet tooth indulging in rich flavours',
+        value: 'a sweet tooth indulging in rich flavours',
+      },
+    ],
   },
   {
-    id: 'music',
+    id: 'music_preference',
     title: 'Set the soundtrack',
-    prompt: 'What music is playing while you sip?',
+    prompt: 'What’s playing in the background?',
     options: [
-      { value: 'jazz', label: 'Late-night Jazz', description: 'Smoky horns and slow tempo.' },
-      { value: 'disco', label: 'Studio Disco', description: 'Glitter balls and floorfillers.' },
-      { value: 'indie', label: 'Indie Playlist', description: 'Guitars, hooks and singalongs.' },
-      { value: 'lofi', label: 'Lo-fi Beats', description: 'Downtempo focus and mellow moods.' }
-    ]
+      { value: 'jazz/blues', label: 'Jazz / blues' },
+      { value: 'pop', label: 'Pop' },
+      { value: 'rock', label: 'Rock' },
+      { value: 'rap', label: 'Rap' },
+    ],
   },
   {
-    id: 'candle',
-    title: 'Pick a candle scent',
-    prompt: 'Strike a match and set the mood.',
+    id: 'aroma_preference',
+    title: 'Choose an aroma',
+    prompt: 'Pick the fragrance that draws you in.',
     options: [
-      { value: 'citrus', label: 'Citrus Peel', description: 'Lemon zest and sparkling oils.' },
-      { value: 'floral', label: 'Night-blooming Floral', description: 'Soft petals and perfume.' },
-      { value: 'wood', label: 'Smoked Cedar', description: 'Amber, wood and campfire glow.' },
-      { value: 'spice', label: 'Cardamom Spice', description: 'Sweet spice with subtle heat.' }
-    ]
+      { value: 'citrus', label: 'Citrus zest' },
+      { value: 'floral', label: 'Floral bouquet' },
+      { value: 'woody', label: 'Campfire wood' },
+      { value: 'sweet', label: 'Sweet sugar' },
+    ],
   },
   {
     id: 'base_spirit',
-    title: 'Choose a base spirit',
-    prompt: 'Which bottle are we reaching for first?',
+    title: 'Pick a base spirit',
+    prompt: 'Select the spirit to anchor your cocktail.',
     options: [
-      { value: 'gin', label: 'Gin', description: 'Juniper, botanicals and balance.' },
-      { value: 'vodka', label: 'Vodka', description: 'Clean canvas for bold flavours.' },
-      { value: 'rum', label: 'Rum', description: 'Molasses, spice and sunshine.' },
-      { value: 'tequila', label: 'Tequila', description: 'Agave brightness and zip.' }
-    ]
+      { value: 'gin', label: 'Gin' },
+      { value: 'vodka', label: 'Vodka' },
+      { value: 'rum', label: 'Rum' },
+      { value: 'tequila', label: 'Tequila' },
+    ],
   },
   {
-    id: 'post_meal',
-    title: 'After-dinner ritual',
-    prompt: 'How do you close the night?',
+    id: 'bitterness_tolerance',
+    title: 'Bitterness level',
+    prompt: 'How do you feel about bitterness?',
     options: [
-      { value: 'espresso', label: 'Espresso Shot', description: 'Sharp, short and energising.' },
-      { value: 'dessert', label: 'Chocolate Dessert', description: 'Rich cocoa indulgence.' },
-      { value: 'cheese', label: 'Cheese Board', description: 'Savory, salty and refined.' },
-      { value: 'fresh_air', label: 'Fresh Air Walk', description: 'Cool breeze and reflection.' }
-    ]
+      { label: 'Low', value: 'low' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'High', value: 'high' },
+    ],
   },
   {
-    id: 'colour',
-    title: 'Colour palette',
-    prompt: 'What hue should the cocktail glow with?',
+    id: 'sweetener_question',
+    title: 'How sweet should it be?',
+    prompt: 'Dial in the sweetness level.',
     options: [
-      { value: 'amber', label: 'Amber Sunrise', description: 'Golden warmth and sparkle.' },
-      { value: 'crimson', label: 'Crimson Velvet', description: 'Deep reds and plush textures.' },
-      { value: 'emerald', label: 'Emerald City', description: 'Vibrant greens and freshness.' },
-      { value: 'midnight', label: 'Midnight Indigo', description: 'Inky blues and mystery.' }
-    ]
+      { label: 'Classic', value: 'classic' },
+      { label: 'Rich', value: 'rich' },
+      { label: 'Floral', value: 'floral' },
+      { label: 'Zesty', value: 'zesty' },
+    ],
   },
   {
-    id: 'sweetness',
-    title: 'Sweetness level',
-    prompt: 'Dial in the sweetness balance.',
+    id: 'abv_lane',
+    title: 'How strong should it be?',
+    prompt: 'Dial in the booze level.',
     options: [
-      { value: 'dry', label: 'Dry & Structured', description: 'Barely any sweetness.' },
-      { value: 'balanced', label: 'Balanced', description: 'Equal parts sweet and tart.' },
-      { value: 'lush', label: 'Lush & Dessert-like', description: 'Decadent and smooth.' }
-    ]
-  }
+      { label: 'Low', value: 'low' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'Strong', value: 'strong' },
+    ],
+  },
 ];
+
 
 export const CONTACT_QUESTION_ID = 'contact';

@@ -5,6 +5,7 @@ export declare class RecipesService {
     private readonly http;
     private readonly configService;
     private readonly logger;
+    private readonly recipeApiUrl;
     constructor(http: HttpService, configService: ConfigService);
     generate(dto: GenerateRecipeDto, requestId?: string): Promise<any>;
 }

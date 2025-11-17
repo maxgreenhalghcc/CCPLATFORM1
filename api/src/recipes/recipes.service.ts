@@ -8,17 +8,26 @@ import { GenerateRecipeDto } from './dto/generate-recipe.dto';
 @Injectable()
 export class RecipesService {
   private readonly logger = new Logger(RecipesService.name);
+  private readonly recipeApiUrl: string;
 
-  constructor(private readonly http: HttpService, private readonly configService: ConfigService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly configService: ConfigService,
+  ) {
+    this.recipeApiUrl = this.configService.get<string>('RECIPE_API_URL') ?? '';
+  }
 
   async generate(dto: GenerateRecipeDto, requestId?: string) {
-    const url = this.configService.get<string>('recipeService.url') ?? 'http://localhost:5000';
+    const url =
+      this.recipeApiUrl ||
+      this.configService.get<string>('recipeService.url') ||
+      'http://localhost:5000';
 
     const payload = {
       bar_id: dto.barId,
       session_id: dto.sessionId,
       seed: dto.seed ?? Date.now(),
-      quiz: dto.quiz ?? {}
+      quiz: dto.quiz ?? {},
     };
 
     const headers: Record<string, string> = {};
@@ -40,10 +49,10 @@ export class RecipesService {
           ingredients: [
             { name: 'Whiskey', amount: '50ml' },
             { name: 'Sweet vermouth', amount: '25ml' },
-            { name: 'Aromatic bitters', amount: '2 dashes' }
-          ]
+            { name: 'Aromatic bitters', amount: '2 dashes' },
+          ],
         });
-      })
+      }),
     );
 
     return firstValueFrom(response$);

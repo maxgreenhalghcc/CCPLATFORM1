@@ -14,6 +14,7 @@ export interface OrderSummary {
   status: OrderStatus;
   createdAt: string;
   fulfilledAt: string | null;
+  recipeName: string;
 }
 
 interface Props {
@@ -122,70 +123,61 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     }
   };
 
-  if (orders.length === 0) {
-    return (
-      <div className="space-y-4">
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <p className="text-sm text-muted-foreground">
-          No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="overflow-hidden rounded-xl border">
-        <table className="min-w-full divide-y divide-border text-left text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Order ID</th>
-              <th className="px-4 py-3 font-semibold">Customer</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Created</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border bg-card">
-            {orders.map((order) => {
-              const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
+      {orders.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
+        </p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {orders.map((order) => {
+            const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
+            const isPending = pendingId === order.id;
 
-              return (
-                <tr key={order.id}>
-                  <td className="px-4 py-3 font-mono text-xs">{order.id}</td>
-                  <td className="px-4 py-3">Guest</td>
-                  <td className="px-4 py-3 capitalize text-muted-foreground">
-                    <div className="flex flex-col">
-                      <span>{formatStatus(order.status)}</span>
-                      {fulfilledLabel ? (
-                        <span className="text-xs text-muted-foreground/80">Served at {fulfilledLabel}</span>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">{formatDate(order.createdAt)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/staff/orders/${order.id}`}>Open</Link>
-                      </Button>
-                      {order.status === 'paid' ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleFulfilled(order.id)}
-                          disabled={pendingId === order.id}
-                        >
-                          {pendingId === order.id ? 'Marking…' : 'Mark served'}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+            return (
+              <div
+                key={order.id}
+                className="flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-mono">{order.id}</span>
+                    <span>{formatDate(order.createdAt)}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      {order.recipeName || 'Custom cocktail'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Guest order</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
+                    <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
+                      {formatStatus(order.status)}
+                    </span>
+                    {fulfilledLabel ? (
+                      <span className="text-muted-foreground">Served {fulfilledLabel}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/staff/orders/${order.id}`}>View recipe</Link>
+                  </Button>
+                  {order.status === 'paid' ? (
+                    <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
+                      {isPending ? 'Marking…' : 'Mark served'}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Awaiting payment</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,8 +1,23 @@
-import { INestApplication, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import {
+  INestApplication,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  // No injected constructor params – Nest can instantiate this just fine.
+  constructor() {
+    // If you want to tweak prisma options, pass them here:
+    // super({ log: ['query'] });
+    super();
+  }
+
   async onModuleInit() {
     await this.$connect();
   }

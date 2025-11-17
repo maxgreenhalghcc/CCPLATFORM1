@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
-import { RecipesController } from './recipes.controller';
 import { RecipesService } from './recipes.service';
+import { RecipesClient } from './recipes.client';
 
 @Module({
-  imports: [ConfigModule, HttpModule],
-  controllers: [RecipesController],
-  providers: [RecipesService]
+  imports: [HttpModule],
+  providers: [RecipesService, RecipesClient],
+  exports: [RecipesService, RecipesClient],
 })
 export class RecipesModule {}

@@ -7,23 +7,12 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
-import { UserRole } from '../common/roles/user-role.enum';
+import { OrderStatus as PrismaOrderStatus, Prisma, UserRole } from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import * as Sentry from '@sentry/node';
-
-// Runtime-safe map of valid statuses + a type that matches your DB enum values
-const OrderStatusValues = {
-  created: 'created',
-  paid: 'paid',
-  cancelled: 'cancelled',
-  fulfilled: 'fulfilled',
-} as const;
-
-type PrismaOrderStatus = typeof OrderStatusValues[keyof typeof OrderStatusValues];
 
 interface NormalizedRecipeBody {
   ingredients?: unknown;
@@ -31,6 +20,21 @@ interface NormalizedRecipeBody {
   glassware?: unknown;
   garnish?: unknown;
   warnings?: unknown;
+}
+
+interface CreateOrderItemInput {
+  sku: string;
+  qty: number;
+}
+
+interface CreateOrderFromRecipeParams {
+  barId: string;
+  sessionId: string;
+  recipeId: string;
+  amount: Prisma.Decimal;
+  currency?: string;
+  items: CreateOrderItemInput[];
+  recipeJson: unknown;
 }
 
 @Injectable()
@@ -69,6 +73,30 @@ export class OrdersService {
 
     const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     return `${normalizedBase}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+
+  async createFromRecipe(params: CreateOrderFromRecipeParams) {
+    if (!Array.isArray(params.items) || params.items.length === 0) {
+      throw new BadRequestException('Order requires at least one item');
+    }
+
+    return this.prisma.order.create({
+      data: {
+        barId: params.barId,
+        sessionId: params.sessionId,
+        recipeId: params.recipeId,
+        amount: params.amount,
+        currency: (params.currency ?? 'gbp').toLowerCase(),
+        status: PrismaOrderStatus.created,
+        recipeJson: params.recipeJson as Prisma.InputJsonValue,
+        items: {
+          create: params.items.map((item) => ({
+            sku: item.sku,
+            qty: item.qty,
+          })),
+        },
+      },
+    });
   }
 
   async createCheckout(orderId: string, dto?: CreateCheckoutDto) {
@@ -116,29 +144,47 @@ export class OrdersService {
       const currency = (dto?.currency ?? order.currency).toLowerCase();
       const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
 
-      const session = await stripe.checkout.sessions.create({
-        mode: 'payment',
-        payment_method_types: ['card'],
-        metadata: {
-          orderId: order.id,
-          barId: order.barId,
-          sessionId: order.sessionId
-        },
-        line_items: [
-          {
-            quantity: 1,
-            price_data: {
-              currency,
-              unit_amount: amountInMinorUnits,
-              product_data: {
-                name: `${order.bar.name} custom cocktail`
-              }
-            }
-          }
-        ],
-        success_url: successUrl,
-        cancel_url: cancelUrl
-      });
+
+
+      let session;
+
+      try {
+        session = await stripe.checkout.sessions.create({
+          mode: 'payment',
+          payment_method_types: ['card'],
+          metadata: {
+            // Stripe metadata values must be strings, so we coerce them
+            orderId: String(order.id),
+            barId: String(order.barId),
+            sessionId: String(order.sessionId),
+          },
+          line_items: [
+            {
+              quantity: 1,
+              price_data: {
+                currency,
+                unit_amount: amountInMinorUnits,
+                product_data: {
+                  name: `${order.bar.name} custom cocktail`,
+                },
+              },
+            },
+          ],
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+        });
+      } catch (error) {
+        console.error('Stripe error creating checkout session', {
+          message: (error as any)?.message,
+          type: (error as any)?.type,
+          code: (error as any)?.code,
+          raw: error,
+        });
+
+        // Re-throw so the API still returns 500, but with a useful log
+        throw error;
+      }
+
 
       await this.prisma.order.update({
         where: { id: order.id },
@@ -219,14 +265,14 @@ export class OrdersService {
       }
     }
 
-   if (status && !Object.values(OrderStatusValues).includes(status as PrismaOrderStatus)) {
-    throw new BadRequestException('Invalid status filter');
-   }
+    if (status && !Object.values(PrismaOrderStatus).includes(status)) {
+      throw new BadRequestException('Invalid status filter');
+    }
 
     const orders = await this.prisma.order.findMany({
       where: {
         barId: bar.id,
-        ...(status ? { status: status as PrismaOrderStatus } : {})
+        ...(status ? { status } : {})
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -234,25 +280,22 @@ export class OrdersService {
         id: true,
         status: true,
         createdAt: true,
-        fulfilledAt: true
+        fulfilledAt: true,
+        recipe:{
+          select: { name: true },
+        }
       }
     });
 
-  return {
-    items: orders.map(
-      (o: {
-        id: string;
-        status: PrismaOrderStatus;      // import this from @prisma/client
-        createdAt: Date;
-        fulfilledAt: Date | null;
-      }) => ({
-        id: o.id,
-        status: o.status,
-        createdAt: o.createdAt.toISOString(),
-        fulfilledAt: o.fulfilledAt?.toISOString() ?? null,
-      })
-    ),
-  };
+    return {
+      items: orders.map((order) => ({
+        id: order.id,
+        status: order.status,
+        createdAt: order.createdAt.toISOString(),
+        fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
+        recipeName: order.recipe?.name ?? 'Custom cocktail',
+      }))
+    };
   }
 
   async updateStatus(orderId: string, status: 'fulfilled', requester?: AuthenticatedUser) {
@@ -285,7 +328,7 @@ export class OrdersService {
         }
       }
 
-      if (order.status === OrderStatusValues.fulfilled) {
+      if (order.status === PrismaOrderStatus.fulfilled) {
         if (!order.fulfilledAt) {
           const updated = await this.prisma.order.update({
             where: { id: order.id },
@@ -313,7 +356,7 @@ export class OrdersService {
         };
       }
 
-      if (order.status !== OrderStatusValues.paid) {
+      if (order.status !== PrismaOrderStatus.paid) {
         throw new ConflictException('Only paid orders can be fulfilled');
       }
 
@@ -322,7 +365,7 @@ export class OrdersService {
       const updated = await this.prisma.order.update({
         where: { id: order.id },
         data: {
-          status: OrderStatusValues.fulfilled as PrismaOrderStatus,
+          status: PrismaOrderStatus.fulfilled,
           fulfilledAt
         },
         select: {
@@ -339,30 +382,17 @@ export class OrdersService {
       };
     });
   }
-  async createForBar(
-    barId: string,
-    body: { items: { sku: string; qty: number }[]; total?: number },
-    user: { sessionId?: string } | any,
-  ) {
 
-      const sessionId: string | undefined = user?.sessionId ?? undefined;
-      
-      const order = await this.prisma.order.create({
-        data: {
-          barId,
-          sessionId, 
-          status: 'created',
-          amount: body.total ?? 0,
-          items: {
-            create: body.items.map(i => ({
-              sku: i.sku,
-              qty: i.qty,
-            })),
-          },
-        },
-        include: { items: true },
-      });
-
-      return order;
+  // inside OrdersService
+  async saveContact(orderId: string, contact: string) {
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        // 👇 adjust this field name to match your schema
+        contact,
+      },
+    });
   }
+
+
 }

@@ -21,14 +21,17 @@ let RecipesService = RecipesService_1 = class RecipesService {
         this.http = http;
         this.configService = configService;
         this.logger = new common_1.Logger(RecipesService_1.name);
+        this.recipeApiUrl = this.configService.get('RECIPE_API_URL') ?? '';
     }
     async generate(dto, requestId) {
-        const url = this.configService.get('recipeService.url') ?? 'http://localhost:5000';
+        const url = this.recipeApiUrl ||
+            this.configService.get('recipeService.url') ||
+            'http://localhost:5000';
         const payload = {
             bar_id: dto.barId,
             session_id: dto.sessionId,
             seed: dto.seed ?? Date.now(),
-            quiz: dto.quiz ?? {}
+            quiz: dto.quiz ?? {},
         };
         const headers = {};
         if (requestId) {
@@ -45,8 +48,8 @@ let RecipesService = RecipesService_1 = class RecipesService {
                 ingredients: [
                     { name: 'Whiskey', amount: '50ml' },
                     { name: 'Sweet vermouth', amount: '25ml' },
-                    { name: 'Aromatic bitters', amount: '2 dashes' }
-                ]
+                    { name: 'Aromatic bitters', amount: '2 dashes' },
+                ],
             });
         }));
         return (0, rxjs_1.firstValueFrom)(response$);
@@ -55,6 +58,7 @@ let RecipesService = RecipesService_1 = class RecipesService {
 exports.RecipesService = RecipesService;
 exports.RecipesService = RecipesService = RecipesService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [axios_1.HttpService, config_1.ConfigService])
+    __metadata("design:paramtypes", [axios_1.HttpService,
+        config_1.ConfigService])
 ], RecipesService);
 //# sourceMappingURL=recipes.service.js.map

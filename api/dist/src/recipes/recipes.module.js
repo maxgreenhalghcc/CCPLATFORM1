@@ -8,18 +8,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RecipesModule = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
 const axios_1 = require("@nestjs/axios");
-const recipes_controller_1 = require("./recipes.controller");
 const recipes_service_1 = require("./recipes.service");
+const recipes_client_1 = require("./recipes.client");
 let RecipesModule = class RecipesModule {
 };
 exports.RecipesModule = RecipesModule;
 exports.RecipesModule = RecipesModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_1.ConfigModule, axios_1.HttpModule],
-        controllers: [recipes_controller_1.RecipesController],
-        providers: [recipes_service_1.RecipesService]
+        imports: [axios_1.HttpModule],
+        providers: [recipes_service_1.RecipesService, recipes_client_1.RecipesClient],
+        exports: [recipes_service_1.RecipesService, recipes_client_1.RecipesClient],
     })
 ], RecipesModule);
 //# sourceMappingURL=recipes.module.js.map
