@@ -144,29 +144,47 @@ export class OrdersService {
       const currency = (dto?.currency ?? order.currency).toLowerCase();
       const amountInMinorUnits = Math.round(order.amount.mul(100).toNumber());
 
-      const session = await stripe.checkout.sessions.create({
-        mode: 'payment',
-        payment_method_types: ['card'],
-        metadata: {
-          orderId: order.id,
-          barId: order.barId,
-          sessionId: order.sessionId
-        },
-        line_items: [
-          {
-            quantity: 1,
-            price_data: {
-              currency,
-              unit_amount: amountInMinorUnits,
-              product_data: {
-                name: `${order.bar.name} custom cocktail`
-              }
-            }
-          }
-        ],
-        success_url: successUrl,
-        cancel_url: cancelUrl
-      });
+
+
+      let session;
+
+      try {
+        session = await stripe.checkout.sessions.create({
+          mode: 'payment',
+          payment_method_types: ['card'],
+          metadata: {
+            // Stripe metadata values must be strings, so we coerce them
+            orderId: String(order.id),
+            barId: String(order.barId),
+            sessionId: String(order.sessionId),
+          },
+          line_items: [
+            {
+              quantity: 1,
+              price_data: {
+                currency,
+                unit_amount: amountInMinorUnits,
+                product_data: {
+                  name: `${order.bar.name} custom cocktail`,
+                },
+              },
+            },
+          ],
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+        });
+      } catch (error) {
+        console.error('Stripe error creating checkout session', {
+          message: (error as any)?.message,
+          type: (error as any)?.type,
+          code: (error as any)?.code,
+          raw: error,
+        });
+
+        // Re-throw so the API still returns 500, but with a useful log
+        throw error;
+      }
+
 
       await this.prisma.order.update({
         where: { id: order.id },
@@ -262,7 +280,10 @@ export class OrdersService {
         id: true,
         status: true,
         createdAt: true,
-        fulfilledAt: true
+        fulfilledAt: true,
+        recipe:{
+          select: { name: true },
+        }
       }
     });
 
@@ -271,7 +292,8 @@ export class OrdersService {
         id: order.id,
         status: order.status,
         createdAt: order.createdAt.toISOString(),
-        fulfilledAt: order.fulfilledAt?.toISOString() ?? null
+        fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
+        recipeName: order.recipe?.name ?? 'Custom cocktail',
       }))
     };
   }
@@ -360,5 +382,17 @@ export class OrdersService {
       };
     });
   }
+
+  // inside OrdersService
+  async saveContact(orderId: string, contact: string) {
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        // 👇 adjust this field name to match your schema
+        contact,
+      },
+    });
+  }
+
 
 }

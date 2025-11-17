@@ -27,12 +27,14 @@ async function fetchOrders(token: string, barIdentifier: string): Promise<OrderS
       status: OrderSummary['status'];
       createdAt: string;
       fulfilledAt?: string | null;
+      recipeName?: string | null;
     }>;
   };
 
   return payload.items.map((item) => ({
     ...item,
-    fulfilledAt: item.fulfilledAt ?? null
+    fulfilledAt: item.fulfilledAt ?? null,
+    recipeName: item.recipeName ?? 'Custom cocktail',
   }));
 }
 
