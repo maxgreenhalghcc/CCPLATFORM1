@@ -15,6 +15,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@nestjs/cli": "10.3.2",
     "@nestjs/axios": "3.0.2",
     "@nestjs/common": "10.3.7",
     "@nestjs/config": "3.2.2",
