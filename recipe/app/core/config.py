@@ -20,7 +20,7 @@ class Settings(BaseModel):
     jwt_secret: str = _require_env("RECIPE_JWT_SECRET")
     jwt_audience: str = os.getenv("RECIPE_JWT_AUDIENCE", "recipe-engine")
     jwt_issuer: str = os.getenv("RECIPE_JWT_ISSUER", "custom-cocktails-api")
-
+    recipebuilder_base_url: str = "https://ccrecipebuilder.onrender.com"
 
 @lru_cache()
 def get_settings() -> Settings:

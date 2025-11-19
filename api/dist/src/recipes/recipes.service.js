@@ -21,12 +21,15 @@ let RecipesService = RecipesService_1 = class RecipesService {
         this.http = http;
         this.configService = configService;
         this.logger = new common_1.Logger(RecipesService_1.name);
-        this.recipeApiUrl = this.configService.get('RECIPE_API_URL') ?? '';
+        this.recipeApiUrl =
+            this.configService.get('RECIPE_SERVICE_URL') ??
+                this.configService.get('RECIPE_API_URL') ??
+                '';
     }
     async generate(dto, requestId) {
         const url = this.recipeApiUrl ||
             this.configService.get('recipeService.url') ||
-            'http://localhost:5000';
+            'http://localhost:8000';
         const payload = {
             bar_id: dto.barId,
             session_id: dto.sessionId,
@@ -37,7 +40,19 @@ let RecipesService = RecipesService_1 = class RecipesService {
         if (requestId) {
             headers['x-request-id'] = requestId;
         }
-        const response$ = this.http.post(`${url}/generate`, payload, { headers }).pipe((0, operators_1.map)((response) => response.data), (0, operators_1.catchError)((error) => {
+        const response$ = this.http
+            .post(`${url}/generate`, payload, { headers })
+            .pipe((0, operators_1.map)((response) => {
+            const data = response.data;
+            if (data && typeof data === 'object' && 'recipe' in data) {
+                const { id, recipe } = data;
+                return {
+                    id: id ?? `recipe_${dto.sessionId}`,
+                    ...recipe,
+                };
+            }
+            return data;
+        }), (0, operators_1.catchError)((error) => {
             this.logger.error('Recipe generation failed', error?.message ?? error);
             return (0, rxjs_1.of)({
                 id: `recipe_${dto.sessionId}`,
