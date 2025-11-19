@@ -38,7 +38,6 @@
     "stripe": "12.15.0"
   },
   "devDependencies": {
-    "@nestjs/cli": "10.3.2",
     "@nestjs/schematics": "10.0.2",
     "@nestjs/testing": "10.3.7",
     "@types/jest": "29.5.12",
