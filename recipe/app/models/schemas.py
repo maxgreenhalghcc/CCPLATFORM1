@@ -39,8 +39,14 @@ class GenerateRequest(BaseModel):
     abv_lane: Optional[str] = None
     allergens: Optional[str] = None
 
+    # NEW – matches what `generator.py` is using
+    ingredient_whitelist: Optional[List[str]] = None
+    quiz: Optional[Dict[str, object]] = None
+    session_id: Optional[str] = None
+    bar_id: Optional[str] = None
+
     # Required seed (we always send this from the API)
-    seed: int
+    seed: Optional[int] = None
 
     class Config:
         # Ignore any extra fields if the caller sends more than we define here

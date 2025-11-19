@@ -20,22 +20,23 @@ let RecipesController = class RecipesController {
     constructor(recipesService) {
         this.recipesService = recipesService;
     }
-    generate(dto, req) {
-        const requestId = req?.requestId;
+    async generate(dto, req) {
+        const requestId = req.headers['x-request-id'] ??
+            req.headers['x-requestid'];
         return this.recipesService.generate(dto, requestId);
     }
 };
 exports.RecipesController = RecipesController;
 __decorate([
-    (0, common_1.Post)(),
+    (0, common_1.Post)('generate'),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [generate_recipe_dto_1.GenerateRecipeDto, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], RecipesController.prototype, "generate", null);
 exports.RecipesController = RecipesController = __decorate([
-    (0, common_1.Controller)('recipes:generate'),
+    (0, common_1.Controller)('recipes'),
     __metadata("design:paramtypes", [recipes_service_1.RecipesService])
 ], RecipesController);
 //# sourceMappingURL=recipes.controller.js.map
