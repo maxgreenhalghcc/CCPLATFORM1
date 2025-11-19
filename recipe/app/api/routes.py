@@ -2,19 +2,17 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Annotated
+from uuid import uuid4
 
 import jwt
 import sentry_sdk
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jwt import InvalidTokenError
 from sentry_sdk import configure_scope
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Annotated
-from uuid import uuid4
 
 from ..core.config import get_settings, Settings
-from ..models.schemas import GenerateRequest, GenerateResponse
+from ..models.schemas import GenerateRequest
 from ..services.generator import generate_recipe
 
 router = APIRouter()
@@ -26,7 +24,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = request.headers.get(HEADER) or str(uuid4())
         request.state.request_id = request_id
-        configure_scope(lambda scope: scope.set_tag('request_id', request_id))
+        configure_scope(lambda scope: scope.set_tag("request_id", request_id))
         response = await call_next(request)
         response.headers[HEADER] = request_id
         return response
@@ -38,45 +36,70 @@ def get_app_settings() -> Settings:
 
 def verify_authorization(
     authorization: Annotated[str | None, Header()] = None,
-    settings: Settings = Depends(get_app_settings)
+    settings: Settings = Depends(get_app_settings),
 ) -> None:
+    """
+    Auth is currently disabled (always returns None), but the full JWT
+    verification logic is kept here commented-out for future use.
+    """
     return None
-    #if not authorization or not authorization.startswith("Bearer "):
-     #   raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
 
-    #token = authorization.split(" ", 1)[1].strip()
+    # if not authorization or not authorization.startswith("Bearer "):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Missing bearer token",
+    #     )
 
-    #try:
-     #   payload = jwt.decode(
-      #      token,
-       #     settings.jwt_secret,
-        #    algorithms=["HS256"],
-         #   audience=settings.jwt_audience,
-          #  issuer=settings.jwt_issuer,
-           # options={"require": ["exp", "aud", "iss"]}
-        #)
-    #except InvalidTokenError as exc:
-     #   raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+    # token = authorization.split(" ", 1)[1].strip()
 
-    #exp = payload.get("exp")
-    #if not isinstance(exp, (int, float)):
-    #    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token expiry")
+    # try:
+    #     payload = jwt.decode(
+    #         token,
+    #         settings.jwt_secret,
+    #         algorithms=["HS256"],
+    #         audience=settings.jwt_audience,
+    #         issuer=settings.jwt_issuer,
+    #         options={"require": ["exp", "aud", "iss"]},
+    #     )
+    # except InvalidTokenError as exc:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid token",
+    #     ) from exc
 
-    #now = datetime.now(timezone.utc).timestamp()
-    #if exp <= now:
-     #   raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    # exp = payload.get("exp")
+    # if not isinstance(exp, (int, float)):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid token expiry",
+    #     )
 
-    #if exp - now > 300:
-     #   raise HTTPException(
-      #      status_code=status.HTTP_401_UNAUTHORIZED,
-       #     detail="Token lifetime exceeds allowed window"
-        #)
+    # now = datetime.now(timezone.utc).timestamp()
+    # if exp <= now:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Token expired",
+    #     )
+
+    # if exp - now > 300:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Token lifetime exceeds allowed window",
+    #     )
 
 
-@router.post("/generate", response_model=GenerateResponse)
+@router.post("/generate")
 async def generate_endpoint(
     payload: GenerateRequest,
-    _: None = Depends(verify_authorization)
-) -> GenerateResponse:
+    _auth: None = Depends(verify_authorization),
+):
+    """
+    Generate a cocktail recipe.
+
+    We deliberately DO NOT declare a response_model here so that FastAPI
+    does not try to validate the response against the old GenerateResponse
+    schema. The generator returns a flat recipe dict which we pass through
+    directly to the API.
+    """
     with sentry_sdk.start_span(op="service", description="recipe.generate"):
         return generate_recipe(payload)
