@@ -19,7 +19,7 @@ export function FooterNav({
   nextLabel,
   backLabel = 'Back',
   disabled,
-  isSubmitting
+  isSubmitting,
 }: FooterNavProps) {
   return (
     <div className="flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
@@ -33,10 +33,14 @@ export function FooterNav({
           {backLabel}
         </Button>
       ) : (
-        <span className="text-sm text-muted-foreground" aria-hidden>
+        <span
+          className="text-sm text-muted-foreground"
+          aria-hidden
+        >
           &nbsp;
         </span>
       )}
+
       <Button
         type="button"
         onClick={onNext}

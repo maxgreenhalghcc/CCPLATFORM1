@@ -76,7 +76,6 @@ export default async function StaffDashboardPage() {
         </nav>
       </header>
       <Suspense fallback={<p>Loading orders…</p>}>
-        {/* @ts-expect-error Async Server Component */}
         <StaffOrdersTable barId={barId} token={session.apiToken} />
       </Suspense>
     </div>

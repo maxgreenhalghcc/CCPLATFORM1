@@ -296,9 +296,11 @@ let QuizService = QuizService_1 = class QuizService {
                 ]),
                 foam_toggle: randomChoice(['yes', 'no']),
                 abv_lane: choice('abv_lane'),
-                allergens: '',
+                allergens: this.getAnswerChoice(answers, 'allergens') ?? 'none',
                 seed,
             };
+            this.logger.log('=== QUIZ → recipebuilder payload ===');
+            this.logger.log(JSON.stringify(recipeRequestBody, null, 2));
             const headers = {
                 Authorization: `Bearer ${token}`,
             };

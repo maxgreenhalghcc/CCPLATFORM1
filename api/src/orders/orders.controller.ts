@@ -22,6 +22,28 @@ export class OrdersController {
     return this.ordersService.getRecipe(id);
   }
 
+  @Post(':id/contact')
+  async saveContact(
+    @Param('id') id: string,
+    @Body() body: { contact: string },
+  ) {
+    const contact = body.contact?.trim();
+
+    if (!contact) {
+      // you can throw a BadRequestException if you want,
+      // but returning 400 manually is fine too for now
+      return {
+        statusCode: 400,
+        message: 'Missing contact',
+      };
+    }
+
+    await this.ordersService.saveContact(id, contact);
+    return { ok: true };
+  }
+
+
+
   @UseGuards(ApiAuthGuard, RolesGuard)
   @Roles(UserRole.admin, UserRole.staff)
   @Patch(':id/status')

@@ -26,14 +26,14 @@ enum QuizSessionStatus {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String   @id @default(cuid())
+  email         String   @unique
   name          String?
   image         String?
   emailVerified DateTime?
-  role          UserRole  @default(customer)
+  role          UserRole @default(customer)
   barId         String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime @default(now())
 
   bar      Bar?      @relation(fields: [barId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   accounts Account[]
@@ -41,17 +41,17 @@ model User {
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.LongText
-  access_token      String? @db.LongText
+  refresh_token     String?  @db.LongText
+  access_token      String?  @db.LongText
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.LongText
+  id_token          String?  @db.LongText
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -77,28 +77,26 @@ model VerificationToken {
 }
 
 model Bar {
-  id           String  @id @default(cuid())
-  name         String
-  slug         String  @unique
-  location     String?
-  active       Boolean @default(true)
-  staffPinHash String?
+  id       String   @id @default(cuid())
+  name     String
+  slug     String   @unique
+  location String?
+  active   Boolean  @default(true)
 
-  settings BarSettings?
-
-  users     User[]
-  whitelist BarIngredientWhitelist[]
-  sessions  QuizSession[]
-  recipes   Recipe[]
-  orders    Order[]
+  settings   BarSettings?
+  users      User[]
+  whitelist  BarIngredientWhitelist[]
+  sessions   QuizSession[]
+  recipes    Recipe[]
+  orders     Order[]
 }
 
 model BarSettings {
-  barId             String  @id
-  theme             Json
-  introText         String?
-  outroText         String?
-  pricingPounds     Decimal @default(12.0) @db.Decimal(10, 2)
+  barId         String  @id
+  theme         Json
+  introText     String?
+  outroText     String?
+  pricingPounds Decimal @default(12.0) @db.Decimal(10, 2)
   contactName       String?
   contactEmail      String?
   contactPhone      String?
@@ -116,10 +114,10 @@ model BarSettings {
 }
 
 model Ingredient {
-  id            String  @id @default(cuid())
-  name          String  @unique
+  id            String                  @id @default(cuid())
+  name          String                  @unique
   allergenFlags Json
-  active        Boolean @default(true)
+  active        Boolean                 @default(true)
 
   bars BarIngredientWhitelist[]
 }
@@ -148,19 +146,19 @@ model QuizSession {
 }
 
 model QuizAnswer {
-  id         String @id @default(cuid())
+  id         String      @id @default(cuid())
   sessionId  String
   questionId String
   value      Json
 
   session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([sessionId, questionId])
   @@index([sessionId])
+  @@unique([sessionId, questionId])
 }
 
 model Recipe {
-  id          String @id @default(cuid())
+  id          String     @id @default(cuid())
   barId       String
   sessionId   String
   name        String
@@ -175,27 +173,27 @@ model Recipe {
 }
 
 model Order {
-  id              String      @id @default(cuid())
+  id              String        @id @default(cuid())
   barId           String
   sessionId       String
   recipeId        String?
-  amount          Decimal     @db.Decimal(10, 2)
-  currency        String      @default("gbp")
-  status          OrderStatus @default(created)
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("gbp")
+  status          OrderStatus   @default(created)
   stripeSessionId String?
-  createdAt       DateTime    @default(now())
+  createdAt       DateTime      @default(now())
   fulfilledAt     DateTime?
   items           OrderItem[]
   recipeJson      Json?
-  contact         String?
+  contact  String?
 
-  bar      Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session  QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  recipe   Recipe?     @relation(fields: [recipeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  bar     Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  recipe  Recipe?     @relation(fields: [recipeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   payments Payment[]
 
-  @@unique([stripeSessionId])
   @@index([barId, status])
+  @@unique([stripeSessionId])
 }
 
 model OrderItem {

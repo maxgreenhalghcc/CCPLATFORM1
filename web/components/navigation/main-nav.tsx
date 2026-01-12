@@ -8,7 +8,7 @@ const SHOW_BETA_BADGE =
   (process.env.NEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE ?? 'false').toLowerCase() === 'true';
 
 const links: Array<{ href: string; label: string; roles?: Array<'admin' | 'staff'> }> = [
-  { href: '/b/sample-bar', label: 'Sample Bar' },
+  { href: '/b/demo-bar', label: 'Demo Bar' },
   { href: '/staff', label: 'Staff Orders', roles: ['staff'] },
   { href: '/staff/details', label: 'Staff Details', roles: ['staff'] },
   { href: '/admin', label: 'Admin Console', roles: ['admin'] }
@@ -22,12 +22,20 @@ export function MainNav() {
     if (!link.roles) {
       return true;
     }
+
     if (!role) {
       return false;
     }
+
+    // Only admin and staff should see these links.
+    // If the role is something else (e.g. "customer"), hide them.
+    if (role !== "admin" && role !== "staff") {
+      return false;
+    }
+
     return link.roles.includes(role);
   });
-
+	
   return (
     <header className="border-b bg-card/60 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">

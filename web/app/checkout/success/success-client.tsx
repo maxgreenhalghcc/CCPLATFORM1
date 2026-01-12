@@ -28,7 +28,7 @@ export default function CheckoutSuccessClient({
     setError(null);
 
     try {
-      const res = await fetch(`${getApiBaseUrl()}/orders/${orderId}/contact`, {
+      const res = await fetch(`${getApiBaseUrl()}/v1/orders/${orderId}/contact`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ export default function CheckoutSuccessClient({
         <div className="space-y-1">
           <h2 className="text-xl font-semibold">Unlock your recipe</h2>
           <p className="text-sm text-muted-foreground">
-            Drop an email address or mobile number to unlock a copy of your
+            Drop an email address to unlock a copy of your
             recipe.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function CheckoutSuccessClient({
               htmlFor="contact"
               className="text-xs font-medium text-muted-foreground"
             >
-              Email or phone number
+              Email Address
             </label>
             <input
               id="contact"

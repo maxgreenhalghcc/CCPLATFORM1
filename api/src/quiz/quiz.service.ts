@@ -407,7 +407,7 @@ export class QuizService {
         // Helper for reading answers
         const choice = (id: string): string | undefined =>
           this.getAnswerChoice(answers, id);
-
+        
         // Build the payload the recipe builder expects
         const recipeRequestBody = {
           bar: barId, // IMPORTANT: field name must be `bar`
@@ -428,10 +428,14 @@ export class QuizService {
           ]),
           foam_toggle: randomChoice(['yes', 'no']),
           abv_lane: choice('abv_lane'),
-          allergens: '',
-
+  
+          allergens: this.getAnswerChoice(answers, 'allergens') ?? 'none',
+          
           seed,
         };
+        
+	this.logger.log('=== QUIZ → recipebuilder payload ===');
+	this.logger.log(JSON.stringify(recipeRequestBody, null, 2));
 
         const headers: Record<string, string> = {
           Authorization: `Bearer ${token}`,

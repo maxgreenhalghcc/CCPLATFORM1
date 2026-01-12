@@ -44,6 +44,7 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
         bufferLogs: true,
     });
+    app.set('trust proxy', 1);
     const logger = app.get(nestjs_pino_1.Logger);
     app.useLogger(logger);
     const httpAdapter = app.getHttpAdapter().getInstance();

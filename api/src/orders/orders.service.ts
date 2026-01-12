@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import * as Sentry from '@sentry/node';
+import * as nodemailer from 'nodemailer';
 
 interface NormalizedRecipeBody {
   ingredients?: unknown;
@@ -51,7 +52,7 @@ export class OrdersService {
       return this.stripeClient;
     }
 
-    const secretKey = this.configService.get<string>('stripe.secretKey');
+    const secretKey = process.env.STRIPE_SECRET_KEY;
 
     if (!secretKey) {
       throw new InternalServerErrorException('Stripe secret key is not configured');
@@ -64,6 +65,161 @@ export class OrdersService {
 
     return this.stripeClient;
   }
+
+  // --- Email helpers (Mailgun via Nodemailer) ---
+
+  // --- Email helpers (Mailgun via Nodemailer) ---
+
+  private createMailTransport() {
+    const server = this.configService.get<string>('EMAIL_SERVER');
+
+    if (server && server.length > 0) {
+      console.log('[orders] createMailTransport: using real EMAIL_SERVER');
+      return nodemailer.createTransport(server);
+    }
+
+    console.warn(
+      '[orders] createMailTransport: EMAIL_SERVER is NOT configured – using jsonTransport (no real emails will be sent)',
+    );
+
+    // Fallback: log-only transport (doesn't actually send)
+    return nodemailer.createTransport({ jsonTransport: true });
+  }
+
+  private getEmailFromAddress(): string {
+    return (
+      this.configService.get<string>('EMAIL_FROM') ??
+      'login@example.com'
+    );
+  }
+
+  private async sendRecipeEmail(orderId: string) {
+    console.log('[orders] sendRecipeEmail: starting for order', orderId);
+
+    // Re-use existing logic to load the recipe details
+    const recipe = await this.getRecipe(orderId); // will throw if not found
+
+    // We also need the raw order to get the contact
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        contact: true, // 👈 make sure this matches your Order model field name
+      },
+    });
+
+    if (!order || !order.contact) {
+      console.warn(
+        '[orders] sendRecipeEmail: no contact stored for order',
+        orderId,
+        '(nothing to send)',
+      );
+      return;
+    }
+
+    const to = order.contact;
+    const from = this.getEmailFromAddress();
+
+    // Normalise ingredients into readable strings
+    const rawIngredients = Array.isArray((recipe as any).ingredients)
+      ? (recipe as any).ingredients
+      : [];
+
+    const ingredientLines = rawIngredients
+      .map((item: any) => {
+        if (!item) return '';
+
+        // If it's already a string, just use it
+        if (typeof item === 'string') {
+          return item;
+        }
+
+        // Otherwise, try to format a typical ingredient object
+        if (typeof item === 'object') {
+          const { amount, unit, ingredient, name } = item as any;
+
+          const qty = [amount, unit].filter(Boolean).join(' ');
+          const label = ingredient || name || '';
+
+          const line = [qty, label].filter(Boolean).join(' ');
+          return line || JSON.stringify(item);
+        }
+
+        // Fallback
+        return String(item);
+      })
+      .filter(Boolean);
+
+    const ingredientsList =
+      ingredientLines.length > 0 ? ingredientLines.join('\n') : 'Ask the bartender 😉';
+  
+
+      const text = [
+      `Here’s your custom cocktail recipe: ${recipe.name}`,
+      '',
+      'Ingredients:',
+      ingredientsList,
+      '',
+      recipe.method ? `Method:\n${recipe.method}` : '',
+      '',
+      recipe.glassware ? `Glassware: ${recipe.glassware}` : '',
+      recipe.garnish ? `Garnish: ${recipe.garnish}` : '',
+      '',
+      'Enjoy!',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const html = `
+  <h1>Your custom cocktail: ${recipe.name}</h1>
+  <p>Here’s your custom cocktail recipe.</p>
+  <h2>Ingredients</h2>
+  <ul>
+    ${ingredientLines.map((item: string) => `<li>${item}</li>`).join('')}
+  </ul>
+  ${
+    recipe.method
+      ? `<h2>Method</h2><p>${recipe.method.replace(/\n/g, '<br/>')}</p>`
+      : ''
+  }
+  ${
+    recipe.glassware
+      ? `<p><strong>Glassware:</strong> ${recipe.glassware}</p>`
+      : ''
+  }
+  ${
+    recipe.garnish
+      ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>`
+      : ''
+  }
+  <p>Enjoy! 🍸</p>
+  `;
+
+    const transport = this.createMailTransport();
+
+    try {
+      console.log('[orders] sendRecipeEmail: sending to', to, 'from', from);
+      await transport.sendMail({
+        to,
+        from,
+        subject: `Your custom cocktail recipe: ${recipe.name}`,
+        text,
+        html,
+      });
+      console.log(
+        '[orders] sendRecipeEmail: recipe email sent to',
+        to,
+        'for order',
+        orderId,
+      );
+    } catch (err) {
+      console.error('[orders] sendRecipeEmail: ERROR sending recipe email', {
+        orderId,
+        to,
+        err,
+      });
+    }
+  }
+
 
   private resolveFrontendUrl(path: string) {
     const baseUrl =
@@ -165,7 +321,7 @@ export class OrdersService {
                 currency,
                 unit_amount: amountInMinorUnits,
                 product_data: {
-                  name: `${order.bar.name} custom cocktail`,
+                  name: `${order.bar.name} Custom Cocktail`,
                 },
               },
             },
@@ -298,7 +454,11 @@ export class OrdersService {
     };
   }
 
-  async updateStatus(orderId: string, status: 'fulfilled', requester?: AuthenticatedUser) {
+  async updateStatus(
+    orderId: string,
+    status: 'fulfilled',
+    requester?: AuthenticatedUser,
+  ) {
     if (status !== 'fulfilled') {
       throw new BadRequestException('Unsupported status transition');
     }
@@ -310,8 +470,8 @@ export class OrdersService {
           id: true,
           status: true,
           fulfilledAt: true,
-          barId: true
-        }
+          barId: true,
+        },
       });
 
       if (!order) {
@@ -328,34 +488,36 @@ export class OrdersService {
         }
       }
 
+      // If already fulfilled, just ensure fulfilledAt is set and send the email once
       if (order.status === PrismaOrderStatus.fulfilled) {
         if (!order.fulfilledAt) {
           const updated = await this.prisma.order.update({
             where: { id: order.id },
-            data: {
-              fulfilledAt: new Date()
-            },
+            data: { fulfilledAt: new Date() },
             select: {
               id: true,
               status: true,
-              fulfilledAt: true
-            }
+              fulfilledAt: true,
+            },
           });
+
+          await this.sendRecipeEmail(order.id);
 
           return {
             id: updated.id,
             status: updated.status,
-            fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+            fulfilledAt: updated.fulfilledAt?.toISOString() ?? null,
           };
         }
 
         return {
           id: order.id,
           status: order.status,
-          fulfilledAt: order.fulfilledAt?.toISOString() ?? null
+          fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
         };
       }
 
+      // You can only move to fulfilled from paid
       if (order.status !== PrismaOrderStatus.paid) {
         throw new ConflictException('Only paid orders can be fulfilled');
       }
@@ -366,33 +528,32 @@ export class OrdersService {
         where: { id: order.id },
         data: {
           status: PrismaOrderStatus.fulfilled,
-          fulfilledAt
+          fulfilledAt,
         },
         select: {
           id: true,
           status: true,
-          fulfilledAt: true
-        }
+          fulfilledAt: true,
+        },
       });
+
+      await this.sendRecipeEmail(order.id);
 
       return {
         id: updated.id,
         status: updated.status,
-        fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+        fulfilledAt: updated.fulfilledAt?.toISOString() ?? null,
       };
     });
   }
 
-  // inside OrdersService
-  async saveContact(orderId: string, contact: string) {
+  async saveContact(orderId: string, contact: string): Promise<void> {
     await this.prisma.order.update({
       where: { id: orderId },
       data: {
-        // 👇 adjust this field name to match your schema
+        // field name must match your Prisma Order model
         contact,
       },
     });
   }
-
-
 }

@@ -24,6 +24,7 @@ interface RecipePayload {
 
 interface OrderDetailProps {
   initialOrder: {
+    allergensRaw?: string | null;
     orderId: string;
     status: OrderStatus;
     fulfilledAt: string | null;
@@ -167,6 +168,17 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
       </header>
 
       <section className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
+        {initialOrder.allergensRaw?.trim() ? (
+           <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Guest allergens / avoid
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm">
+              {initialOrder.allergensRaw?.trim()}
+            </p>
+          </div>
+        ) : null}
+
         <div>
           <h2 className="text-xl font-semibold">Ingredients</h2>
           <ul className="mt-4 space-y-2 text-sm">

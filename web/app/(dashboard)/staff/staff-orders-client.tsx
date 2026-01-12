@@ -43,27 +43,59 @@ function formatStatus(status: OrderStatus) {
   }
 }
 
+// Helper to pad numbers to 2 digits
+function pad2(n: number) {
+  return n.toString().padStart(2, '0');
+}
+
+/**
+ * Deterministic date formatter for createdAt.
+ * Uses UTC fields so server and client always render the same string.
+ * Format: DD/MM/YYYY, HH:MM:SS
+ */
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleString();
+
+  const day = pad2(date.getUTCDate());
+  const month = pad2(date.getUTCMonth() + 1);
+  const year = date.getUTCFullYear();
+  const hours = pad2(date.getUTCHours());
+  const minutes = pad2(date.getUTCMinutes());
+  const seconds = pad2(date.getUTCSeconds());
+
+  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
 }
 
+/**
+ * Deterministic time formatter for fulfilledAt.
+ * Uses UTC fields so server and client always render the same string.
+ * Format: HH:MM
+ */
 function formatFulfilledAt(value: string | null) {
   if (!value) {
     return null;
   }
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const hours = pad2(date.getUTCHours());
+  const minutes = pad2(date.getUTCMinutes());
+
+  return `${hours}:${minutes}`;
 }
 
-export default function StaffOrdersClient({ initialOrders, initialError = null }: Props) {
-  const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
+export default function StaffOrdersClient({
+  initialOrders,
+  initialError = null,
+}: Props) {
+  // Make sure we always start with an array to avoid "length of undefined" errors
+  const [orders, setOrders] = useState<OrderSummary[]>(initialOrders ?? []);
   const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -90,17 +122,19 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
       current.map((order) =>
         order.id === orderId
           ? { ...order, status: 'fulfilled', fulfilledAt: optimisticTimestamp }
-          : order
-      )
+          : order,
+      ),
     );
 
     try {
-      const result = await Sentry.startSpan({ name: 'orders.fulfill', op: 'ui.action' }, () =>
-        patchJson<UpdateStatusResponse>(
-          `${baseUrl}/v1/orders/${orderId}/status`,
-          { status: 'fulfilled' },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+      const result = await Sentry.startSpan(
+        { name: 'orders.fulfill', op: 'ui.action' },
+        () =>
+          patchJson<UpdateStatusResponse>(
+            `${baseUrl}/v1/orders/${orderId}/status`,
+            { status: 'fulfilled' },
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
       );
 
       setOrders((current) =>
@@ -109,10 +143,10 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
             ? {
                 ...order,
                 status: result.status,
-                fulfilledAt: result.fulfilledAt
+                fulfilledAt: result.fulfilledAt,
               }
-            : order
-        )
+            : order,
+        ),
       );
     } catch (err) {
       Sentry.captureException(err);
@@ -125,19 +159,26 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
 
   return (
     <div className="space-y-4">
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-destructive">{error}</p>
+      ) : null}
+
       {orders.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
+          No orders yet. Stripe webhook events will populate this list once the
+          payment flow is connected.
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {orders.map((order) => {
-            const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
+            const fulfilledLabel =
+              order.status === 'fulfilled'
+                ? formatFulfilledAt(order.fulfilledAt)
+                : null;
             const isPending = pendingId === order.id;
 
             return (
-              <div
+              <article
                 key={order.id}
                 className="flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm"
               >
@@ -146,34 +187,48 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
                     <span className="font-mono">{order.id}</span>
                     <span>{formatDate(order.createdAt)}</span>
                   </div>
+
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-foreground">
                       {order.recipeName || 'Custom cocktail'}
                     </p>
-                    <p className="text-xs text-muted-foreground">Guest order</p>
+                    <p className="text-xs text-muted-foreground">
+                      Guest order
+                    </p>
                   </div>
+
                   <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
                     <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
                       {formatStatus(order.status)}
                     </span>
                     {fulfilledLabel ? (
-                      <span className="text-muted-foreground">Served {fulfilledLabel}</span>
+                      <span className="text-muted-foreground">
+                        Served {fulfilledLabel}
+                      </span>
                     ) : null}
                   </div>
                 </div>
+
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <Button asChild size="sm" variant="secondary">
                     <Link href={`/staff/orders/${order.id}`}>View recipe</Link>
                   </Button>
+
                   {order.status === 'paid' ? (
-                    <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleFulfilled(order.id)}
+                      disabled={isPending}
+                    >
                       {isPending ? 'Marking…' : 'Mark served'}
                     </Button>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Awaiting payment</span>
+                    <span className="text-xs text-muted-foreground">
+                      Awaiting payment
+                    </span>
                   )}
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>

@@ -4,7 +4,7 @@ export default function CheckoutPlaceholderPage() {
       <h1 className="text-3xl font-semibold">Checkout placeholder</h1>
       <p className="text-muted-foreground">
         This page will redirect customers to Stripe Checkout once integrated. The actual checkout URL is provided by
-        `/v1/orders/{id}/checkout`.
+        <code>{'/v1/orders/{id}/checkout'}</code>.
       </p>
       <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
         <p>

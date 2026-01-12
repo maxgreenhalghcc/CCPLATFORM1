@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -195,6 +195,11 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
 
       try {
         const api = getApiUrl();
+
+        if (!session?.apiToken) {
+        throw new Error("Missing session token");
+        }
+
         const headers: HeadersInit = { Authorization: `Bearer ${session.apiToken}` };
 
         const [detailResponse, settingsResponse] = await Promise.all([
@@ -285,6 +290,20 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
     [paletteState]
   );
 
+  const handleSettingsFieldChange = useCallback(
+    (field: keyof BarSettingsResponse) =>
+      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const value = event.target.value;
+        setSettings((current) => ({
+          ...current,
+          [field]: value,
+        }));
+      },
+    []
+  );
+
+
+
   const slugValid = detail.slug.length > 0 ? slugPattern.test(detail.slug) : !isNew;
   const detailFormValid = detail.name.trim().length >= 2 && slugValid;
 
@@ -359,8 +378,9 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
     [barId, detail, detailFormValid, isNew, router, session?.apiToken, status]
   );
 
-  const handleSettingsSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
+  const handleSettingsSubmit = async(
+    event: FormEvent<HTMLFormElement>
+  ) => {
       event.preventDefault();
       if (isNew || status !== 'authenticated' || !session?.apiToken) {
         return;
@@ -450,9 +470,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
       } finally {
         setIsSavingSettings(false);
       }
-    },
-    [barId, isNew, pricingInput, session?.apiToken, settings.introText, settings.outroText, settings.theme, status]
-  );
+  };
 
   const renderTabs = (
     <div className="flex items-center gap-4 border-b border-border">

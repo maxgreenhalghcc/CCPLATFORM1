@@ -22,6 +22,9 @@ export declare class OrdersService {
     constructor(prisma: PrismaService, configService: ConfigService);
     private stripeClient?;
     private getStripe;
+    private createMailTransport;
+    private getEmailFromAddress;
+    private sendRecipeEmail;
     private resolveFrontendUrl;
     createFromRecipe(params: CreateOrderFromRecipeParams): Promise<{
         id: string;

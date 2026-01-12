@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { fetchJson, getApiUrl } from '@/lib/utils';
+import { AgeGateButton } from '@/components/age-gate-button';
 
 interface BarSettingsResponse {
   name: string;
@@ -49,7 +50,7 @@ export default async function BarLandingPage({ params }: BarPageProps) {
 
       <section className="grid gap-8 rounded-3xl border border-border/50 bg-card/70 p-10 shadow-xl shadow-primary/10 backdrop-blur">
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">Discover your cocktail personality</h2>
+          <h2 className="text-2xl font-semibold">Discover your perfect cocktail</h2>
           <p className="text-balance text-sm text-muted-foreground sm:text-base">
             Step through nine quick questions inspired by our mixologists. We&apos;ll analyse your answers, mix in the
             bar&apos;s signature ingredients and reveal a cocktail that&apos;s crafted just for you.
@@ -62,7 +63,7 @@ export default async function BarLandingPage({ params }: BarPageProps) {
           </div>
           <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
             <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Questions</dt>
-            <dd className="mt-1 text-lg font-semibold">9 tailored prompts</dd>
+            <dd className="mt-1 text-lg font-semibold">9 personality questions</dd>
           </div>
           <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
             <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Result</dt>
@@ -71,10 +72,12 @@ export default async function BarLandingPage({ params }: BarPageProps) {
         </dl>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            You&apos;ll preview the recipe immediately after checkout, with the full method ready for the bar team.
+            You&apos;ll recieve the recipe immediately after checkout, with the full method ready for the bar team.
           </p>
           <Button asChild size="lg" className="sm:w-auto">
-            <Link href={`/b/${bar.slug}/quiz`}>Begin the experience</Link>
+            <AgeGateButton href={`/b/${bar.slug}/quiz`}>
+              Begin the experience
+            </AgeGateButton>
           </Button>
         </div>
       </section>

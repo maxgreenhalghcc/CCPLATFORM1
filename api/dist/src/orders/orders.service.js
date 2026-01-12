@@ -16,6 +16,7 @@ const client_1 = require("@prisma/client");
 const stripe_1 = require("stripe");
 const prisma_service_1 = require("../prisma/prisma.service");
 const Sentry = require("@sentry/node");
+const nodemailer = require("nodemailer");
 let OrdersService = class OrdersService {
     constructor(prisma, configService) {
         this.prisma = prisma;
@@ -25,7 +26,7 @@ let OrdersService = class OrdersService {
         if (this.stripeClient) {
             return this.stripeClient;
         }
-        const secretKey = this.configService.get('stripe.secretKey');
+        const secretKey = process.env.STRIPE_SECRET_KEY;
         if (!secretKey) {
             throw new common_1.InternalServerErrorException('Stripe secret key is not configured');
         }
@@ -33,6 +34,108 @@ let OrdersService = class OrdersService {
             apiVersion: '2022-11-15'
         });
         return this.stripeClient;
+    }
+    createMailTransport() {
+        const server = this.configService.get('EMAIL_SERVER');
+        if (server && server.length > 0) {
+            console.log('[orders] createMailTransport: using real EMAIL_SERVER');
+            return nodemailer.createTransport(server);
+        }
+        console.warn('[orders] createMailTransport: EMAIL_SERVER is NOT configured – using jsonTransport (no real emails will be sent)');
+        return nodemailer.createTransport({ jsonTransport: true });
+    }
+    getEmailFromAddress() {
+        return (this.configService.get('EMAIL_FROM') ??
+            'login@example.com');
+    }
+    async sendRecipeEmail(orderId) {
+        console.log('[orders] sendRecipeEmail: starting for order', orderId);
+        const recipe = await this.getRecipe(orderId);
+        const order = await this.prisma.order.findUnique({
+            where: { id: orderId },
+            select: {
+                contact: true,
+            },
+        });
+        if (!order || !order.contact) {
+            console.warn('[orders] sendRecipeEmail: no contact stored for order', orderId, '(nothing to send)');
+            return;
+        }
+        const to = order.contact;
+        const from = this.getEmailFromAddress();
+        const rawIngredients = Array.isArray(recipe.ingredients)
+            ? recipe.ingredients
+            : [];
+        const ingredientLines = rawIngredients
+            .map((item) => {
+            if (!item)
+                return '';
+            if (typeof item === 'string') {
+                return item;
+            }
+            if (typeof item === 'object') {
+                const { amount, unit, ingredient, name } = item;
+                const qty = [amount, unit].filter(Boolean).join(' ');
+                const label = ingredient || name || '';
+                const line = [qty, label].filter(Boolean).join(' ');
+                return line || JSON.stringify(item);
+            }
+            return String(item);
+        })
+            .filter(Boolean);
+        const ingredientsList = ingredientLines.length > 0 ? ingredientLines.join('\n') : 'Ask the bartender 😉';
+        const text = [
+            `Here’s your custom cocktail recipe: ${recipe.name}`,
+            '',
+            'Ingredients:',
+            ingredientsList,
+            '',
+            recipe.method ? `Method:\n${recipe.method}` : '',
+            '',
+            recipe.glassware ? `Glassware: ${recipe.glassware}` : '',
+            recipe.garnish ? `Garnish: ${recipe.garnish}` : '',
+            '',
+            'Enjoy!',
+        ]
+            .filter(Boolean)
+            .join('\n');
+        const html = `
+  <h1>Your custom cocktail: ${recipe.name}</h1>
+  <p>Here’s your custom cocktail recipe.</p>
+  <h2>Ingredients</h2>
+  <ul>
+    ${ingredientLines.map((item) => `<li>${item}</li>`).join('')}
+  </ul>
+  ${recipe.method
+            ? `<h2>Method</h2><p>${recipe.method.replace(/\n/g, '<br/>')}</p>`
+            : ''}
+  ${recipe.glassware
+            ? `<p><strong>Glassware:</strong> ${recipe.glassware}</p>`
+            : ''}
+  ${recipe.garnish
+            ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>`
+            : ''}
+  <p>Enjoy! 🍸</p>
+  `;
+        const transport = this.createMailTransport();
+        try {
+            console.log('[orders] sendRecipeEmail: sending to', to, 'from', from);
+            await transport.sendMail({
+                to,
+                from,
+                subject: `Your custom cocktail recipe: ${recipe.name}`,
+                text,
+                html,
+            });
+            console.log('[orders] sendRecipeEmail: recipe email sent to', to, 'for order', orderId);
+        }
+        catch (err) {
+            console.error('[orders] sendRecipeEmail: ERROR sending recipe email', {
+                orderId,
+                to,
+                err,
+            });
+        }
     }
     resolveFrontendUrl(path) {
         const baseUrl = this.configService.get('NEXT_PUBLIC_FRONTEND_URL') ??
@@ -117,7 +220,7 @@ let OrdersService = class OrdersService {
                                 currency,
                                 unit_amount: amountInMinorUnits,
                                 product_data: {
-                                    name: `${order.bar.name} custom cocktail`,
+                                    name: `${order.bar.name} Custom Cocktail`,
                                 },
                             },
                         },
@@ -240,8 +343,8 @@ let OrdersService = class OrdersService {
                     id: true,
                     status: true,
                     fulfilledAt: true,
-                    barId: true
-                }
+                    barId: true,
+                },
             });
             if (!order) {
                 throw new common_1.NotFoundException('Order not found');
@@ -260,25 +363,24 @@ let OrdersService = class OrdersService {
                 if (!order.fulfilledAt) {
                     const updated = await this.prisma.order.update({
                         where: { id: order.id },
-                        data: {
-                            fulfilledAt: new Date()
-                        },
+                        data: { fulfilledAt: new Date() },
                         select: {
                             id: true,
                             status: true,
-                            fulfilledAt: true
-                        }
+                            fulfilledAt: true,
+                        },
                     });
+                    await this.sendRecipeEmail(order.id);
                     return {
                         id: updated.id,
                         status: updated.status,
-                        fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+                        fulfilledAt: updated.fulfilledAt?.toISOString() ?? null,
                     };
                 }
                 return {
                     id: order.id,
                     status: order.status,
-                    fulfilledAt: order.fulfilledAt?.toISOString() ?? null
+                    fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
                 };
             }
             if (order.status !== client_1.OrderStatus.paid) {
@@ -289,18 +391,19 @@ let OrdersService = class OrdersService {
                 where: { id: order.id },
                 data: {
                     status: client_1.OrderStatus.fulfilled,
-                    fulfilledAt
+                    fulfilledAt,
                 },
                 select: {
                     id: true,
                     status: true,
-                    fulfilledAt: true
-                }
+                    fulfilledAt: true,
+                },
             });
+            await this.sendRecipeEmail(order.id);
             return {
                 id: updated.id,
                 status: updated.status,
-                fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+                fulfilledAt: updated.fulfilledAt?.toISOString() ?? null,
             };
         });
     }

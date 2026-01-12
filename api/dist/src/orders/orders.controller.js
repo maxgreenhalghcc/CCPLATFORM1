@@ -31,6 +31,17 @@ let OrdersController = class OrdersController {
     getRecipe(id) {
         return this.ordersService.getRecipe(id);
     }
+    async saveContact(id, body) {
+        const contact = body.contact?.trim();
+        if (!contact) {
+            return {
+                statusCode: 400,
+                message: 'Missing contact',
+            };
+        }
+        await this.ordersService.saveContact(id, contact);
+        return { ok: true };
+    }
     updateStatus(id, dto, request) {
         return this.ordersService.updateStatus(id, dto.status, request.user);
     }
@@ -51,6 +62,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], OrdersController.prototype, "getRecipe", null);
+__decorate([
+    (0, common_1.Post)(':id/contact'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], OrdersController.prototype, "saveContact", null);
 __decorate([
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.UserRole.admin, client_1.UserRole.staff),

@@ -1,0 +1,555 @@
+[1mdiff --git a/.env.development b/.env.development[m
+[1mindex 6b282d0..164763b 100644[m
+[1m--- a/.env.development[m
+[1m+++ b/.env.development[m
+[36m@@ -1,19 +1,19 @@[m
+ # Development overrides[m
+ NODE_ENV=development[m
+[31m-DATABASE_URL="mysql://root:SuperStrongPass@localhost:3307/custom_cocktails"[m
+[32m+[m[32mDATABASE_URL="mysql://cc_app:cc_strong_pass@127.0.0.1:3306/custom_cocktails"[m
+ LOG_LEVEL=debug[m
+[31m-CORS_ORIGINS=http://localhost:3000[m
+[32m+[m[32mCORS_ORIGINS=https://app.custom-cocktails.co.uk[m
+ RATE_LIMIT_MAX=240[m
+ RATE_LIMIT_WINDOW_MS=60000[m
+ SEED_ON_BOOT=true[m
+ API_DEV_TOKEN=dhdjyeykeeooeHhfOufKjhiugkjgFUguyu2[m
+ [m
+ API_PORT=4000[m
+[31m-JWT_SECRET=215c08d13f59faeaf3cda5bc9c7742bf6a17f9094638993c622b454748c9c385[m
+[32m+[m[32mJWT_SECRET=Dv6c3Vr9_KGTNCKroB_NBIomETE-OMD9nnuh-aLlHdktv9CfJgH8o2dw1gJvEBsjkPkDjSNN3E9FKcBSerlgFg[m
+ JWT_REFRESH_SECRET=67273fe2922bff65a8af87515710433800b89871dd5f29d080aa015b1b1558cc[m
+[31m-STRIPE_SECRET_KEY=pk_test_51SJHWEDQRf4NoYOZ9b5B5obMeffz0VFrK2GwEPHaFPPv3wMpnwiUtbkqtd2ursT2rysWb9S7EhojaypctHMDVfpI00QAx0rwcq[m
+[31m-STRIPE_WEBHOOK_SECRET=whsec_45c474e7be50b225a4b55f2b67e7fcc3f0233f4f12c6078618030b887b3c3da4[m
+[31m-RECIPE_SERVICE_URL=http://127.0.0.1:5050[m
+[32m+[m[32mSTRIPE_SECRET_KEY=REMOVED_STRIPE_KEY[m
+[32m+[m[32mSTRIPE_WEBHOOK_SECRET=whsec_MDPhTF0qhiv1WZf8YQ9YBnUBKl4vNdeM[m
+[32m+[m[32mRECIPE_SERVICE_URL=http://127.0.0.1:4001[m
+ RECIPE_SERVICE_JWT_SECRET=recipe-secret-change-me[m
+ RECIPE_SERVICE_JWT_AUDIENCE=recipe-engine[m
+ RECIPE_SERVICE_JWT_ISSUER=custom-cocktails-api[m
+[36m@@ -28,14 +28,13 @@[m [mSENTRY_PROFILES_SAMPLE_RATE=0[m
+ STRIPE_PRICE_ID=prod_TG1fh2RH8Apx02[m
+ RECIPE_URL=https://ccrecipebuilder.onrender.com[m
+ [m
+[32m+[m[32mVITE_API_BASE_URL=https://api.custom-cocktails.co.uk/v1[m
+ [m
+[31m-NEXT_PUBLIC_API_BASE_URL=http://localhost:4000[m
+[31m-NEXT_PUBLIC_API_URL=http://localhost:4000/v1[m
+[31m-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51SJHWEDQRf4NoYOZ9b5B5obMeffz0VFrK2GwEPHaFPPv3wMpnwiUtbkqtd2ursT2rysWb9S7EhojaypctHMDVfpI00QAx0rwcq[m
+[31m-NEXTAUTH_URL=http://localhost:3000[m
+[31m-NEXTAUTH_SECRET=SuJzNUfufI1n0zyop5RlPgHGWgf4xlb0zjjlepAbziU[m
+[31m-EMAIL_FROM=login@example.com[m
+[31m-EMAIL_SERVER=[m
+[32m+[m[32mNEXT_PUBLIC_API_BASE_URL=https://api.custom-cocktails.co.uk[m
+[32m+[m[32mNEXT_PUBLIC_API_URL=https://api.custom-cocktails.co.uk/v1[m
+[32m+[m[32mNEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51SJHTJDBrRkLnMPD7BFF9427xs75rkSkIh15Udj427P9BKJGIYFY9OVTB31qnMU0EpFFxCFIjrID8hJSIaYnsVZC001apmEx0h[m
+[32m+[m[32mNEXTAUTH_URL=https://app.custom-cocktails.co.uk[m
+[32m+[m[32mNEXTAUTH_SECRET=Dv6c3Vr9_KGTNCKroB_NBIomETE-OMD9nnuh-aLlHdktv9CfJgH8o2dw1gJvEBsjkPkDjSNN3E9FKcBSerlgFg[m
+ NEXT_PUBLIC_SENTRY_DSN=[m
+ NEXT_PUBLIC_SENTRY_ENVIRONMENT=development[m
+ NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1[m
+[36m@@ -51,3 +50,6 @@[m [mMYSQL_ROOT_PASSWORD=super-secret-root[m
+ MYSQL_DATABASE=custom_cocktails[m
+ MYSQL_USER=custom[m
+ MYSQL_PASSWORD=custom[m
+[32m+[m
+[32m+[m[32mEMAIL_FROM="Custom Cocktails <postmaster@mail.custom-cocktails.co.uk>"[m
+[32m+[m[32mEMAIL_SERVER="smtp://postmaster%40mail.custom-cocktails.co.uk:2b7e1c1360a655afe11649b031d6ef10-e80d8b76-d7de1ca3@smtp.eu.mailgun.org:587"[m
+[1mdiff --git a/.env.example b/.env.example[m
+[1mindex b92a817..2285c48 100644[m
+[1m--- a/.env.example[m
+[1m+++ b/.env.example[m
+[36m@@ -1,58 +1,57 @@[m
+[31m-# Global configuration[m
+[32m+[m[32m# Development overrides[m
+ NODE_ENV=development[m
+[31m-DATABASE_URL="mysql://root:SuperStrongPass@localhost:3307/custom_cocktails"[m
+[31m-LOG_LEVEL=info[m
+[31m-CORS_ORIGINS=http://localhost:3000[m
+[31m-RATE_LIMIT_MAX=180[m
+[32m+[m[32mDATABASE_URL="mysql://cc_app:cc_strong_pass@127.0.0.1:3306/custom_cocktails"[m
+[32m+[m[32mLOG_LEVEL=debug[m
+[32m+[m[32mCORS_ORIGINS=https://app.custom-cocktails.co.uk[m
+[32m+[m[32mRATE_LIMIT_MAX=240[m
+ RATE_LIMIT_WINDOW_MS=60000[m
+ SEED_ON_BOOT=true[m
+[32m+[m[32mAPI_DEV_TOKEN=dhdjyeykeeooeHhfOufKjhiugkjgFUguyu2[m
+[32m+[m[32mVITE_API_BASE_URL=https://api.custom-cocktails.co.uk[m
+ [m
+[31m-# Web (Next.js)[m
+[31m-NEXT_PUBLIC_API_BASE_URL=http://localhost:4000[m
+[31m-NEXT_PUBLIC_API_URL=http://localhost:4000/v1[m
+[31m-NEXTAUTH_URL=http://localhost:3000[m
+[31m-NEXTAUTH_SECRET=SuJzNUfufI1n0zyop5RlPgHGWgf4xlb0zjjlepAbziU[m
+[31m-EMAIL_FROM=login@example.com[m
+[31m-EMAIL_SERVER=[m
+[31m-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=[m
+[32m+[m[32mAPI_PORT=4000[m
+[32m+[m[32mJWT_SECRET=Dv6c3Vr9_KGTNCKroB_NBIomETE-OMD9nnuh-aLlHdktv9CfJgH8o2dw1gJvEBsjkPkDjSNN3E9FKcBSerlgFg[m
+[32m+[m[32mJWT_REFRESH_SECRET=67273fe2922bff65a8af87515710433800b89871dd5f29d080aa015b1b1558cc[m
+[32m+[m[32mSTRIPE_SECRET_KEY=REMOVED_STRIPE_KEY[m
+[32m+[m[32mSTRIPE_WEBHOOK_SECRET=whsec_MDPhTF0qhiv1WZf8YQ9YBnUBKl4vNdeM[m
+[32m+[m[32mRECIPE_SERVICE_URL=http://127.0.0.1:4001[m
+[32m+[m[32mRECIPE_SERVICE_JWT_SECRET=recipe-secret-change-me[m
+[32m+[m[32mRECIPE_SERVICE_JWT_AUDIENCE=recipe-engine[m
+[32m+[m[32mRECIPE_SERVICE_JWT_ISSUER=custom-cocktails-api[m
+ FEATURE_ENABLE_PAYMENT=true[m
+[31m-FEATURE_SHOW_BETA_BADGE=false[m
+[32m+[m[32mFEATURE_SHOW_BETA_BADGE=true[m
+ SENTRY_DSN=[m
+ SENTRY_DSN_API=[m
+ SENTRY_DSN_RECIPE=[m
+[31m-SENTRY_ENVIRONMENT=[m
+[32m+[m[32mSENTRY_ENVIRONMENT=development[m
+ SENTRY_TRACES_SAMPLE_RATE=0.1[m
+ SENTRY_PROFILES_SAMPLE_RATE=0[m
+[32m+[m[32mSTRIPE_PRICE_ID=prod_TG1fh2RH8Apx02[m
+[32m+[m[32mRECIPE_URL=https://ccrecipebuilder.onrender.com[m
+[32m+[m
+[32m+[m[32mVITE_API_BASE_URL=https://api.custom-cocktails.co.uk/v1[m
+[32m+[m
+[32m+[m[32mNEXT_PUBLIC_API_BASE_URL=https://api.custom-cocktails.co.uk[m
+[32m+[m[32mNEXT_PUBLIC_API_URL=https://api.custom-cocktails.co.uk/v1[m
+[32m+[m[32mNEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51SJHTJDBrRkLnMPD7BFF9427xs75rkSkIh15Udj427P9BKJGIYFY9OVTB31qnMU0EpFFxCFIjrID8hJSIaYnsVZC001apmEx0h[m
+[32m+[m[32mNEXTAUTH_URL=https://app.custom-cocktails.co.uk[m
+[32m+[m[32mNEXTAUTH_SECRET=Dv6c3Vr9_KGTNCKroB_NBIomETE-OMD9nnuh-aLlHdktv9CfJgH8o2dw1gJvEBsjkPkDjSNN3E9FKcBSerlgFg[m
+ NEXT_PUBLIC_SENTRY_DSN=[m
+[31m-NEXT_PUBLIC_SENTRY_ENVIRONMENT=[m
+[32m+[m[32mNEXT_PUBLIC_SENTRY_ENVIRONMENT=development[m
+ NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1[m
+ NEXT_PUBLIC_FEATURE_ENABLE_PAYMENT=true[m
+[31m-NEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE=false[m
+[31m-API_DEV_TOKEN=dhdjyeykeeooeHhfOufKjhiugkjgFUguyu2[m
+[32m+[m[32mNEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE=true[m
+[32m+[m[32mNEXT_PUBLIC_RECIPE_SERVICE_URL:https://api.custom-cocktails.co.uk/recipe[m
+ [m
+[31m-[m
+[31m-# API (NestJS)[m
+[31m-API_PORT=4000[m
+[31m-JWT_SECRET=215c08d13f59faeaf3cda5bc9c7742bf6a17f9094638993c622b454748c9c385[m
+[31m-JWT_REFRESH_SECRET=67273fe2922bff65a8af87515710433800b89871dd5f29d080aa015b1b1558cc[m
+[31m-JWT_EXPIRES_IN=3600[m
+[31m-REFRESH_EXPIRES_IN=604800[m
+[31m-STRIPE_SECRET_KEY=[m
+[31m-STRIPE_WEBHOOK_SECRET=[m
+[31m-RECIPE_SERVICE_URL=http://recipe:5000[m
+[31m-RECIPE_SERVICE_JWT_AUDIENCE=recipe-engine[m
+[31m-RECIPE_SERVICE_JWT_ISSUER=custom-cocktails-api[m
+[31m-RECIPE_SERVICE_JWT_SECRET=recipe-secret-change-me[m
+[31m-[m
+[31m-# Recipe Engine (FastAPI)[m
+ RECIPE_PORT=5050[m
+ RECIPE_JWT_SECRET=recipe-secret-change-me[m
+ RECIPE_JWT_AUDIENCE=recipe-engine[m
+ RECIPE_JWT_ISSUER=custom-cocktails-api[m
+ [m
+[31m-# Infrastructure helpers[m
+[31m-WEB_PORT=3000[m
+ MYSQL_ROOT_PASSWORD=super-secret-root[m
+ MYSQL_DATABASE=custom_cocktails[m
+ MYSQL_USER=custom[m
+ MYSQL_PASSWORD=custom[m
+[32m+[m
+[32m+[m[32mEMAIL_FROM="Custom Cocktails <postmaster@mail.custom-cocktails.co.uk>"[m
+[32m+[m[32mEMAIL_SERVER="smtp://postmaster%40mail.custom-cocktails.co.uk:2b7e1c1360a655afe11649b031d6ef10-e80d8b76-d7de1ca3@smtp.eu.mailgun.org:587"[m
+[1mdiff --git a/.env.production b/.env.production[m
+[1mindex 25f5461..164763b 100644[m
+[1m--- a/.env.production[m
+[1m+++ b/.env.production[m
+[36m@@ -1,46 +1,48 @@[m
+[31m-# Production configuration (populated during deploy)[m
+[31m-NODE_ENV=production[m
+[31m-LOG_LEVEL=info[m
+[31m-CORS_ORIGINS=https://app.customcocktails.example[m
+[31m-RATE_LIMIT_MAX=120[m
+[32m+[m[32m# Development overrides[m
+[32m+[m[32mNODE_ENV=development[m
+[32m+[m[32mDATABASE_URL="mysql://cc_app:cc_strong_pass@127.0.0.1:3306/custom_cocktails"[m
+[32m+[m[32mLOG_LEVEL=debug[m
+[32m+[m[32mCORS_ORIGINS=https://app.custom-cocktails.co.uk[m
+[32m+[m[32mRATE_LIMIT_MAX=240[m
+ RATE_LIMIT_WINDOW_MS=60000[m
+[31m-SEED_ON_BOOT=false[m
+[31m-DATABASE_URL="mysql://root:SuperStrongPass@localhost:3307/custom_cocktails"[m
+[32m+[m[32mSEED_ON_BOOT=true[m
+ API_DEV_TOKEN=dhdjyeykeeooeHhfOufKjhiugkjgFUguyu2[m
+ [m
+ API_PORT=4000[m
+[31m-JWT_SECRET=30CPqJdNP36pQo+HgyhC41MQXXM4WzjGURf+fHTROj4=[m
+[31m-JWT_REFRESH_SECRET=[m
+[31m-STRIPE_SECRET_KEY=[m
+[31m-STRIPE_WEBHOOK_SECRET=[m
+[31m-RECIPE_SERVICE_URL=http://recipe:5000[m
+[31m-RECIPE_SERVICE_JWT_SECRET=[m
+[32m+[m[32mJWT_SECRET=Dv6c3Vr9_KGTNCKroB_NBIomETE-OMD9nnuh-aLlHdktv9CfJgH8o2dw1gJvEBsjkPkDjSNN3E9FKcBSerlgFg[m
+[32m+[m[32mJWT_REFRESH_SECRET=67273fe2922bff65a8af87515710433800b89871dd5f29d080aa015b1b1558cc[m
+[32m+[m[32mSTRIPE_SECRET_KEY=REMOVED_STRIPE_KEY[m
+[32m+[m[32mSTRIPE_WEBHOOK_SECRET=whsec_MDPhTF0qhiv1WZf8YQ9YBnUBKl4vNdeM[m
+[32m+[m[32mRECIPE_SERVICE_URL=http://127.0.0.1:4001[m
+[32m+[m[32mRECIPE_SERVICE_JWT_SECRET=recipe-secret-change-me[m
+ RECIPE_SERVICE_JWT_AUDIENCE=recipe-engine[m
+ RECIPE_SERVICE_JWT_ISSUER=custom-cocktails-api[m
+ FEATURE_ENABLE_PAYMENT=true[m
+[31m-FEATURE_SHOW_BETA_BADGE=false[m
+[32m+[m[32mFEATURE_SHOW_BETA_BADGE=true[m
+ SENTRY_DSN=[m
+ SENTRY_DSN_API=[m
+ SENTRY_DSN_RECIPE=[m
+[31m-SENTRY_ENVIRONMENT=production[m
+[32m+[m[32mSENTRY_ENVIRONMENT=development[m
+ SENTRY_TRACES_SAMPLE_RATE=0.1[m
+[31m-SENTRY_PROFILES_SAMPLE_RATE=0.0[m
+[32m+[m[32mSENTRY_PROFILES_SAMPLE_RATE=0[m
+[32m+[m[32mSTRIPE_PRICE_ID=prod_TG1fh2RH8Apx02[m
+[32m+[m[32mRECIPE_URL=https://ccrecipebuilder.onrender.com[m
+ [m
+[31m-NEXT_PUBLIC_API_BASE_URL=https://api.customcocktails.example[m
+[31m-NEXT_PUBLIC_API_URL=https://api.customcocktails.example/v1[m
+[31m-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=[m
+[31m-NEXTAUTH_URL=https://app.customcocktails.example[m
+[31m-NEXTAUTH_SECRET=[m
+[31m-EMAIL_FROM=[m
+[31m-EMAIL_SERVER=[m
+[32m+[m[32mVITE_API_BASE_URL=https://api.custom-cocktails.co.uk/v1[m
+[32m+[m
+[32m+[m[32mNEXT_PUBLIC_API_BASE_URL=https://api.custom-cocktails.co.uk[m
+[32m+[m[32mNEXT_PUBLIC_API_URL=https://api.custom-cocktails.co.uk/v1[m
+[32m+[m[32mNEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51SJHTJDBrRkLnMPD7BFF9427xs75rkSkIh15Udj427P9BKJGIYFY9OVTB31qnMU0EpFFxCFIjrID8hJSIaYnsVZC001apmEx0h[m
+[32m+[m[32mNEXTAUTH_URL=https://app.custom-cocktails.co.uk[m
+[32m+[m[32mNEXTAUTH_SECRET=Dv6c3Vr9_KGTNCKroB_NBIomETE-OMD9nnuh-aLlHdktv9CfJgH8o2dw1gJvEBsjkPkDjSNN3E9FKcBSerlgFg[m
+ NEXT_PUBLIC_SENTRY_DSN=[m
+[31m-NEXT_PUBLIC_SENTRY_ENVIRONMENT=production[m
+[32m+[m[32mNEXT_PUBLIC_SENTRY_ENVIRONMENT=development[m
+ NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1[m
+ NEXT_PUBLIC_FEATURE_ENABLE_PAYMENT=true[m
+[31m-NEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE=false[m
+[32m+[m[32mNEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE=true[m
+ [m
+[31m-RECIPE_PORT=5000[m
+[31m-RECIPE_JWT_SECRET=[m
+[32m+[m[32mRECIPE_PORT=5050[m
+[32m+[m[32mRECIPE_JWT_SECRET=recipe-secret-change-me[m
+ RECIPE_JWT_AUDIENCE=recipe-engine[m
+ RECIPE_JWT_ISSUER=custom-cocktails-api[m
+ [m
+[36m@@ -48,3 +50,6 @@[m [mMYSQL_ROOT_PASSWORD=super-secret-root[m
+ MYSQL_DATABASE=custom_cocktails[m
+ MYSQL_USER=custom[m
+ MYSQL_PASSWORD=custom[m
+[32m+[m
+[32m+[m[32mEMAIL_FROM="Custom Cocktails <postmaster@mail.custom-cocktails.co.uk>"[m
+[32m+[m[32mEMAIL_SERVER="smtp://postmaster%40mail.custom-cocktails.co.uk:2b7e1c1360a655afe11649b031d6ef10-e80d8b76-d7de1ca3@smtp.eu.mailgun.org:587"[m
+[1mdiff --git a/api/dist/src/orders/orders.controller.d.ts b/api/dist/src/orders/orders.controller.d.ts[m
+[1mindex 4be55fd..cad3042 100644[m
+[1m--- a/api/dist/src/orders/orders.controller.d.ts[m
+[1m+++ b/api/dist/src/orders/orders.controller.d.ts[m
+[36m@@ -20,6 +20,17 @@[m [mexport declare class OrdersController {[m
+         garnish: string;[m
+         warnings: any[];[m
+     }>;[m
+[32m+[m[32m    saveContact(id: string, body: {[m
+[32m+[m[32m        contact: string;[m
+[32m+[m[32m    }): Promise<{[m
+[32m+[m[32m        statusCode: number;[m
+[32m+[m[32m        message: string;[m
+[32m+[m[32m        ok?: undefined;[m
+[32m+[m[32m    } | {[m
+[32m+[m[32m        ok: boolean;[m
+[32m+[m[32m        statusCode?: undefined;[m
+[32m+[m[32m        message?: undefined;[m
+[32m+[m[32m    }>;[m
+     updateStatus(id: string, dto: UpdateOrderStatusDto, request: AuthenticatedRequest): Promise<{[m
+         id: string;[m
+         status: import(".prisma/client").$Enums.OrderStatus;[m
+[1mdiff --git a/api/dist/src/orders/orders.controller.js b/api/dist/src/orders/orders.controller.js[m
+[1mindex cee1942..ce39b6c 100644[m
+[1m--- a/api/dist/src/orders/orders.controller.js[m
+[1m+++ b/api/dist/src/orders/orders.controller.js[m
+[36m@@ -31,6 +31,17 @@[m [mlet OrdersController = class OrdersController {[m
+     getRecipe(id) {[m
+         return this.ordersService.getRecipe(id);[m
+     }[m
+[32m+[m[32m    async saveContact(id, body) {[m
+[32m+[m[32m        const contact = body.contact?.trim();[m
+[32m+[m[32m        if (!contact) {[m
+[32m+[m[32m            return {[m
+[32m+[m[32m                statusCode: 400,[m
+[32m+[m[32m                message: 'Missing contact',[m
+[32m+[m[32m            };[m
+[32m+[m[32m        }[m
+[32m+[m[32m        await this.ordersService.saveContact(id, contact);[m
+[32m+[m[32m        return { ok: true };[m
+[32m+[m[32m    }[m
+     updateStatus(id, dto, request) {[m
+         return this.ordersService.updateStatus(id, dto.status, request.user);[m
+     }[m
+[36m@@ -51,6 +62,14 @@[m [m__decorate([[m
+     __metadata("design:paramtypes", [String]),[m
+     __metadata("design:returntype", void 0)[m
+ ], OrdersController.prototype, "getRecipe", null);[m
+[32m+[m[32m__decorate([[m
+[32m+[m[32m    (0, common_1.Post)(':id/contact'),[m
+[32m+[m[32m    __param(0, (0, common_1.Param)('id')),[m
+[32m+[m[32m    __param(1, (0, common_1.Body)()),[m
+[32m+[m[32m    __metadata("design:type", Function),[m
+[32m+[m[32m    __metadata("design:paramtypes", [String, Object]),[m
+[32m+[m[32m    __metadata("design:returntype", Promise)[m
+[32m+[m[32m], OrdersController.prototype, "saveContact", null);[m
+ __decorate([[m
+     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),[m
+     (0, roles_decorator_1.Roles)(client_1.UserRole.admin, client_1.UserRole.staff),[m
+[1mdiff --git a/api/dist/src/orders/orders.controller.js.map b/api/dist/src/orders/orders.controller.js.map[m
+[1mindex 7bf3f87..69c6fa2 100644[m
+[1m--- a/api/dist/src/orders/orders.controller.js.map[m
+[1m+++ b/api/dist/src/orders/orders.controller.js.map[m
+[36m@@ -1 +1 @@[m
+[31m-{"version":3,"file":"orders.controller.js","sourceRoot":"","sources":["../../../src/orders/orders.controller.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;AAAA,2CAA2F;AAC3F,qDAAiD;AACjD,mEAA8D;AAC9D,+DAA+D;AAC/D,oEAA+D;AAC/D,8DAA0D;AAC1D,0EAA6D;AAC7D,2CAA0C;AAInC,IAAM,gBAAgB,GAAtB,MAAM,gBAAgB;IAC3B,YAA6B,aAA4B;QAA5B,kBAAa,GAAb,aAAa,CAAe;IAAG,CAAC;IAG7D,cAAc,CAAc,EAAU,EAAU,GAAuB;QACrE,OAAO,IAAI,CAAC,aAAa,CAAC,cAAc,CAAC,EAAE,EAAE,GAAG,CAAC,CAAC;IACpD,CAAC;IAGD,SAAS,CAAc,EAAU;QAC/B,OAAO,IAAI,CAAC,aAAa,CAAC,SAAS,CAAC,EAAE,CAAC,CAAC;IAC1C,CAAC;IAKD,YAAY,CACG,EAAU,EACf,GAAyB,EAC1B,OAA6B;QAEpC,OAAO,IAAI,CAAC,aAAa,CAAC,YAAY,CAAC,EAAE,EAAE,GAAG,CAAC,MAAM,EAAE,OAAO,CAAC,IAAI,CAAC,CAAC;IACvE,CAAC;CAEF,CAAA;AAxBY,4CAAgB;AAI3B;IADC,IAAA,aAAI,EAAC,cAAc,CAAC;IACL,WAAA,IAAA,cAAK,EAAC,IAAI,CAAC,CAAA;IAAc,WAAA,IAAA,aAAI,GAAE,CAAA;;6CAAO,uCAAiB;;sDAEtE;AAGD;IADC,IAAA,YAAG,EAAC,YAAY,CAAC;IACP,WAAA,IAAA,cAAK,EAAC,IAAI,CAAC,CAAA;;;;iDAErB;AAKD;IAHC,IAAA,kBAAS,EAAC,6BAAY,EAAE,wBAAU,CAAC;IACnC,IAAA,uBAAK,EAAC,iBAAQ,CAAC,KAAK,EAAE,iBAAQ,CAAC,KAAK,CAAC;IACrC,IAAA,cAAK,EAAC,YAAY,CAAC;IAEjB,WAAA,IAAA,cAAK,EAAC,IAAI,CAAC,CAAA;IACX,WAAA,IAAA,aAAI,GAAE,CAAA;IACN,WAAA,IAAA,YAAG,GAAE,CAAA;;6CADO,wCAAoB;;oDAIlC;2BAtBU,gBAAgB;IAD5B,IAAA,mBAAU,EAAC,QAAQ,CAAC;qCAEyB,8BAAa;GAD9C,gBAAgB,CAwB5B"}[m
+\ No newline at end of file[m
+[32m+[m[32m{"version":3,"file":"orders.controller.js","sourceRoot":"","sources":["../../../src/orders/orders.controller.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;AAAA,2CAA2F;AAC3F,qDAAiD;AACjD,mEAA8D;AAC9D,+DAA+D;AAC/D,oEAA+D;AAC/D,8DAA0D;AAC1D,0EAA6D;AAC7D,2CAA0C;AAInC,IAAM,gBAAgB,GAAtB,MAAM,gBAAgB;IAC3B,YAA6B,aAA4B;QAA5B,kBAAa,GAAb,aAAa,CAAe;IAAG,CAAC;IAG7D,cAAc,CAAc,EAAU,EAAU,GAAuB;QACrE,OAAO,IAAI,CAAC,aAAa,CAAC,cAAc,CAAC,EAAE,EAAE,GAAG,CAAC,CAAC;IACpD,CAAC;IAGD,SAAS,CAAc,EAAU;QAC/B,OAAO,IAAI,CAAC,aAAa,CAAC,SAAS,CAAC,EAAE,CAAC,CAAC;IAC1C,CAAC;IAGK,AAAN,KAAK,CAAC,WAAW,CACF,EAAU,EACf,IAAyB;QAEjC,MAAM,OAAO,GAAG,IAAI,CAAC,OAAO,EAAE,IAAI,EAAE,CAAC;QAErC,IAAI,CAAC,OAAO,EAAE,CAAC;YAGb,OAAO;gBACL,UAAU,EAAE,GAAG;gBACf,OAAO,EAAE,iBAAiB;aAC3B,CAAC;QACJ,CAAC;QAED,MAAM,IAAI,CAAC,aAAa,CAAC,WAAW,CAAC,EAAE,EAAE,OAAO,CAAC,CAAC;QAClD,OAAO,EAAE,EAAE,EAAE,IAAI,EAAE,CAAC;IACtB,CAAC;IAOD,YAAY,CACG,EAAU,EACf,GAAyB,EAC1B,OAA6B;QAEpC,OAAO,IAAI,CAAC,aAAa,CAAC,YAAY,CAAC,EAAE,EAAE,GAAG,CAAC,MAAM,EAAE,OAAO,CAAC,IAAI,CAAC,CAAC;IACvE,CAAC;CAEF,CAAA;AA9CY,4CAAgB;AAI3B;IADC,IAAA,aAAI,EAAC,cAAc,CAAC;IACL,WAAA,IAAA,cAAK,EAAC,IAAI,CAAC,CAAA;IAAc,WAAA,IAAA,aAAI,GAAE,CAAA;;6CAAO,uCAAiB;;sDAEtE;AAGD;IADC,IAAA,YAAG,EAAC,YAAY,CAAC;IACP,WAAA,IAAA,cAAK,EAAC,IAAI,CAAC,CAAA;;;;iDAErB;AAGK;IADL,IAAA,aAAI,EAAC,aAAa,CAAC;IAEjB,WAAA,IAAA,cAAK,EAAC,IAAI,CAAC,CAAA;IACX,WAAA,IAAA,aAAI,GAAE,CAAA;;;;mDAeR;AAOD;IAHC,IAAA,kBAAS,EAAC,6BAAY,EAAE,wBAAU,CAAC;IACnC,IAAA,uBAAK,EAAC,iBAAQ,CAAC,KAAK,EAAE,iBAAQ,CAAC,KAAK,CAAC;IACrC,IAAA,cAAK,EAAC,YAAY,CAAC;IAEjB,WAAA,IAAA,cAAK,EAAC,IAAI,CAAC,CAAA;IACX,WAAA,IAAA,aAAI,GAAE,CAAA;IACN,WAAA,IAAA,YAAG,GAAE,CAAA;;6CADO,wCAAoB;;oDAIlC;2BA5CU,gBAAgB;IAD5B,IAAA,mBAAU,EAAC,QAAQ,CAAC;qCAEyB,8BAAa;GAD9C,gBAAgB,CA8C5B"}[m
+\ No newline at end of file[m
+[1mdiff --git a/api/dist/src/orders/orders.service.d.ts b/api/dist/src/orders/orders.service.d.ts[m
+[1mindex f1b7bcb..12e6b46 100644[m
+[1m--- a/api/dist/src/orders/orders.service.d.ts[m
+[1m+++ b/api/dist/src/orders/orders.service.d.ts[m
+[36m@@ -22,6 +22,9 @@[m [mexport declare class OrdersService {[m
+     constructor(prisma: PrismaService, configService: ConfigService);[m
+     private stripeClient?;[m
+     private getStripe;[m
+[32m+[m[32m    private createMailTransport;[m
+[32m+[m[32m    private getEmailFromAddress;[m
+[32m+[m[32m    private sendRecipeEmail;[m
+     private resolveFrontendUrl;[m
+     createFromRecipe(params: CreateOrderFromRecipeParams): Promise<{[m
+         id: string;[m
+[1mdiff --git a/api/dist/src/orders/orders.service.js b/api/dist/src/orders/orders.service.js[m
+[1mindex c52fd9d..d1da436 100644[m
+[1m--- a/api/dist/src/orders/orders.service.js[m
+[1m+++ b/api/dist/src/orders/orders.service.js[m
+[36m@@ -16,6 +16,7 @@[m [mconst client_1 = require("@prisma/client");[m
+ const stripe_1 = require("stripe");[m
+ const prisma_service_1 = require("../prisma/prisma.service");[m
+ const Sentry = require("@sentry/node");[m
+[32m+[m[32mconst nodemailer = require("nodemailer");[m
+ let OrdersService = class OrdersService {[m
+     constructor(prisma, configService) {[m
+         this.prisma = prisma;[m
+[36m@@ -34,6 +35,108 @@[m [mlet OrdersService = class OrdersService {[m
+         });[m
+         return this.stripeClient;[m
+     }[m
+[32m+[m[32m    createMailTransport() {[m
+[32m+[m[32m        const server = this.configService.get('EMAIL_SERVER');[m
+[32m+[m[32m        if (server && server.length > 0) {[m
+[32m+[m[32m            console.log('[orders] createMailTransport: using real EMAIL_SERVER');[m
+[32m+[m[32m            return nodemailer.createTransport(server);[m
+[32m+[m[32m        }[m
+[32m+[m[32m        console.warn('[orders] createMailTransport: EMAIL_SERVER is NOT configured – using jsonTransport (no real emails will be sent)');[m
+[32m+[m[32m        return nodemailer.createTransport({ jsonTransport: true });[m
+[32m+[m[32m    }[m
+[32m+[m[32m    getEmailFromAddress() {[m
+[32m+[m[32m        return (this.configService.get('EMAIL_FROM') ??[m
+[32m+[m[32m            'login@example.com');[m
+[32m+[m[32m    }[m
+[32m+[m[32m    async sendRecipeEmail(orderId) {[m
+[32m+[m[32m        console.log('[orders] sendRecipeEmail: starting for order', orderId);[m
+[32m+[m[32m        const recipe = await this.getRecipe(orderId);[m
+[32m+[m[32m        const order = await this.prisma.order.findUnique({[m
+[32m+[m[32m            where: { id: orderId },[m
+[32m+[m[32m            select: {[m
+[32m+[m[32m                contact: true,[m
+[32m+[m[32m            },[m
+[32m+[m[32m        });[m
+[32m+[m[32m        if (!order || !order.contact) {[m
+[32m+[m[32m            console.warn('[orders] sendRecipeEmail: no contact stored for order', orderId, '(nothing to send)');[m
+[32m+[m[32m            return;[m
+[32m+[m[32m        }[m
+[32m+[m[32m        const to = order.contact;[m
+[32m+[m[32m        const from = this.getEmailFromAddress();[m
+[32m+[m[32m        const rawIngredients = Array.isArray(recipe.ingredients)[m
+[32m+[m[32m            ? recipe.ingredients[m
+[32m+[m[32m            : [];[m
+[32m+[m[32m        const ingredientLines = rawIngredients[m
+[32m+[m[32m            .map((item) => {[m
+[32m+[m[32m            if (!item)[m
+[32m+[m[32m                return '';[m
+[32m+[m[32m            if (typeof item === 'string') {[m
+[32m+[m[32m                return item;[m
+[32m+[m[32m            }[m
+[32m+[m[32m            if (typeof item === 'object') {[m
+[32m+[m[32m                const { amount, unit, ingredient, name } = item;[m
+[32m+[m[32m                const qty = [amount, unit].filter(Boolean).join(' ');[m
+[32m+[m[32m                const label = ingredient || name || '';[m
+[32m+[m[32m                const line = [qty, label].filter(Boolean).join(' ');[m
+[32m+[m[32m                return line || JSON.stringify(item);[m
+[32m+[m[32m            }[m
+[32m+[m[32m            return String(item);[m
+[32m+[m[32m        })[m
+[32m+[m[32m            .filter(Boolean);[m
+[32m+[m[32m        const ingredientsList = ingredientLines.length > 0 ? ingredientLines.join('\n') : 'Ask the bartender 😉';[m
+[32m+[m[32m        const text = [[m
+[32m+[m[32m            `Here’s your custom cocktail recipe: ${recipe.name}`,[m
+[32m+[m[32m            '',[m
+[32m+[m[32m            'Ingredients:',[m
+[32m+[m[32m            ingredientsList,[m
+[32m+[m[32m            '',[m
+[32m+[m[32m            recipe.method ? `Method:\n${recipe.method}` : '',[m
+[32m+[m[32m            '',[m
+[32m+[m[32m            recipe.glassware ? `Glassware: ${recipe.glassware}` : '',[m
+[32m+[m[32m            recipe.garnish ? `Garnish: ${recipe.garnish}` : '',[m
+[32m+[m[32m            '',[m
+[32m+[m[32m            'Enjoy!',[m
+[32m+[m[32m        ][m
+[32m+[m[32m            .filter(Boolean)[m
+[32m+[m[32m            .join('\n');[m
+[32m+[m[32m        const html = `[m
+[32m+[m[32m  <h1>Your custom cocktail: ${recipe.name}</h1>[m
+[32m+[m[32m  <p>Here’s your custom cocktail recipe.</p>[m
+[32m+[m[32m  <h2>Ingredients</h2>[m
+[32m+[m[32m  <ul>[m
+[32m+[m[32m    ${ingredientLines.map((item) => `<li>${item}</li>`).join('')}[m
+[32m+[m[32m  </ul>[m
+[32m+[m[32m  ${recipe.method[m
+[32m+[m[32m            ? `<h2>Method</h2><p>${recipe.method.replace(/\n/g, '<br/>')}</p>`[m
+[32m+[m[32m            : ''}[m
+[32m+[m[32m  ${recipe.glassware[m
+[32m+[m[32m            ? `<p><strong>Glassware:</strong> ${recipe.glassware}</p>`[m
+[32m+[m[32m            : ''}[m
+[32m+[m[32m  ${recipe.garnish[m
+[32m+[m[32m            ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>`[m
+[32m+[m[32m            : ''}[m
+[32m+[m[32m  <p>Enjoy! 🍸</p>[m
+[32m+[m[32m  `;[m
+[32m+[m[32m        const transport = this.createMailTransport();[m
+[32m+[m[32m        try {[m
+[32m+[m[32m            console.log('[orders] sendRecipeEmail: sending to', to, 'from', from);[m
+[32m+[m[32m            await transport.sendMail({[m
+[32m+[m[32m                to,[m
+[32m+[m[32m                from,[m
+[32m+[m[32m                subject: `Your custom cocktail recipe: ${recipe.name}`,[m
+[32m+[m[32m                text,[m
+[32m+[m[32m                html,[m
+[32m+[m[32m            });[m
+[32m+[m[32m            console.log('[orders] sendRecipeEmail: recipe email sent to', to, 'for order', orderId);[m
+[32m+[m[32m        }[m
+[32m+[m[32m        catch (err) {[m
+[32m+[m[32m            console.error('[orders] sendRecipeEmail: ERROR sending recipe email', {[m
+[32m+[m[32m                orderId,[m
+[32m+[m[32m                to,[m
+[32m+[m[32m                err,[m
+[32m+[m[32m            });[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+     resolveFrontendUrl(path) {[m
+         const baseUrl = this.configService.get('NEXT_PUBLIC_FRONTEND_URL') ??[m
+             this.configService.get('NEXTAUTH_URL') ??[m
+[36m@@ -117,7 +220,7 @@[m [mlet OrdersService = class OrdersService {[m
+                                 currency,[m
+                                 unit_amount: amountInMinorUnits,[m
+                                 product_data: {[m
+[31m-                                    name: `${order.bar.name} custom cocktail`,[m
+[32m+[m[32m                                    name: `${order.bar.name} Custom Cocktail`,[m
+                                 },[m
+                             },[m
+                         },[m
+[36m@@ -240,8 +343,8 @@[m [mlet OrdersService = class OrdersService {[m
+                     id: true,[m
+                     status: true,[m
+                     fulfilledAt: true,[m
+[31m-                    barId: true[m
+[31m-                }[m
+[32m+[m[32m                    barId: true,[m
+[32m+[m[32m                },[m
+             });[m
+             if (!order) {[m
+                 throw new common_1.NotFoundException('Order not found');[m
+[36m@@ -260,25 +363,24 @@[m [mlet OrdersService = class OrdersService {[m
+                 if (!order.fulfilledAt) {[m
+                     const updated = await this.prisma.order.update({[m
+                         where: { id: order.id },[m
+[31m-                        data: {[m
+[31m-                            fulfilledAt: new Date()[m
+[31m-                        },[m
+[32m+[m[32m                        data: { fulfilledAt: new Date() },[m
+                         select: {[m
+                             id: true,[m
+                             status: true,[m
+[31m-                            fulfilledAt: true[m
+[31m-                        }[m
+[32m+[m[32m                            fulfilledAt: true,[m
+[32m+[m[32m                        },[m
+                     });[m
+[32m+[m[32m                    await this.sendRecipeEmail(order.id);[m
+                     return {[m
+                         id: updated.id,[m
+                         status: updated.status,[m
+[31m-                        fulfilledAt: updated.fulfilledAt?.toISOString() ?? null[m
+[32m+[m[32m                        fulfilledAt: updated.fulfilledAt?.toISOString() ?? null,[m
+                     };[m
+                 }[m
+                 return {[m
+                     id: order.id,[m
+                     status: order.status,[m
+[31m-                    fulfilledAt: order.fulfilledAt?.toISOString() ?? null[m
+[32m+[m[32m                    fulfilledAt: order.fulfilledAt?.toISOString() ?? null,[m
+                 };[m
+             }[m
+             if (order.status !== client_1.OrderStatus.paid) {[m
+[36m@@ -289,18 +391,19 @@[m [mlet OrdersService = class OrdersService {[m
+                 where: { id: order.id },[m
+                 data: {[m
+                     status: client_1.OrderStatus.fulfilled,[m
+[31m-                    fulfilledAt[m
+[32m+[m[32m                    fulfilledAt,[m
+                 },[m
+                 select: {[m
+                     id: true,[m
+                     status: true,[m
+[31m-                    fulfilledAt: true[m
+[31m-                }[m
+[32m+[m[32m                    fulfilledAt: true,[m
+[32m+[m[32m                },[m
+             });[m
+[32m+[m[32m            await this.sendRecipeEmail(order.id);[m
+             return {[m
+                 id: updated.id,[m
+                 status: updated.status,[m
+[31m-                fulfilledAt: updated.fulfilledAt?.toISOString() ?? null[m
+[32m+[m[32m                fulfilledAt: updated.fulfilledAt?.toISOString() ?? null,[m
+             };[m
+         });[m
+     }[m
+[1mdiff --git a/api/dist/src/orders/orders.service.js.map b/api/dist/src/orders/orders.service.js.map[m
+[1mindex 109a27c..9dd12c0 100644[m
+[1m--- a/api/dist/src/orders/orders.service.js.map[m
+[1m+++ b/api/dist/src/orders/orders.service.js.map[m
+[36m@@ -1 +1 @@[m
+[31m-{"version":3,"file":"orders.service.js","sourceRoot":"","sources":["../../../src/orders/orders.service.ts"],"names":[],"mappings":"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"}[m
+\ No newline at end of file[m
+[32m+[m[32m{"version":3,"file":"orders.service.js","sourceRoot":"","sources":["../../../src/orders/orders.service.ts"],"names":[],"mappings":"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"}[m
+\ No newline at end of file[m
+[1mdiff --git a/api/dist/src/quiz/quiz.service.js b/api/dist/src/quiz/quiz.service.js[m
+[1mindex 3865cfb..dd9ff97 100644[m
+[1m--- a/api/dist/src/quiz/quiz.service.js[m
+[1m+++ b/api/dist/src/quiz/quiz.service.js[m
+[36m@@ -296,9 +296,11 @@[m [mlet QuizService = QuizService_1 = class QuizService {[m
+                 ]),[m
+                 foam_toggle: randomChoice(['yes', 'no']),[m
+                 abv_lane: choice('abv_lane'),[m
+[31m-                allergens: '',[m
+[32m+[m[32m                allergens: this.getAnswerChoice(answers, 'allergens') ?? 'none',[m
+                 seed,[m
+             };[m
+[32m+[m[32m            this.logger.log('=== QUIZ → recipebuilder payload ===');[m
+[32m+[m[32m            this.logger.log(JSON.stringify(recipeRequestBody, null, 2));[m
+             const headers = {[m
+                 Authorization: `Bearer ${token}`,[m
+             };[m
+[1mdiff --git a/api/dist/src/quiz/quiz.service.js.map b/api/dist/src/quiz/quiz.service.js.map[m
+[1mindex 3ebbf15..6773188 100644[m
+[1m--- a/api/dist/src/quiz/quiz.service.js.map[m
+[1m+++ b/api/dist/src/quiz/quiz.service.js.map[m
+[36m@@ -1 +1 @@[m
+[31m-{"version":3,"file":"quiz.service.js","sourceRoot":"","sources":["../../../src/quiz/quiz.service.ts"],"names":[],"mappings":"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"}[m
+\ No newline at end of file[m
+[32m+[m[32m{"version":3,"file":"quiz.service.js","sourceRoot":"","sources":["../../../src/quiz/quiz.service.ts"],"names":[],"mappings":"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

@@ -26,7 +26,7 @@ let WebhooksService = WebhooksService_1 = class WebhooksService {
         if (this.stripeClient) {
             return this.stripeClient;
         }
-        const secretKey = this.configService.get('stripe.secretKey');
+        const secretKey = process.env.STRIPE_SECRET_KEY;
         if (!secretKey) {
             throw new common_1.InternalServerErrorException('Stripe secret key is not configured');
         }

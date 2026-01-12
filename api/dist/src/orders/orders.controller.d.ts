@@ -20,6 +20,17 @@ export declare class OrdersController {
         garnish: string;
         warnings: any[];
     }>;
+    saveContact(id: string, body: {
+        contact: string;
+    }): Promise<{
+        statusCode: number;
+        message: string;
+        ok?: undefined;
+    } | {
+        ok: boolean;
+        statusCode?: undefined;
+        message?: undefined;
+    }>;
     updateStatus(id: string, dto: UpdateOrderStatusDto, request: AuthenticatedRequest): Promise<{
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;

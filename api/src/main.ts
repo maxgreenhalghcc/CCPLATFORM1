@@ -7,6 +7,7 @@ import { json, raw } from 'express';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { AppModule } from './app.module';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 const SENTRY_DSN =
   process.env.SENTRY_DSN ?? process.env.SENTRY_DSN_API ?? process.env.SENTRY_DSN_BACKEND ?? '';
@@ -44,9 +45,11 @@ if (SENTRY_DSN) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
+
+  app.set('trust proxy', 1);
 
   const logger = app.get(Logger);
   app.useLogger(logger);
