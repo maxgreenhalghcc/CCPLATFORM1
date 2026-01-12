@@ -51,3 +51,5 @@ web/.env*
 # editor backups / junk
 *.save
 *lsof*
+api/dist/
+*.tsbuildinfo
