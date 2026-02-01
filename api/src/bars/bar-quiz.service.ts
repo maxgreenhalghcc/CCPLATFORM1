@@ -62,6 +62,10 @@ export class BarQuizService {
       throw new NotFoundException('Bar not found');
     }
 
+    if (bar.settings.quizPaused) {
+      throw new NotFoundException('Quiz is paused');
+    }
+
     const theme = {
       ...DEFAULT_THEME,
       ...(bar.settings.theme as Record<string, string> | null | undefined),
@@ -101,6 +105,10 @@ export class BarQuizService {
 
     if (!bar || !bar.settings) {
       throw new NotFoundException('Bar not found');
+    }
+
+    if (bar.settings.quizPaused) {
+      throw new NotFoundException('Quiz is paused');
     }
 
     const session = await this.prisma.quizSession.create({
