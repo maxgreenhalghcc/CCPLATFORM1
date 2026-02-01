@@ -49,3 +49,9 @@ prisma/migrations/
 .env.*
 **/.env
 **/.env.*
+
+# env
+.env
+.env.*
+**/.env
+**/.env.*
