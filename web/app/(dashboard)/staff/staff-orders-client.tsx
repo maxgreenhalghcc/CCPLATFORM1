@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
@@ -66,9 +67,20 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
   const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'paid' | 'pending'>('paid');
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
   const { data: session } = useSession();
+
+  const paidOrders = useMemo(
+    () => orders.filter((order) => order.status === 'paid' || order.status === 'fulfilled'),
+    [orders]
+  );
+
+  const pendingOrders = useMemo(
+    () => orders.filter((order) => order.status === 'created' || order.status === 'cancelled'),
+    [orders]
+  );
 
   const handleFulfilled = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
@@ -131,51 +143,102 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
           No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {orders.map((order) => {
-            const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
-            const isPending = pendingId === order.id;
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant={activeTab === 'paid' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('paid')}
+            >
+              PAID ({paidOrders.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeTab === 'pending' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('pending')}
+            >
+              PENDING ({pendingOrders.length})
+            </Button>
+          </div>
 
-            return (
-              <div
-                key={order.id}
-                className="flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="font-mono">{order.id}</span>
-                    <span>{formatDate(order.createdAt)}</span>
+          {(activeTab === 'paid' ? paidOrders : pendingOrders).length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {activeTab === 'paid'
+                ? 'No paid orders yet.'
+                : 'No pending payment orders right now.'}
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {(activeTab === 'paid' ? paidOrders : pendingOrders).map((order) => {
+                const fulfilledLabel =
+                  order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
+                const isPendingUpdate = pendingId === order.id;
+                const isPaidOrFulfilled = order.status === 'paid' || order.status === 'fulfilled';
+                const showDimmed = !isPaidOrFulfilled;
+
+                return (
+                  <div
+                    key={order.id}
+                    className={
+                      'flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm ' +
+                      (showDimmed ? 'opacity-60' : '')
+                    }
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-mono">{order.id}</span>
+                        <span>{formatDate(order.createdAt)}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          {order.recipeName || 'Custom cocktail'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Guest order</p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
+                        <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
+                          {formatStatus(order.status)}
+                        </span>
+                        {fulfilledLabel ? (
+                          <span className="text-muted-foreground">Served {fulfilledLabel}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      {isPaidOrFulfilled ? (
+                        <Button asChild size="sm" variant="secondary">
+                          <Link href={`/staff/orders/${order.id}`}>View recipe</Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled
+                          title="Recipe available once payment clears"
+                        >
+                          View recipe
+                        </Button>
+                      )}
+
+                      {order.status === 'paid' ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleFulfilled(order.id)}
+                          disabled={isPendingUpdate}
+                        >
+                          {isPendingUpdate ? 'Marking…' : 'Mark served'}
+                        </Button>
+                      ) : showDimmed ? (
+                        <span className="text-xs text-muted-foreground">
+                          {order.status === 'cancelled' ? 'Cancelled' : 'Awaiting payment'}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {order.recipeName || 'Custom cocktail'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Guest order</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
-                    <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
-                      {formatStatus(order.status)}
-                    </span>
-                    {fulfilledLabel ? (
-                      <span className="text-muted-foreground">Served {fulfilledLabel}</span>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={`/staff/orders/${order.id}`}>View recipe</Link>
-                  </Button>
-                  {order.status === 'paid' ? (
-                    <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
-                      {isPending ? 'Marking…' : 'Mark served'}
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Awaiting payment</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
