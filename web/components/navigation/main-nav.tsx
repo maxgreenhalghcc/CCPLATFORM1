@@ -25,6 +25,9 @@ export function MainNav() {
     if (!role) {
       return false;
     }
+    if (role !== 'admin' && role !== 'staff') {
+      return false;
+    }
     return link.roles.includes(role);
   });
 
@@ -42,7 +45,7 @@ export function MainNav() {
         <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
           <nav className="flex items-center gap-4">
             {visibleLinks.map((link) => (
-              <Link className="transition hover:text-foreground" href={link.href} key={link.href}>
+              <Link className="transition hover:text-foreground" href={link.href as any} key={link.href}>
                 {link.label}
               </Link>
             ))}

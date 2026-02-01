@@ -148,14 +148,14 @@ export default async function StaffDetailsPage() {
             </ul>
           )}
           {settings.stockListUrl ? (
-            <Link
+            <a
               className="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-primary/80"
               href={settings.stockListUrl}
-              target="_blank"
               rel="noopener noreferrer"
+              target="_blank"
             >
               Download stock list
-            </Link>
+            </a>
           ) : null}
         </article>
       </section>
@@ -213,14 +213,14 @@ export default async function StaffDetailsPage() {
             </dl>
           )}
           {settings.stripeConnectLink ? (
-            <Link
+            <a
               className="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-primary/80"
               href={settings.stripeConnectLink}
-              target="_blank"
               rel="noopener noreferrer"
+              target="_blank"
             >
               Open Stripe Connect
-            </Link>
+            </a>
           ) : null}
         </article>
 

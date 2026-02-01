@@ -195,7 +195,11 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
 
       try {
         const api = getApiUrl();
-        const headers: HeadersInit = { Authorization: `Bearer ${session.apiToken}` };
+        const token = session?.apiToken;
+        if (!token) {
+          throw new Error('Missing API token');
+        }
+        const headers: HeadersInit = { Authorization: `Bearer ${token}` };
 
         const [detailResponse, settingsResponse] = await Promise.all([
           requestJson<BarDetail>(`${api}/bars/${barId}`, { headers }),

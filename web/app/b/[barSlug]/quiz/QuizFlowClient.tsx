@@ -190,7 +190,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
         const orderId = submitData.orderId;
 
         if (!PAYMENTS_ENABLED) {
-          router.push(`/receipt?orderId=${orderId}`);
+          router.push(`/receipt?orderId=${orderId}` as any);
           return;
         }
 
@@ -211,7 +211,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
         if (redirectPath.startsWith('http')) {
           window.location.href = redirectPath;
         } else {
-          router.push(redirectPath);
+          router.push(redirectPath as any);
         }
       });
     } catch (submitError) {
