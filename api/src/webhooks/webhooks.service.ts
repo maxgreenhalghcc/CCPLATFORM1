@@ -78,10 +78,23 @@ export class WebhooksService {
   private async processEvent(event: Stripe.Event) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      const orderId = session.metadata?.orderId;
+
+      // Prefer explicit metadata, but fall back to matching by Stripe session id.
+      // This handles legacy sessions created before we reliably stamped metadata.
+      let orderId = session.metadata?.orderId;
+
+      if (!orderId && session.id) {
+        const orderBySession = await this.prisma.order.findFirst({
+          where: { stripeSessionId: session.id },
+          select: { id: true }
+        });
+        orderId = orderBySession?.id;
+      }
 
       if (!orderId) {
-        this.logger.warn('Checkout session completed without order metadata.');
+        this.logger.warn(
+          `Checkout session completed without order metadata (sessionId=${session.id ?? 'unknown'}).`
+        );
         return;
       }
 
@@ -101,7 +114,10 @@ export class WebhooksService {
           : order.amount;
       const paymentStatus = session.payment_status ?? 'unknown';
       const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
-      const intentReference = paymentIntentId ?? event.id;
+
+      // Use the PaymentIntent when available (stable across retries), otherwise fall back to the Checkout Session id.
+      // (Using event.id can create duplicate Payment rows if Stripe retries the webhook.)
+      const intentReference = paymentIntentId ?? session.id ?? event.id;
 
       await this.prisma.order.update({
         where: { id: orderId },
