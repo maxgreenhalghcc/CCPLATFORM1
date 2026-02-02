@@ -159,6 +159,14 @@ export class OrdersService {
             barId: String(order.barId),
             sessionId: String(order.sessionId),
           },
+          // Ensure the PaymentIntent also carries metadata so we can reconcile payment_intent webhooks.
+          payment_intent_data: {
+            metadata: {
+              orderId: String(order.id),
+              barId: String(order.barId),
+              sessionId: String(order.sessionId),
+            },
+          },
           line_items: [
             {
               quantity: 1,
