@@ -282,6 +282,8 @@ export class OrdersService {
         id: true,
         status: true,
         createdAt: true,
+        claimedAt: true,
+        claimedBy: true,
         fulfilledAt: true,
         recipe:{
           select: { name: true },
@@ -294,23 +296,28 @@ export class OrdersService {
         id: order.id,
         status: order.status,
         createdAt: order.createdAt.toISOString(),
+        claimedAt: order.claimedAt?.toISOString() ?? null,
+        claimedBy: order.claimedBy,
         fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
         recipeName: order.recipe?.name ?? 'Custom cocktail',
       }))
     };
   }
 
-  async updateStatus(orderId: string, status: 'fulfilled', requester?: AuthenticatedUser) {
-    if (status !== 'fulfilled') {
+  async updateStatus(orderId: string, status: 'making' | 'fulfilled', requester?: AuthenticatedUser) {
+    if (status !== 'making' && status !== 'fulfilled') {
       throw new BadRequestException('Unsupported status transition');
     }
 
-    return Sentry.startSpan({ name: 'orders.fulfill', op: 'service' }, async () => {
+    const operationName = status === 'making' ? 'orders.claim' : 'orders.fulfill';
+    return Sentry.startSpan({ name: operationName, op: 'service' }, async () => {
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
         select: {
           id: true,
           status: true,
+          claimedAt: true,
+          claimedBy: true,
           fulfilledAt: true,
           barId: true
         }
@@ -330,6 +337,41 @@ export class OrdersService {
         }
       }
 
+      // Handle transition to 'making' (claiming)
+      if (status === 'making') {
+        if (order.status !== PrismaOrderStatus.paid) {
+          throw new ConflictException('Only paid orders can be claimed');
+        }
+
+        const claimedAt = new Date();
+        const claimedBy = requester?.name ?? requester?.id ?? 'Unknown staff';
+
+        const updated = await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: PrismaOrderStatus.making,
+            claimedAt,
+            claimedBy
+          },
+          select: {
+            id: true,
+            status: true,
+            claimedAt: true,
+            claimedBy: true,
+            fulfilledAt: true
+          }
+        });
+
+        return {
+          id: updated.id,
+          status: updated.status,
+          claimedAt: updated.claimedAt?.toISOString() ?? null,
+          claimedBy: updated.claimedBy,
+          fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
+        };
+      }
+
+      // Handle transition to 'fulfilled'
       if (order.status === PrismaOrderStatus.fulfilled) {
         if (!order.fulfilledAt) {
           const updated = await this.prisma.order.update({
@@ -340,6 +382,8 @@ export class OrdersService {
             select: {
               id: true,
               status: true,
+              claimedAt: true,
+              claimedBy: true,
               fulfilledAt: true
             }
           });
@@ -347,6 +391,8 @@ export class OrdersService {
           return {
             id: updated.id,
             status: updated.status,
+            claimedAt: updated.claimedAt?.toISOString() ?? null,
+            claimedBy: updated.claimedBy,
             fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
           };
         }
@@ -354,12 +400,14 @@ export class OrdersService {
         return {
           id: order.id,
           status: order.status,
+          claimedAt: order.claimedAt?.toISOString() ?? null,
+          claimedBy: order.claimedBy,
           fulfilledAt: order.fulfilledAt?.toISOString() ?? null
         };
       }
 
-      if (order.status !== PrismaOrderStatus.paid) {
-        throw new ConflictException('Only paid orders can be fulfilled');
+      if (order.status !== PrismaOrderStatus.paid && order.status !== PrismaOrderStatus.making) {
+        throw new ConflictException('Only paid or making orders can be fulfilled');
       }
 
       const fulfilledAt = new Date();
@@ -373,6 +421,8 @@ export class OrdersService {
         select: {
           id: true,
           status: true,
+          claimedAt: true,
+          claimedBy: true,
           fulfilledAt: true
         }
       });
@@ -380,6 +430,8 @@ export class OrdersService {
       return {
         id: updated.id,
         status: updated.status,
+        claimedAt: updated.claimedAt?.toISOString() ?? null,
+        claimedBy: updated.claimedBy,
         fulfilledAt: updated.fulfilledAt?.toISOString() ?? null
       };
     });

@@ -8,12 +8,14 @@ import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import * as Sentry from '@sentry/nextjs';
 import { toast } from 'sonner';
 
-export type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
+export type OrderStatus = 'created' | 'paid' | 'making' | 'cancelled' | 'fulfilled';
 
 export interface OrderSummary {
   id: string;
   status: OrderStatus;
   createdAt: string;
+  claimedAt: string | null;
+  claimedBy: string | null;
   fulfilledAt: string | null;
   recipeName: string;
 }
@@ -26,6 +28,8 @@ interface Props {
 interface UpdateStatusResponse {
   id: string;
   status: OrderStatus;
+  claimedAt: string | null;
+  claimedBy: string | null;
   fulfilledAt: string | null;
 }
 
@@ -35,6 +39,8 @@ function formatStatus(status: OrderStatus) {
       return 'Awaiting payment';
     case 'paid':
       return 'Ready to mix';
+    case 'making':
+      return 'Making';
     case 'fulfilled':
       return 'Served';
     case 'cancelled':
@@ -67,7 +73,7 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
   const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'served'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'making' | 'served'>('all');
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
   const { data: session } = useSession();
@@ -76,6 +82,7 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     if (filter === 'all') return orders;
     if (filter === 'pending') return orders.filter(o => o.status === 'created');
     if (filter === 'paid') return orders.filter(o => o.status === 'paid');
+    if (filter === 'making') return orders.filter(o => o.status === 'making');
     if (filter === 'served') return orders.filter(o => o.status === 'fulfilled');
     return orders;
   }, [orders, filter]);
@@ -84,6 +91,7 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     all: orders.length,
     pending: orders.filter(o => o.status === 'created').length,
     paid: orders.filter(o => o.status === 'paid').length,
+    making: orders.filter(o => o.status === 'making').length,
     served: orders.filter(o => o.status === 'fulfilled').length,
   }), [orders]);
 
@@ -171,6 +179,57 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     return () => clearInterval(interval);
   }, [isPolling, refreshOrders]);
 
+  const handleClaim = async (orderId: string) => {
+    const token = session?.apiToken;
+    if (!token) {
+      setError('Session expired. Please refresh the page to sign in again.');
+      return;
+    }
+
+    const snapshot = orders.map((order) => ({ ...order }));
+    const optimisticTimestamp = new Date().toISOString();
+
+    setPendingId(orderId);
+    setError(null);
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === orderId
+          ? { ...order, status: 'making', claimedAt: optimisticTimestamp, claimedBy: session?.user?.name ?? 'You' }
+          : order
+      )
+    );
+
+    try {
+      const result = await Sentry.startSpan({ name: 'orders.claim', op: 'ui.action' }, () =>
+        patchJson<UpdateStatusResponse>(
+          `${baseUrl}/v1/orders/${orderId}/status`,
+          { status: 'making' },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status: result.status,
+                claimedAt: result.claimedAt,
+                claimedBy: result.claimedBy,
+                fulfilledAt: result.fulfilledAt
+              }
+            : order
+        )
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      setOrders(snapshot);
+      setError('Unable to claim order. Please try again.');
+    } finally {
+      setPendingId(null);
+    }
+  };
+
   const handleFulfilled = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
       return;
@@ -210,6 +269,8 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
             ? {
                 ...order,
                 status: result.status,
+                claimedAt: result.claimedAt,
+                claimedBy: result.claimedBy,
                 fulfilledAt: result.fulfilledAt
               }
             : order
@@ -298,6 +359,16 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
           Ready to mix <span className="ml-1.5 opacity-70">({counts.paid})</span>
         </button>
         <button
+          onClick={() => setFilter('making')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'making'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          Making <span className="ml-1.5 opacity-70">({counts.making})</span>
+        </button>
+        <button
           onClick={() => setFilter('served')}
           className={`rounded-full px-4 py-2 text-sm font-medium transition ${
             filter === 'served'
@@ -346,6 +417,9 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
                     {fulfilledLabel ? (
                       <span className="text-muted-foreground">Served {fulfilledLabel}</span>
                     ) : null}
+                    {order.status === 'making' && order.claimedBy ? (
+                      <span className="text-muted-foreground">by {order.claimedBy}</span>
+                    ) : null}
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-3">
@@ -353,11 +427,22 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
                     <Link href={`/staff/orders/${order.id}`}>View recipe</Link>
                   </Button>
                   {order.status === 'paid' ? (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleClaim(order.id)} disabled={isPending}>
+                        {isPending ? 'Claiming…' : 'Claim'}
+                      </Button>
+                      <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
+                        {isPending ? 'Marking…' : 'Skip to served'}
+                      </Button>
+                    </div>
+                  ) : order.status === 'making' ? (
                     <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
                       {isPending ? 'Marking…' : 'Mark served'}
                     </Button>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Awaiting payment</span>
+                    <span className="text-xs text-muted-foreground">
+                      {order.status === 'created' ? 'Awaiting payment' : '—'}
+                    </span>
                   )}
                 </div>
               </div>
