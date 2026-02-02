@@ -70,6 +70,10 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
         });
 
         if (!response.ok) {
+          if (response.status === 404) {
+            setError('This bar is paused right now. Please speak to staff.');
+            return;
+          }
           throw new Error(`Failed to start quiz session: ${response.status}`);
         }
 

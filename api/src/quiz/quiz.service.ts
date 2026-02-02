@@ -61,11 +61,21 @@ export class QuizService {
         slug,
         active: true,
       },
-      select: { id: true },
+      include: {
+        settings: {
+          select: {
+            quizPaused: true,
+          },
+        },
+      },
     });
 
     if (!bar) {
       throw new NotFoundException('Bar not found');
+    }
+
+    if (bar.settings?.quizPaused) {
+      throw new NotFoundException('Quiz is paused');
     }
 
     const session = await this.prisma.quizSession.create({
@@ -116,6 +126,10 @@ export class QuizService {
 
         if (!session) {
           throw new NotFoundException('Quiz session not found');
+        }
+
+        if (session.bar.settings?.quizPaused) {
+          throw new NotFoundException('Quiz is paused');
         }
 
         if (dto.answers?.length) {
