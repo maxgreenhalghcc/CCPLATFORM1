@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
@@ -86,6 +86,60 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     served: orders.filter(o => o.status === 'fulfilled').length,
   }), [orders]);
 
+  const [isPolling, setIsPolling] = useState(true);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+
+  const refreshOrders = useCallback(async () => {
+    const token = session?.apiToken;
+    if (!token) return;
+
+    try {
+      const barId = session.user?.barId ?? 'demo-bar';
+      const res = await fetch(`${baseUrl}/v1/bars/${barId}/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to refresh orders');
+      }
+
+      const payload = await res.json() as {
+        items: Array<{
+          id: string;
+          status: OrderStatus;
+          createdAt: string;
+          fulfilledAt?: string | null;
+          recipeName?: string | null;
+        }>;
+      };
+
+      const refreshed: OrderSummary[] = payload.items.map((item) => ({
+        ...item,
+        fulfilledAt: item.fulfilledAt ?? null,
+        recipeName: item.recipeName ?? 'Custom cocktail',
+      }));
+
+      setOrders(refreshed);
+      setLastRefreshed(new Date());
+      setError(null);
+    } catch (err) {
+      Sentry.captureException(err);
+      // Silent fail on polling errors (don't replace orders with empty state)
+    }
+  }, [session, baseUrl]);
+
+  // Auto-refresh every 30 seconds when polling is enabled
+  useEffect(() => {
+    if (!isPolling) return;
+
+    const interval = setInterval(() => {
+      void refreshOrders();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isPolling, refreshOrders]);
+
   const handleFulfilled = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
       return;
@@ -142,6 +196,32 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
   return (
     <div className="space-y-6">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {/* Polling controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card/50 p-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => void refreshOrders()}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
+          >
+            Refresh now
+          </button>
+          <button
+            onClick={() => setIsPolling(!isPolling)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              isPolling
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border bg-background hover:bg-accent'
+            }`}
+          >
+            {isPolling ? '● Auto-refresh ON' : 'Auto-refresh OFF'}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Last updated: {lastRefreshed.toLocaleTimeString()}
+          {isPolling ? ' • refreshing every 30s' : ''}
+        </p>
+      </div>
 
       {/* Filter tabs */}
       <div className="flex flex-wrap items-center gap-2">
