@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import * as Sentry from '@sentry/nextjs';
+import { toast } from 'sonner';
 
 export type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
 
@@ -88,6 +89,8 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
 
   const [isPolling, setIsPolling] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const previousOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)));
 
   const refreshOrders = useCallback(async () => {
     const token = session?.apiToken;
@@ -120,6 +123,34 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
         recipeName: item.recipeName ?? 'Custom cocktail',
       }));
 
+      // Detect new orders
+      const currentIds = new Set(refreshed.map(o => o.id));
+      const newOrders = refreshed.filter(o => !previousOrderIdsRef.current.has(o.id));
+      
+      if (newOrders.length > 0) {
+        // Show toast for new orders
+        newOrders.forEach(order => {
+          const statusLabel = order.status === 'paid' ? '💳 Ready to mix' : '⏳ Awaiting payment';
+          toast.success(`New order: ${order.recipeName}`, {
+            description: statusLabel,
+            duration: 5000,
+          });
+        });
+
+        // Play sound if enabled
+        if (soundEnabled) {
+          try {
+            const audio = new Audio('/sounds/notification.mp3');
+            void audio.play().catch(() => {
+              // Silent fail if sound can't play (e.g., no interaction yet)
+            });
+          } catch {
+            // Silent fail
+          }
+        }
+      }
+
+      previousOrderIdsRef.current = currentIds;
       setOrders(refreshed);
       setLastRefreshed(new Date());
       setError(null);
@@ -215,6 +246,17 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
             }`}
           >
             {isPolling ? '● Auto-refresh ON' : 'Auto-refresh OFF'}
+          </button>
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              soundEnabled
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border bg-background hover:bg-accent'
+            }`}
+            title={soundEnabled ? 'Sound notifications enabled' : 'Sound notifications disabled'}
+          >
+            {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
           </button>
         </div>
         <p className="text-xs text-muted-foreground">
