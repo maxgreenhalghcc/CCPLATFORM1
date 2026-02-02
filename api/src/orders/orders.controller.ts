@@ -1,11 +1,12 @@
 import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+
 import { OrdersService } from './orders.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { UpdateOrderStatusDto } from './dto/update-status.dto';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('orders')

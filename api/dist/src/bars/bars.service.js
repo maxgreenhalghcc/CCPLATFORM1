@@ -190,6 +190,7 @@ let BarsService = class BarsService {
                 theme: mergedTheme,
                 introText: dto.introText ?? existingSettings?.introText ?? null,
                 outroText: dto.outroText ?? existingSettings?.outroText ?? null,
+                quizPaused: dto.quizPaused ?? existingSettings?.quizPaused ?? false,
                 pricingPounds: typeof dto.pricingPounds === 'number'
                     ? new client_1.Prisma.Decimal(dto.pricingPounds)
                     : existingSettings?.pricingPounds ?? new client_1.Prisma.Decimal(12),
@@ -210,6 +211,7 @@ let BarsService = class BarsService {
                 theme: mergedTheme,
                 introText: dto.introText !== undefined ? dto.introText : undefined,
                 outroText: dto.outroText !== undefined ? dto.outroText : undefined,
+                quizPaused: dto.quizPaused !== undefined ? dto.quizPaused : undefined,
                 pricingPounds: typeof dto.pricingPounds === 'number'
                     ? new client_1.Prisma.Decimal(dto.pricingPounds)
                     : undefined,
@@ -289,6 +291,7 @@ let BarsService = class BarsService {
             slug: bar.slug,
             introText: bar.settings.introText ?? null,
             outroText: bar.settings.outroText ?? null,
+            quizPaused: bar.settings.quizPaused ?? false,
             theme,
             pricingPounds: safePricing,
             contactName: bar.settings.contactName ?? null,

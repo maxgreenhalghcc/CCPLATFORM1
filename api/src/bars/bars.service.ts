@@ -4,6 +4,7 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBarDto } from './dto/create-bar.dto';
 import { UpdateBarDto } from './dto/update-bar.dto';
@@ -398,7 +399,7 @@ export class BarsService {
   private async ensureBar(
     identifier: string,
     includeSettings?: false
-  ): Promise<Prisma.BarGetPayload<{}>>;
+  ): Promise<Prisma.BarGetPayload<Record<string, never>>>;
   private async ensureBar(identifier: string, includeSettings = false) {
     const bar = await this.prisma.bar.findFirst({
       where: {

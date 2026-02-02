@@ -12,8 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminService = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
-const prisma_service_1 = require("../prisma/prisma.service");
 const Sentry = require("@sentry/node");
+const prisma_service_1 = require("../prisma/prisma.service");
 let AdminService = class AdminService {
     constructor(prisma) {
         this.prisma = prisma;

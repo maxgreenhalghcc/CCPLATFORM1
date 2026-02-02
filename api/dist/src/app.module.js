@@ -36,10 +36,11 @@ let SentryFilter = class SentryFilter extends core_1.BaseExceptionFilter {
         const ctx = host.switchToHttp();
         const req = ctx.getRequest();
         const res = ctx.getResponse();
-        const requestId = req?.requestId ?? res?.getHeader?.(HEADER);
+        const requestId = req?.requestId ??
+            res?.getHeader?.(HEADER);
         if (process.env.SENTRY_DSN) {
             Sentry.withScope((scope) => {
-                if (requestId) {
+                if (typeof requestId === 'string' && requestId) {
                     scope.setTag('request_id', requestId);
                 }
                 scope.setContext('request', {
@@ -78,10 +79,13 @@ exports.AppModule = AppModule = __decorate([
                     return {
                         pinoHttp: {
                             level,
-                            customProps: (req, _res) => ({
-                                requestId: req?.requestId,
-                                userId: req?.user?.id ?? null,
-                            }),
+                            customProps: (req, res) => {
+                                void res;
+                                return {
+                                    requestId: req.requestId,
+                                    userId: req.user?.id ?? null,
+                                };
+                            },
                             redact: {
                                 paths: [
                                     'req.headers.authorization',

@@ -9,10 +9,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus as PrismaOrderStatus, Prisma, UserRole } from '@prisma/client';
 import Stripe from 'stripe';
+import * as Sentry from '@sentry/node';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
-import * as Sentry from '@sentry/node';
 
 interface NormalizedRecipeBody {
   ingredients?: unknown;
@@ -174,10 +175,11 @@ export class OrdersService {
           cancel_url: cancelUrl,
         });
       } catch (error) {
+        const err = error as unknown as { message?: unknown; type?: unknown; code?: unknown };
         console.error('Stripe error creating checkout session', {
-          message: (error as any)?.message,
-          type: (error as any)?.type,
-          code: (error as any)?.code,
+          message: err?.message,
+          type: err?.type,
+          code: err?.code,
           raw: error,
         });
 

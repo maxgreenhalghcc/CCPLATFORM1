@@ -47,6 +47,9 @@ let BarQuizService = BarQuizService_1 = class BarQuizService {
         if (!bar || !bar.settings) {
             throw new common_1.NotFoundException('Bar not found');
         }
+        if (bar.settings.quizPaused) {
+            throw new common_1.NotFoundException('Quiz is paused');
+        }
         const theme = {
             ...DEFAULT_THEME,
             ...bar.settings.theme,
@@ -79,6 +82,9 @@ let BarQuizService = BarQuizService_1 = class BarQuizService {
         });
         if (!bar || !bar.settings) {
             throw new common_1.NotFoundException('Bar not found');
+        }
+        if (bar.settings.quizPaused) {
+            throw new common_1.NotFoundException('Quiz is paused');
         }
         const session = await this.prisma.quizSession.create({
             data: {

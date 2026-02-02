@@ -27,7 +27,8 @@ export class PrismaService
   }
 
   async enableShutdownHooks(app: INestApplication) {
-    (this as any).$on('beforeExit', async () => {
+    // @ts-expect-error - beforeExit is a valid Prisma event but not in the type definition
+    this.$on('beforeExit', async () => {
       await app.close();
     });
   }

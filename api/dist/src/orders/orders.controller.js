@@ -14,13 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersController = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const orders_service_1 = require("./orders.service");
 const create_checkout_dto_1 = require("./dto/create-checkout.dto");
 const update_status_dto_1 = require("./dto/update-status.dto");
 const api_auth_guard_1 = require("../common/guards/api-auth.guard");
 const roles_guard_1 = require("../common/guards/roles.guard");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
-const client_1 = require("@prisma/client");
 let OrdersController = class OrdersController {
     constructor(ordersService) {
         this.ordersService = ordersService;
