@@ -66,9 +66,25 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
   const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'served'>('all');
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
   const { data: session } = useSession();
+
+  const filteredOrders = useMemo(() => {
+    if (filter === 'all') return orders;
+    if (filter === 'pending') return orders.filter(o => o.status === 'created');
+    if (filter === 'paid') return orders.filter(o => o.status === 'paid');
+    if (filter === 'served') return orders.filter(o => o.status === 'fulfilled');
+    return orders;
+  }, [orders, filter]);
+
+  const counts = useMemo(() => ({
+    all: orders.length,
+    pending: orders.filter(o => o.status === 'created').length,
+    paid: orders.filter(o => o.status === 'paid').length,
+    served: orders.filter(o => o.status === 'fulfilled').length,
+  }), [orders]);
 
   const handleFulfilled = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
@@ -124,15 +140,64 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {/* Filter tabs */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setFilter('all')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'all'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          All <span className="ml-1.5 opacity-70">({counts.all})</span>
+        </button>
+        <button
+          onClick={() => setFilter('pending')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'pending'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          Pending <span className="ml-1.5 opacity-70">({counts.pending})</span>
+        </button>
+        <button
+          onClick={() => setFilter('paid')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'paid'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          Ready to mix <span className="ml-1.5 opacity-70">({counts.paid})</span>
+        </button>
+        <button
+          onClick={() => setFilter('served')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'served'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          Served <span className="ml-1.5 opacity-70">({counts.served})</span>
+        </button>
+      </div>
+
       {orders.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
         </p>
+      ) : filteredOrders.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No {filter} orders.
+        </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
             const isPending = pendingId === order.id;
 
