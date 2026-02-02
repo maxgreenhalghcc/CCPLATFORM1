@@ -21,7 +21,7 @@ export class BarQuizController {
     @Req() request: Request,
   ): Promise<unknown> {
     // Request id is attached by middleware in AppModule
-    const requestId = (request as any)?.requestId as string | undefined;
+    const requestId = (request as Request & { requestId?: string })?.requestId;
     return this.barQuizService.submit(slug, dto, requestId);
   }
 }

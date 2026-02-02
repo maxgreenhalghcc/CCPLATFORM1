@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEmail,
   IsNumber,
   IsObject,
@@ -16,6 +17,10 @@ export class UpdateBarSettingsDto {
   @IsOptional()
   @IsString()
   outroText?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  quizPaused?: boolean;
 
   @IsOptional()
   @IsObject()

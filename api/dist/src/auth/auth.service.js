@@ -30,7 +30,8 @@ let AuthService = class AuthService {
             email: dto.email
         };
     }
-    refreshToken(_) {
+    refreshToken(dto) {
+        void dto;
         return {
             accessToken: 'mock-access-token',
             refreshToken: 'mock-refresh-token',

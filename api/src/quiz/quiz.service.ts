@@ -9,12 +9,13 @@ import { ConfigService } from '@nestjs/config';
 import { OrderStatus, Prisma, QuizSessionStatus } from '@prisma/client';
 import { lastValueFrom } from 'rxjs';
 import { createHash } from 'crypto';
+import * as Sentry from '@sentry/node';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { RecordAnswerDto } from './dto/record-answer.dto';
 import { signJwtHS256 } from '../common/jwt';
-import * as Sentry from '@sentry/node';
 
 interface NormalizedAnswer {
   questionId: string;
@@ -55,17 +56,28 @@ export class QuizService {
     return found?.value.choice;
   }
 
-  async createSession(slug: string, _dto: CreateSessionDto) {
+  async createSession(slug: string, dto: CreateSessionDto) {
+    void dto;
     const bar = await this.prisma.bar.findFirst({
       where: {
         slug,
         active: true,
       },
-      select: { id: true },
+      include: {
+        settings: {
+          select: {
+            quizPaused: true,
+          },
+        },
+      },
     });
 
     if (!bar) {
       throw new NotFoundException('Bar not found');
+    }
+
+    if (bar.settings?.quizPaused) {
+      throw new NotFoundException('Quiz is paused');
     }
 
     const session = await this.prisma.quizSession.create({
@@ -116,6 +128,10 @@ export class QuizService {
 
         if (!session) {
           throw new NotFoundException('Quiz session not found');
+        }
+
+        if (session.bar.settings?.quizPaused) {
+          throw new NotFoundException('Quiz is paused');
         }
 
         if (dto.answers?.length) {

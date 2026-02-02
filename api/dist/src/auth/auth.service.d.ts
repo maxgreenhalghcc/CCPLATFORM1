@@ -15,7 +15,7 @@ export declare class AuthService {
         status: string;
         email: string;
     };
-    refreshToken(_: RefreshTokenDto): {
+    refreshToken(dto: RefreshTokenDto): {
         accessToken: string;
         refreshToken: string;
         expiresIn: number;

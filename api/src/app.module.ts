@@ -12,9 +12,11 @@ import {
   HttpAdapterHost,
 } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 import type { Params } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
+
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -38,13 +40,15 @@ class SentryFilter extends BaseExceptionFilter {
 
   override catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const req: any = ctx.getRequest();
-    const res: any = ctx.getResponse();
-    const requestId = req?.requestId ?? res?.getHeader?.(HEADER);
+    const req = ctx.getRequest<Request & { requestId?: string; user?: { id?: string } }>();
+    const res = ctx.getResponse<Response>();
+    const requestId =
+      (req as unknown as { requestId?: string })?.requestId ??
+      (res as unknown as { getHeader?: (header: string) => unknown })?.getHeader?.(HEADER);
 
     if (process.env.SENTRY_DSN) {
       Sentry.withScope((scope) => {
-        if (requestId) {
+        if (typeof requestId === 'string' && requestId) {
           scope.setTag('request_id', requestId);
         }
         scope.setContext('request', {
@@ -76,10 +80,16 @@ class SentryFilter extends BaseExceptionFilter {
           pinoHttp: {
             level,
             // Signature (req, res) matches nestjs-pino expectations
-            customProps: (req: any, _res: any) => ({
-              requestId: req?.requestId,
-              userId: req?.user?.id ?? null,
-            }),
+            customProps: (
+              req: IncomingMessage & { requestId?: string; user?: { id?: string } },
+              res: ServerResponse<IncomingMessage>
+            ) => {
+              void res;
+              return {
+                requestId: req.requestId,
+                userId: req.user?.id ?? null,
+              };
+            },
             redact: {
               paths: [
                 'req.headers.authorization',

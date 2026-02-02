@@ -19,7 +19,6 @@ const orders_service_1 = require("./orders.service");
 const api_auth_guard_1 = require("../common/guards/api-auth.guard");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
 const roles_guard_1 = require("../common/guards/roles.guard");
-const client_2 = require("@prisma/client");
 let BarOrdersController = class BarOrdersController {
     constructor(ordersService) {
         this.ordersService = ordersService;
@@ -49,7 +48,7 @@ __decorate([
 ], BarOrdersController.prototype, "listForBar", null);
 exports.BarOrdersController = BarOrdersController = __decorate([
     (0, common_1.UseGuards)(api_auth_guard_1.ApiAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(client_2.UserRole.admin, client_2.UserRole.staff),
+    (0, roles_decorator_1.Roles)(client_1.UserRole.admin, client_1.UserRole.staff),
     (0, common_1.Controller)('bars'),
     __metadata("design:paramtypes", [orders_service_1.OrdersService])
 ], BarOrdersController);

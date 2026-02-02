@@ -14,8 +14,8 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
 const stripe_1 = require("stripe");
-const prisma_service_1 = require("../prisma/prisma.service");
 const Sentry = require("@sentry/node");
+const prisma_service_1 = require("../prisma/prisma.service");
 let OrdersService = class OrdersService {
     constructor(prisma, configService) {
         this.prisma = prisma;
@@ -127,10 +127,11 @@ let OrdersService = class OrdersService {
                 });
             }
             catch (error) {
+                const err = error;
                 console.error('Stripe error creating checkout session', {
-                    message: error?.message,
-                    type: error?.type,
-                    code: error?.code,
+                    message: err?.message,
+                    type: err?.type,
+                    code: err?.code,
                     raw: error,
                 });
                 throw error;
