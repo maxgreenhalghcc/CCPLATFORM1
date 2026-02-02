@@ -1,6 +1,6 @@
 import { IsIn } from 'class-validator';
 
 export class UpdateOrderStatusDto {
-  @IsIn(['making', 'fulfilled'])
-  status!: 'making' | 'fulfilled';
+  @IsIn(['fulfilled'])
+  status!: 'fulfilled';
 }
