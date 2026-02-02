@@ -19,6 +19,7 @@ export interface OrderSummary {
 }
 
 interface Props {
+  barId: string;
   initialOrders: OrderSummary[];
   initialError?: string | null;
 }
@@ -63,7 +64,62 @@ function formatFulfilledAt(value: string | null) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function StaffOrdersClient({ initialOrders, initialError = null }: Props) {
+const UNREAD_KEY = 'cc.staff.unreadOrders.v1';
+const SOUND_KEY = 'cc.staff.soundEnabled.v1';
+
+function loadUnread(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(UNREAD_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((v) => typeof v === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveUnread(unread: Set<string>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(UNREAD_KEY, JSON.stringify(Array.from(unread)));
+}
+
+function loadSoundEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SOUND_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function saveSoundEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(SOUND_KEY, enabled ? 'true' : 'false');
+}
+
+function playNotificationBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = 880;
+    g.gain.value = 0.001;
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    o.stop(ctx.currentTime + 0.2);
+    o.onended = () => ctx.close();
+  } catch {
+    // Ignore (audio may be blocked until user gesture)
+  }
+}
+
+export default function StaffOrdersClient({ barId, initialOrders, initialError = null }: Props) {
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
   const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -224,6 +280,23 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     }
   };
 
+  const unreadCount = unread.size;
+
+  const requestBrowserNotifications = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setBanner('Browser notifications are not supported in this browser.');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      setBanner('Browser notifications are already enabled.');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setBanner(permission === 'granted' ? 'Browser notifications enabled.' : 'Browser notifications blocked.');
+  };
+
   return (
     <div className="space-y-6">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -322,11 +395,14 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
           {filteredOrders.map((order) => {
             const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
             const isPending = pendingId === order.id;
+            const isUnread = unread.has(order.id) && order.status === 'paid';
 
             return (
               <div
                 key={order.id}
-                className="flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm"
+                className={`flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm ${
+                  isUnread ? 'ring-2 ring-primary/40' : ''
+                }`}
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -339,10 +415,15 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
                     </p>
                     <p className="text-xs text-muted-foreground">Guest order</p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
+                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide">
                     <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
                       {formatStatus(order.status)}
                     </span>
+                    {isUnread ? (
+                      <span className="rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-semibold tracking-wide text-amber-700">
+                        Unread
+                      </span>
+                    ) : null}
                     {fulfilledLabel ? (
                       <span className="text-muted-foreground">Served {fulfilledLabel}</span>
                     ) : null}
@@ -350,7 +431,9 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <Button asChild size="sm" variant="secondary">
-                    <Link href={`/staff/orders/${order.id}`}>View recipe</Link>
+                    <Link href={`/staff/orders/${order.id}`} onClick={() => markRead(order.id)}>
+                      View recipe
+                    </Link>
                   </Button>
                   {order.status === 'paid' ? (
                     <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>

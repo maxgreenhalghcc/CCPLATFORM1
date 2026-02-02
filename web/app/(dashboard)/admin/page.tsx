@@ -19,7 +19,7 @@ const cards = [
     description: 'Track revenue per bar, order volumes, and payout readiness.',
     href: '/admin/financials'
   }
-];
+] as const;
 
 export default async function AdminDashboardPage() {
   const session = await auth();

@@ -41,10 +41,10 @@ async function fetchOrders(token: string, barIdentifier: string): Promise<OrderS
 async function StaffOrdersTable({ token, barId }: { token: string; barId: string }) {
   try {
     const orders = await fetchOrders(token, barId);
-    return <StaffOrdersClient initialOrders={orders} />;
+    return <StaffOrdersClient barId={barId} initialOrders={orders} />;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to load orders.';
-    return <StaffOrdersClient initialOrders={[]} initialError={message} />;
+    return <StaffOrdersClient barId={barId} initialOrders={[]} initialError={message} />;
   }
 }
 
@@ -76,7 +76,6 @@ export default async function StaffDashboardPage() {
         </nav>
       </header>
       <Suspense fallback={<p>Loading orders…</p>}>
-        {/* @ts-expect-error Async Server Component */}
         <StaffOrdersTable barId={barId} token={session.apiToken} />
       </Suspense>
     </div>
