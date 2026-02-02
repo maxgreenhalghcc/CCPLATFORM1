@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import * as Sentry from '@sentry/nextjs';
+import { toast } from 'sonner';
 
 export type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
 
@@ -19,6 +19,7 @@ export interface OrderSummary {
 }
 
 interface Props {
+  barId: string;
   initialOrders: OrderSummary[];
   initialError?: string | null;
 }
@@ -63,24 +64,168 @@ function formatFulfilledAt(value: string | null) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function StaffOrdersClient({ initialOrders, initialError = null }: Props) {
+const UNREAD_KEY = 'cc.staff.unreadOrders.v1';
+const SOUND_KEY = 'cc.staff.soundEnabled.v1';
+
+function loadUnread(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(UNREAD_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((v) => typeof v === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveUnread(unread: Set<string>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(UNREAD_KEY, JSON.stringify(Array.from(unread)));
+}
+
+function loadSoundEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SOUND_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function saveSoundEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(SOUND_KEY, enabled ? 'true' : 'false');
+}
+
+function playNotificationBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = 880;
+    g.gain.value = 0.001;
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    o.stop(ctx.currentTime + 0.2);
+    o.onended = () => ctx.close();
+  } catch {
+    // Ignore (audio may be blocked until user gesture)
+  }
+}
+
+export default function StaffOrdersClient({ barId, initialOrders, initialError = null }: Props) {
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders);
   const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'paid' | 'pending'>('paid');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'served'>('all');
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
   const { data: session } = useSession();
 
-  const paidOrders = useMemo(
-    () => orders.filter((order) => order.status === 'paid' || order.status === 'fulfilled'),
-    [orders]
-  );
+  const filteredOrders = useMemo(() => {
+    if (filter === 'all') return orders;
+    if (filter === 'pending') return orders.filter(o => o.status === 'created');
+    if (filter === 'paid') return orders.filter(o => o.status === 'paid');
+    if (filter === 'served') return orders.filter(o => o.status === 'fulfilled');
+    return orders;
+  }, [orders, filter]);
 
-  const pendingOrders = useMemo(
-    () => orders.filter((order) => order.status === 'created' || order.status === 'cancelled'),
-    [orders]
-  );
+  const counts = useMemo(() => ({
+    all: orders.length,
+    pending: orders.filter(o => o.status === 'created').length,
+    paid: orders.filter(o => o.status === 'paid').length,
+    served: orders.filter(o => o.status === 'fulfilled').length,
+  }), [orders]);
+
+  const [isPolling, setIsPolling] = useState(true);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const previousOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)));
+
+  const refreshOrders = useCallback(async () => {
+    const token = session?.apiToken;
+    if (!token) return;
+
+    try {
+      const barId = session.user?.barId ?? 'demo-bar';
+      const res = await fetch(`${baseUrl}/v1/bars/${barId}/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to refresh orders');
+      }
+
+      const payload = await res.json() as {
+        items: Array<{
+          id: string;
+          status: OrderStatus;
+          createdAt: string;
+          fulfilledAt?: string | null;
+          recipeName?: string | null;
+        }>;
+      };
+
+      const refreshed: OrderSummary[] = payload.items.map((item) => ({
+        ...item,
+        fulfilledAt: item.fulfilledAt ?? null,
+        recipeName: item.recipeName ?? 'Custom cocktail',
+      }));
+
+      // Detect new orders
+      const currentIds = new Set(refreshed.map(o => o.id));
+      const newOrders = refreshed.filter(o => !previousOrderIdsRef.current.has(o.id));
+      
+      if (newOrders.length > 0) {
+        // Show toast for new orders
+        newOrders.forEach(order => {
+          const statusLabel = order.status === 'paid' ? '💳 Ready to mix' : '⏳ Awaiting payment';
+          toast.success(`New order: ${order.recipeName}`, {
+            description: statusLabel,
+            duration: 5000,
+          });
+        });
+
+        // Play sound if enabled
+        if (soundEnabled) {
+          try {
+            const audio = new Audio('/sounds/notification.mp3');
+            void audio.play().catch(() => {
+              // Silent fail if sound can't play (e.g., no interaction yet)
+            });
+          } catch {
+            // Silent fail
+          }
+        }
+      }
+
+      previousOrderIdsRef.current = currentIds;
+      setOrders(refreshed);
+      setLastRefreshed(new Date());
+      setError(null);
+    } catch (err) {
+      Sentry.captureException(err);
+      // Silent fail on polling errors (don't replace orders with empty state)
+    }
+  }, [session, baseUrl]);
+
+  // Auto-refresh every 30 seconds when polling is enabled
+  useEffect(() => {
+    if (!isPolling) return;
+
+    const interval = setInterval(() => {
+      void refreshOrders();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isPolling, refreshOrders]);
 
   const handleFulfilled = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
@@ -135,110 +280,172 @@ export default function StaffOrdersClient({ initialOrders, initialError = null }
     }
   };
 
+  const unreadCount = unread.size;
+
+  const requestBrowserNotifications = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setBanner('Browser notifications are not supported in this browser.');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      setBanner('Browser notifications are already enabled.');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setBanner(permission === 'granted' ? 'Browser notifications enabled.' : 'Browser notifications blocked.');
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {/* Polling controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card/50 p-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => void refreshOrders()}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
+          >
+            Refresh now
+          </button>
+          <button
+            onClick={() => setIsPolling(!isPolling)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              isPolling
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border bg-background hover:bg-accent'
+            }`}
+          >
+            {isPolling ? '● Auto-refresh ON' : 'Auto-refresh OFF'}
+          </button>
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              soundEnabled
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border bg-background hover:bg-accent'
+            }`}
+            title={soundEnabled ? 'Sound notifications enabled' : 'Sound notifications disabled'}
+          >
+            {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Last updated: {lastRefreshed.toLocaleTimeString()}
+          {isPolling ? ' • refreshing every 30s' : ''}
+        </p>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setFilter('all')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'all'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          All <span className="ml-1.5 opacity-70">({counts.all})</span>
+        </button>
+        <button
+          onClick={() => setFilter('pending')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'pending'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          Pending <span className="ml-1.5 opacity-70">({counts.pending})</span>
+        </button>
+        <button
+          onClick={() => setFilter('paid')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'paid'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          Ready to mix <span className="ml-1.5 opacity-70">({counts.paid})</span>
+        </button>
+        <button
+          onClick={() => setFilter('served')}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            filter === 'served'
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground'
+          }`}
+        >
+          Served <span className="ml-1.5 opacity-70">({counts.served})</span>
+        </button>
+      </div>
+
       {orders.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
         </p>
+      ) : filteredOrders.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No {filter} orders.
+        </p>
       ) : (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant={activeTab === 'paid' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('paid')}
-            >
-              PAID ({paidOrders.length})
-            </Button>
-            <Button
-              size="sm"
-              variant={activeTab === 'pending' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('pending')}
-            >
-              PENDING ({pendingOrders.length})
-            </Button>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredOrders.map((order) => {
+            const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
+            const isPending = pendingId === order.id;
+            const isUnread = unread.has(order.id) && order.status === 'paid';
 
-          {(activeTab === 'paid' ? paidOrders : pendingOrders).length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {activeTab === 'paid'
-                ? 'No paid orders yet.'
-                : 'No pending payment orders right now.'}
-            </p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {(activeTab === 'paid' ? paidOrders : pendingOrders).map((order) => {
-                const fulfilledLabel =
-                  order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
-                const isPendingUpdate = pendingId === order.id;
-                const isPaidOrFulfilled = order.status === 'paid' || order.status === 'fulfilled';
-                const showDimmed = !isPaidOrFulfilled;
-
-                return (
-                  <div
-                    key={order.id}
-                    className={
-                      'flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm ' +
-                      (showDimmed ? 'opacity-60' : '')
-                    }
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-mono">{order.id}</span>
-                        <span>{formatDate(order.createdAt)}</span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">
-                          {order.recipeName || 'Custom cocktail'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Guest order</p>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
-                        <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
-                          {formatStatus(order.status)}
-                        </span>
-                        {fulfilledLabel ? (
-                          <span className="text-muted-foreground">Served {fulfilledLabel}</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      {isPaidOrFulfilled ? (
-                        <Button asChild size="sm" variant="secondary">
-                          <Link href={`/staff/orders/${order.id}`}>View recipe</Link>
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled
-                          title="Recipe available once payment clears"
-                        >
-                          View recipe
-                        </Button>
-                      )}
-
-                      {order.status === 'paid' ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleFulfilled(order.id)}
-                          disabled={isPendingUpdate}
-                        >
-                          {isPendingUpdate ? 'Marking…' : 'Mark served'}
-                        </Button>
-                      ) : showDimmed ? (
-                        <span className="text-xs text-muted-foreground">
-                          {order.status === 'cancelled' ? 'Cancelled' : 'Awaiting payment'}
-                        </span>
-                      ) : null}
-                    </div>
+            return (
+              <div
+                key={order.id}
+                className={`flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm ${
+                  isUnread ? 'ring-2 ring-primary/40' : ''
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-mono">{order.id}</span>
+                    <span>{formatDate(order.createdAt)}</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      {order.recipeName || 'Custom cocktail'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Guest order</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide">
+                    <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
+                      {formatStatus(order.status)}
+                    </span>
+                    {isUnread ? (
+                      <span className="rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-semibold tracking-wide text-amber-700">
+                        Unread
+                      </span>
+                    ) : null}
+                    {fulfilledLabel ? (
+                      <span className="text-muted-foreground">Served {fulfilledLabel}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={`/staff/orders/${order.id}`} onClick={() => markRead(order.id)}>
+                      View recipe
+                    </Link>
+                  </Button>
+                  {order.status === 'paid' ? (
+                    <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
+                      {isPending ? 'Marking…' : 'Mark served'}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Awaiting payment</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -9,6 +9,7 @@ import {
   UseGuards
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+
 import { BarsService } from './bars.service';
 import type {
   BarListResponse,

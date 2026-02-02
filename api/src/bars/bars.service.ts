@@ -4,6 +4,7 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBarDto } from './dto/create-bar.dto';
 import { UpdateBarDto } from './dto/update-bar.dto';
@@ -30,6 +31,7 @@ export interface BarSettingsResponse {
   slug: string;
   introText: string | null;
   outroText: string | null;
+  quizPaused: boolean;
   theme: Record<string, string>;
   pricingPounds: number;
   contactName: string | null;
@@ -258,6 +260,7 @@ export class BarsService {
         theme: mergedTheme,
         introText: dto.introText ?? existingSettings?.introText ?? null,
         outroText: dto.outroText ?? existingSettings?.outroText ?? null,
+        quizPaused: dto.quizPaused ?? existingSettings?.quizPaused ?? false,
         pricingPounds:
           typeof dto.pricingPounds === 'number'
             ? new Prisma.Decimal(dto.pricingPounds)
@@ -279,6 +282,7 @@ export class BarsService {
         theme: mergedTheme,
         introText: dto.introText !== undefined ? dto.introText : undefined,
         outroText: dto.outroText !== undefined ? dto.outroText : undefined,
+        quizPaused: dto.quizPaused !== undefined ? dto.quizPaused : undefined,
         pricingPounds:
           typeof dto.pricingPounds === 'number'
             ? new Prisma.Decimal(dto.pricingPounds)
@@ -370,6 +374,7 @@ export class BarsService {
       slug: bar.slug,
       introText: bar.settings.introText ?? null,
       outroText: bar.settings.outroText ?? null,
+      quizPaused: bar.settings.quizPaused ?? false,
       theme,
       pricingPounds: safePricing,
       contactName: bar.settings.contactName ?? null,
@@ -394,7 +399,7 @@ export class BarsService {
   private async ensureBar(
     identifier: string,
     includeSettings?: false
-  ): Promise<Prisma.BarGetPayload<{}>>;
+  ): Promise<Prisma.BarGetPayload<Record<string, never>>>;
   private async ensureBar(identifier: string, includeSettings = false) {
     const bar = await this.prisma.bar.findFirst({
       where: {

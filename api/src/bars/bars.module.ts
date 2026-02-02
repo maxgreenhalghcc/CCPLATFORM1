@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+
 import { BarsController } from './bars.controller';
 import { BarsService } from './bars.service';
 import { BarQuizController } from './bar-quiz.controller';

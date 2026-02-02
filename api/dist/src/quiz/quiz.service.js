@@ -17,9 +17,9 @@ const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
 const rxjs_1 = require("rxjs");
 const crypto_1 = require("crypto");
+const Sentry = require("@sentry/node");
 const prisma_service_1 = require("../prisma/prisma.service");
 const jwt_1 = require("../common/jwt");
-const Sentry = require("@sentry/node");
 function randomChoice(options) {
     return options[Math.floor(Math.random() * options.length)];
 }
@@ -34,16 +34,26 @@ let QuizService = QuizService_1 = class QuizService {
         const found = answers.find((a) => a.questionId === id);
         return found?.value.choice;
     }
-    async createSession(slug, _dto) {
+    async createSession(slug, dto) {
+        void dto;
         const bar = await this.prisma.bar.findFirst({
             where: {
                 slug,
                 active: true,
             },
-            select: { id: true },
+            include: {
+                settings: {
+                    select: {
+                        quizPaused: true,
+                    },
+                },
+            },
         });
         if (!bar) {
             throw new common_1.NotFoundException('Bar not found');
+        }
+        if (bar.settings?.quizPaused) {
+            throw new common_1.NotFoundException('Quiz is paused');
         }
         const session = await this.prisma.quizSession.create({
             data: {
@@ -83,6 +93,9 @@ let QuizService = QuizService_1 = class QuizService {
             });
             if (!session) {
                 throw new common_1.NotFoundException('Quiz session not found');
+            }
+            if (session.bar.settings?.quizPaused) {
+                throw new common_1.NotFoundException('Quiz is paused');
             }
             if (dto.answers?.length) {
                 const normalized = dto.answers.map((answer) => ({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import { useSession } from 'next-auth/react';
@@ -78,6 +78,8 @@ function formatFulfilledAt(value: string | null) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+const UNREAD_KEY = 'cc.staff.unreadOrders.v1';
+
 export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProps) {
   const [status, setStatus] = useState<OrderStatus>(initialOrder.status);
   const [fulfilledAt, setFulfilledAt] = useState<string | null>(initialOrder.fulfilledAt);
@@ -86,6 +88,20 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
   const { data: session } = useSession();
+
+  useEffect(() => {
+    // Mark as read when the detail view is opened.
+    try {
+      const raw = window.localStorage.getItem(UNREAD_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return;
+      const next = parsed.filter((id) => id !== initialOrder.orderId);
+      window.localStorage.setItem(UNREAD_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  }, [initialOrder.orderId]);
 
   const markServed = async () => {
     if (!window.confirm('Confirm this cocktail has been served?')) {

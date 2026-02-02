@@ -97,6 +97,10 @@ model BarSettings {
   introText     String?
   outroText     String?
   pricingPounds Decimal @default(12.0) @db.Decimal(10, 2)
+
+  // Busy-night mode (soft stop): pause guest questionnaire but keep staff dashboard live.
+  quizPaused    Boolean @default(false)
+
   contactName       String?
   contactEmail      String?
   contactPhone      String?

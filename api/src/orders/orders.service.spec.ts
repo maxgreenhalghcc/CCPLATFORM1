@@ -1,6 +1,7 @@
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import { OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { ForbiddenException } from '@nestjs/common';
+
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 

@@ -17,13 +17,14 @@ let LoggingInterceptor = class LoggingInterceptor {
         const req = http.getRequest();
         const res = http.getResponse();
         const { method, url } = req;
-        const userId = req?.user?.id ?? null;
-        const requestId = req?.requestId ?? res?.getHeader?.(HEADER);
+        const userId = req.user?.id ?? null;
+        const requestId = req.requestId ??
+            res?.getHeader?.(HEADER);
         const start = Date.now();
-        if (req?.log && typeof req.log.child === 'function') {
+        if (req.log && typeof req.log.child === 'function') {
             req.log = req.log.child({ requestId, userId });
         }
-        if (process.env.SENTRY_DSN && requestId) {
+        if (process.env.SENTRY_DSN && typeof requestId === 'string' && requestId) {
             Sentry.configureScope((scope) => {
                 scope.setTag('request_id', requestId);
                 if (userId) {

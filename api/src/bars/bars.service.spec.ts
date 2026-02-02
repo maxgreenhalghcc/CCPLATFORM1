@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+
 import { BarsService } from './bars.service';
 import { PrismaService } from '../prisma/prisma.service';
 

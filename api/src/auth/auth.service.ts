@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+
 import { LoginDto } from './dto/login.dto';
 import { MagicLinkDto } from './dto/magic-link.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -24,7 +25,8 @@ export class AuthService {
     };
   }
 
-  refreshToken(_: RefreshTokenDto) {
+  refreshToken(dto: RefreshTokenDto) {
+    void dto;
     return {
       accessToken: 'mock-access-token',
       refreshToken: 'mock-refresh-token',

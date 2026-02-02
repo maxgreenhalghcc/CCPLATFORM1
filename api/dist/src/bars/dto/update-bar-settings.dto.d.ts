@@ -1,6 +1,7 @@
 export declare class UpdateBarSettingsDto {
     introText?: string;
     outroText?: string;
+    quizPaused?: boolean;
     theme?: Record<string, string>;
     pricingPounds?: number;
     contactName?: string;

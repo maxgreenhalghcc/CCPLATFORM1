@@ -1,10 +1,10 @@
 import { BadRequestException, Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
-import { OrderStatus as PrismaOrderStatus } from '@prisma/client';
+import { OrderStatus as PrismaOrderStatus , UserRole } from '@prisma/client';
+
 import { OrdersService } from './orders.service';
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UserRole } from '@prisma/client';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @UseGuards(ApiAuthGuard, RolesGuard)
