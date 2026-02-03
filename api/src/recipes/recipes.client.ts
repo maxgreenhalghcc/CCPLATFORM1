@@ -36,19 +36,28 @@ export class RecipesClient {
     }
 
     try {
-      const response$ = this.http.post<RecipeBuildResult>(
-        `${this.baseUrl}/build`,
-        {
-          barId,
-          answers,
-        },
-        {
-          headers: requestId ? { 'x-request-id': requestId } : undefined,
-        },
-      );
+      const payload = { barId, answers };
+      const headers = requestId ? { 'x-request-id': requestId } : undefined;
 
-      const response = await firstValueFrom(response$);
-      return response.data ?? {};
+      // Prefer /generate (current recipe service), fall back to /build (legacy).
+      try {
+        const response$ = this.http.post<RecipeBuildResult>(
+          `${this.baseUrl}/generate`,
+          payload,
+          { headers },
+        );
+        const response = await firstValueFrom(response$);
+        return response.data ?? {};
+      } catch (error) {
+        // If /generate isn't supported, try legacy /build.
+        const response$ = this.http.post<RecipeBuildResult>(
+          `${this.baseUrl}/build`,
+          payload,
+          { headers },
+        );
+        const response = await firstValueFrom(response$);
+        return response.data ?? {};
+      }
     } catch (error) {
       if (this.mockEnabled) {
         this.logger.warn('Recipe API unavailable, falling back to mock recipe');
