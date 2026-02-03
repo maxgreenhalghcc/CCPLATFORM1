@@ -316,8 +316,9 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
 
       try {
         const api = getApiUrl();
+        const token = session!.apiToken;
         const headers: HeadersInit = {
-          Authorization: `Bearer ${session.apiToken}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         };
         const trimmedLocation = (detail.location ?? '').trim();
@@ -385,37 +386,33 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
 
       try {
         const api = getApiUrl();
+        const token = session!.apiToken;
         const headers: HeadersInit = {
-          Authorization: `Bearer ${session.apiToken}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         };
+
+        // NOTE: This handler must capture the latest form state. Incomplete dependency
+        // arrays previously caused stale values to be submitted ("settings not saving").
         const payload: Record<string, unknown> = {
           introText: settings.introText ?? null,
           outroText: settings.outroText ?? null,
           quizPaused: settings.quizPaused,
           pricingPounds: parsedPrice,
-          theme: settings.theme
+          theme: settings.theme,
+          contactName: normalizeNullableString(settings.contactName),
+          contactEmail: normalizeNullableString(settings.contactEmail),
+          contactPhone: normalizeNullableString(settings.contactPhone),
+          stockListUrl: normalizeNullableString(settings.stockListUrl),
+          stripeConnectId: normalizeNullableString(settings.stripeConnectId),
+          stripeConnectLink: normalizeNullableString(settings.stripeConnectLink),
+          logoUrl: normalizeNullableString(settings.logoUrl),
+          address: buildAddressPayload(addressForm),
+          bankDetails: buildBankPayload(bankForm),
+          openingHours: parseOpeningHoursInput(openingHoursInput),
+          stock: parseStockInput(stockInput),
+          brandPalette: buildPalettePayload(paletteState)
         };
-
-        payload.contactName = normalizeNullableString(settings.contactName);
-        payload.contactEmail = normalizeNullableString(settings.contactEmail);
-        payload.contactPhone = normalizeNullableString(settings.contactPhone);
-        payload.stockListUrl = normalizeNullableString(settings.stockListUrl);
-        payload.stripeConnectId = normalizeNullableString(settings.stripeConnectId);
-        payload.stripeConnectLink = normalizeNullableString(settings.stripeConnectLink);
-        payload.logoUrl = normalizeNullableString(settings.logoUrl);
-
-        const addressPayload = buildAddressPayload(addressForm);
-        const bankPayload = buildBankPayload(bankForm);
-        const openingPayload = parseOpeningHoursInput(openingHoursInput);
-        const stockPayload = parseStockInput(stockInput);
-        const palettePayload = buildPalettePayload(paletteState);
-
-        payload.address = addressPayload;
-        payload.bankDetails = bankPayload;
-        payload.openingHours = openingPayload;
-        payload.stock = stockPayload;
-        payload.brandPalette = palettePayload;
 
         const response = await requestJson<BarSettingsResponse>(`${api}/bars/${barId}/settings`, {
           method: 'PUT',
