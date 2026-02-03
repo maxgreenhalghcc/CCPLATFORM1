@@ -1,5 +1,6 @@
 import { getServerSession, type NextAuthOptions } from 'next-auth';
 import EmailProvider from 'next-auth/providers/email';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { UserRole } from '@prisma/client';
 import nodemailer from 'nodemailer';
@@ -24,6 +25,41 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login'
   },
   providers: [
+    CredentialsProvider({
+      name: 'Staff PIN',
+      credentials: {
+        pin: { label: 'PIN', type: 'password' },
+      },
+      async authorize(credentials) {
+        const pin = String(credentials?.pin ?? '').trim();
+        const expected = String(process.env.STAFF_PIN ?? '').trim();
+        if (!expected || pin !== expected) {
+          return null;
+        }
+
+        const staffEmail = (process.env.STAFF_PIN_EMAIL ?? 'staff@pin.local').toLowerCase();
+        const barId = process.env.STAFF_PIN_BAR_ID ?? null;
+        const role = (process.env.STAFF_PIN_ROLE ?? 'staff') as UserRole;
+
+        // Ensure user exists in DB for NextAuth callbacks.
+        const user = await prisma.user.upsert({
+          where: { email: staffEmail },
+          update: { role, barId },
+          create: {
+            email: staffEmail,
+            role,
+            barId,
+          },
+        });
+
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          barId: user.barId,
+        } as any;
+      },
+    }),
     EmailProvider({
       from: fromAddress,
       maxAge: 15 * 60,

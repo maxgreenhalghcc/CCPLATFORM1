@@ -54,6 +54,10 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ageVerified, setAgeVerified] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem('cc.ageVerified') === 'true';
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -237,7 +241,37 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
     : 0;
 
   return (
-    <section className="flex flex-1 flex-col rounded-3xl border border-border/60 bg-card/80 p-8 shadow-lg shadow-primary/10 backdrop-blur">
+    <section className="relative flex flex-1 flex-col rounded-3xl border border-border/60 bg-card/80 p-8 shadow-lg shadow-primary/10 backdrop-blur">
+      {!ageVerified ? (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-3xl bg-background/90 p-6 backdrop-blur">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-border/60 bg-card p-6 shadow-xl">
+            <h2 className="text-xl font-semibold">Age confirmation</h2>
+            <p className="text-sm text-muted-foreground">
+              You must be 18+ to use this experience.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="flex-1 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                onClick={() => {
+                  window.localStorage.setItem('cc.ageVerified', 'true');
+                  setAgeVerified(true);
+                }}
+              >
+                I am 18+
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold"
+                onClick={() => router.push('/')}
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <Progress
         currentStep={currentStep + 1}
         totalSteps={totalSteps}
