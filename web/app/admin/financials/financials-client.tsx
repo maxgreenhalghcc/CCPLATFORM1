@@ -191,7 +191,21 @@ export default function AdminFinancialsClient() {
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const trimmed = barInput.trim();
-      setBarFilter(trimmed.length > 0 ? trimmed : undefined);
+
+      if (!trimmed) {
+        setBarFilter(undefined);
+        return;
+      }
+
+      // Bar IDs are Prisma `cuid()` values (no hyphens). Slugs previously appeared to work
+      // but the metrics API expects `barId`.
+      const cuidPattern = /^c[a-z0-9]{24}$/i;
+      if (!cuidPattern.test(trimmed)) {
+        setError('Please enter a valid Bar ID (cuid), e.g. cxxxxxxxxxxxxxxxxxxxxxxxx.');
+        return;
+      }
+
+      setBarFilter(trimmed);
     },
     [barInput]
   );
@@ -243,9 +257,15 @@ export default function AdminFinancialsClient() {
             <span className="sr-only">Bar filter</span>
             <input
               className="w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Filter by bar slug or ID"
+              placeholder="Filter by bar ID (cuid)"
               value={barInput}
-              onChange={(event) => setBarInput(event.target.value)}
+              onChange={(event) => {
+                setBarInput(event.target.value);
+                // Clear local validation errors as the user edits.
+                if (error?.startsWith('Please enter a valid Bar ID')) {
+                  setError(null);
+                }
+              }}
             />
           </label>
           <div className="flex gap-2">
