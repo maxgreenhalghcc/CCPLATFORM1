@@ -124,6 +124,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
   const [error, setError] = useState<string | null>(initialError);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'served'>('all');
+  const [banner, setBanner] = useState<string | null>(null);
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
   const { data: session } = useSession();
@@ -146,7 +147,12 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
   const [isPolling, setIsPolling] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [unread, setUnread] = useState<Set<string>>(() => loadUnread());
   const previousOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)));
+
+  useEffect(() => {
+    saveUnread(unread);
+  }, [unread]);
 
   const refreshOrders = useCallback(async () => {
     const token = session?.apiToken;
@@ -184,6 +190,17 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
       const newOrders = refreshed.filter(o => !previousOrderIdsRef.current.has(o.id));
       
       if (newOrders.length > 0) {
+        // Mark paid orders as unread for attention
+        setUnread((current) => {
+          const next = new Set(current);
+          newOrders.forEach((order) => {
+            if (order.status === 'paid') {
+              next.add(order.id);
+            }
+          });
+          return next;
+        });
+
         // Show toast for new orders
         newOrders.forEach(order => {
           const statusLabel = order.status === 'paid' ? '💳 Ready to mix' : '⏳ Awaiting payment';
@@ -205,6 +222,17 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
           }
         }
       }
+
+      // Clean up unread set: only keep paid orders that still exist
+      setUnread((current) => {
+        const next = new Set<string>();
+        refreshed.forEach((order) => {
+          if (order.status === 'paid' && current.has(order.id)) {
+            next.add(order.id);
+          }
+        });
+        return next;
+      });
 
       previousOrderIdsRef.current = currentIds;
       setOrders(refreshed);
@@ -280,6 +308,14 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     }
   };
 
+  const markRead = useCallback((orderId: string) => {
+    setUnread((current) => {
+      const next = new Set(current);
+      next.delete(orderId);
+      return next;
+    });
+  }, []);
+
   const unreadCount = unread.size;
 
   const requestBrowserNotifications = async () => {
@@ -299,6 +335,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
 
   return (
     <div className="space-y-6">
+      {banner ? <p className="text-sm text-muted-foreground">{banner}</p> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       {/* Polling controls */}
