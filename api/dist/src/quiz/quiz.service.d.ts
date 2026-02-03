@@ -11,7 +11,7 @@ export declare class QuizService {
     private readonly logger;
     constructor(prisma: PrismaService, httpService: HttpService, configService: ConfigService);
     private getAnswerChoice;
-    createSession(slug: string, _dto: CreateSessionDto): Promise<{
+    createSession(slug: string, dto: CreateSessionDto): Promise<{
         sessionId: string;
     }>;
     recordAnswer(sessionId: string, dto: RecordAnswerDto): Promise<{

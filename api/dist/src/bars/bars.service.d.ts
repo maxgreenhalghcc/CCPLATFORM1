@@ -19,6 +19,7 @@ export interface BarSettingsResponse {
     slug: string;
     introText: string | null;
     outroText: string | null;
+    quizPaused: boolean;
     theme: Record<string, string>;
     pricingPounds: number;
     contactName: string | null;

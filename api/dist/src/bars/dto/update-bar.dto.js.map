@@ -1,1 +1,1 @@
-{"version":3,"file":"update-bar.dto.js","sourceRoot":"","sources":["../../../../src/bars/dto/update-bar.dto.ts"],"names":[],"mappings":";;;AAAA,uDAAmD;AACnD,qDAAgD;AAEhD,MAAa,YAAa,SAAQ,IAAA,0BAAW,EAAC,6BAAY,CAAC;CAAG;AAA9D,oCAA8D"}
+{"version":3,"file":"update-bar.dto.js","sourceRoot":"","sources":["../../../../src/bars/dto/update-bar.dto.ts"],"names":[],"mappings":";;;AAAA,uDAAmD;AAEnD,qDAAgD;AAEhD,MAAa,YAAa,SAAQ,IAAA,0BAAW,EAAC,6BAAY,CAAC;CAAG;AAA9D,oCAA8D"}

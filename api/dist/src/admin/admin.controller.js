@@ -14,11 +14,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const admin_service_1 = require("./admin.service");
 const api_auth_guard_1 = require("../common/guards/api-auth.guard");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
 const roles_guard_1 = require("../common/guards/roles.guard");
-const client_1 = require("@prisma/client");
 let AdminController = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;

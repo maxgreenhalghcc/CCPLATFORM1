@@ -21,6 +21,7 @@ interface BarSettingsResponse {
   id: string;
   introText: string | null;
   outroText: string | null;
+  quizPaused: boolean;
   theme: Record<string, string>;
   pricingPounds: number;
   contactName: string | null;
@@ -127,6 +128,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
     id: barId ?? '',
     introText: null,
     outroText: null,
+    quizPaused: false,
     pricingPounds: 12,
     theme: { ...DEFAULT_THEME },
     contactName: null,
@@ -195,7 +197,10 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
 
       try {
         const api = getApiUrl();
-        const token = session!.apiToken;
+        const token = session?.apiToken;
+        if (!token) {
+          throw new Error('Missing API token');
+        }
         const headers: HeadersInit = { Authorization: `Bearer ${token}` };
 
         const [detailResponse, settingsResponse] = await Promise.all([
@@ -220,6 +225,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           id: settingsResponse.id,
           introText: settingsResponse.introText,
           outroText: settingsResponse.outroText,
+          quizPaused: settingsResponse.quizPaused ?? false,
           pricingPounds: settingsResponse.pricingPounds,
           theme: mergedTheme,
           contactName: settingsResponse.contactName,
@@ -391,6 +397,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
         const payload: Record<string, unknown> = {
           introText: settings.introText ?? null,
           outroText: settings.outroText ?? null,
+          quizPaused: settings.quizPaused,
           pricingPounds: parsedPrice,
           theme: settings.theme,
           contactName: normalizeNullableString(settings.contactName),
@@ -420,6 +427,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           id: response.id,
           introText: response.introText,
           outroText: response.outroText,
+          quizPaused: response.quizPaused ?? false,
           pricingPounds: response.pricingPounds,
           theme: mergedTheme,
           contactName: response.contactName,
@@ -449,19 +457,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
         setIsSavingSettings(false);
       }
     },
-    [
-      addressForm,
-      barId,
-      bankForm,
-      isNew,
-      openingHoursInput,
-      paletteState,
-      pricingInput,
-      session?.apiToken,
-      settings,
-      status,
-      stockInput
-    ]
+    [barId, isNew, pricingInput, session?.apiToken, settings.introText, settings.outroText, settings.theme, status, settings.quizPaused]
   );
 
   const renderTabs = (
@@ -639,6 +635,27 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                         className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </label>
+
+                    <label className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/20 px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={settings.quizPaused}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            quizPaused: event.target.checked
+                          }))
+                        }
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-foreground">Busy-night mode (pause quiz)</div>
+                        <div className="text-xs text-muted-foreground">
+                          Stops new guest quiz sessions for this bar. Staff dashboard stays live.
+                        </div>
+                      </div>
+                    </label>
+
                     <label className="space-y-2">
                       <span className="text-sm font-medium text-foreground">Pricing (GBP)</span>
                       <input

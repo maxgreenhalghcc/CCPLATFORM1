@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+
 import { GenerateRecipeDto } from './dto/generate-recipe.dto';
 
 @Injectable()
@@ -48,10 +49,13 @@ export class RecipesService {
 
           // New Python recipe service: { id, recipe: {...} }
           if (data && typeof data === 'object' && 'recipe' in data) {
-            const { id, recipe } = data as { id?: string; recipe: any };
+            const { id, recipe } = data as unknown as {
+              id?: string;
+              recipe: Record<string, unknown>;
+            };
             return {
               id: id ?? `recipe_${dto.sessionId}`,
-              ...recipe,
+              ...(recipe ?? {}),
             };
           }
 

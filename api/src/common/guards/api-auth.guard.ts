@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { verify, JwtPayload } from 'jsonwebtoken';
+
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import { AuthenticatedUser } from '../interfaces/authenticated-user.interface';
 

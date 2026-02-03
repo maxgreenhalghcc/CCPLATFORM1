@@ -70,6 +70,10 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
         });
 
         if (!response.ok) {
+          if (response.status === 404) {
+            setError('This bar is paused right now. Please speak to staff.');
+            return;
+          }
           throw new Error(`Failed to start quiz session: ${response.status}`);
         }
 
@@ -190,7 +194,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
         const orderId = submitData.orderId;
 
         if (!PAYMENTS_ENABLED) {
-          router.push(`/receipt?orderId=${orderId}`);
+          router.push(`/receipt?orderId=${orderId}` as any);
           return;
         }
 
@@ -211,7 +215,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
         if (redirectPath.startsWith('http')) {
           window.location.href = redirectPath;
         } else {
-          router.push(redirectPath);
+          router.push(redirectPath as any);
         }
       });
     } catch (submitError) {

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
 import * as Sentry from '@sentry/node';
+
+import { PrismaService } from '../prisma/prisma.service';
 
 interface DateRange {
   from: Date;

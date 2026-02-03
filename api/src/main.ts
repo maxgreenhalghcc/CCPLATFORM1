@@ -6,6 +6,7 @@ import { Logger } from 'nestjs-pino';
 import { json, raw } from 'express';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+
 import { AppModule } from './app.module';
 
 const SENTRY_DSN =

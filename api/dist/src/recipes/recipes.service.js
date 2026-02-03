@@ -48,7 +48,7 @@ let RecipesService = RecipesService_1 = class RecipesService {
                 const { id, recipe } = data;
                 return {
                     id: id ?? `recipe_${dto.sessionId}`,
-                    ...recipe,
+                    ...(recipe ?? {}),
                 };
             }
             return data;

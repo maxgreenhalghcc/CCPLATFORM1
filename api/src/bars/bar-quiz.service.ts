@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, QuizSessionStatus } from '@prisma/client';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders.service';
 import { RecipesClient, RecipeBuildResult } from '../recipes/recipes.client';
@@ -62,6 +63,10 @@ export class BarQuizService {
       throw new NotFoundException('Bar not found');
     }
 
+    if (bar.settings.quizPaused) {
+      throw new NotFoundException('Quiz is paused');
+    }
+
     const theme = {
       ...DEFAULT_THEME,
       ...(bar.settings.theme as Record<string, string> | null | undefined),
@@ -103,6 +108,10 @@ export class BarQuizService {
       throw new NotFoundException('Bar not found');
     }
 
+    if (bar.settings.quizPaused) {
+      throw new NotFoundException('Quiz is paused');
+    }
+
     const session = await this.prisma.quizSession.create({
       data: {
         barId: bar.id,
@@ -119,27 +128,27 @@ export class BarQuizService {
 
     try {
       const answerMap: Record<string, string> = {};
-      Object.entries(dto.answers as any).forEach(([key, value]) => {
+      Object.entries(dto.answers as unknown as Record<string, unknown>).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           answerMap[key] = String(value);
         }
       });
 
-recipe = await this.recipesClient.buildRecipe(bar.id, answerMap, requestId);  
+      recipe = await this.recipesClient.buildRecipe(bar.id, answerMap, requestId);
 
     } catch (error) {
       this.logger.error('Recipe generation failed', error instanceof Error ? error.message : String(error));
       throw new ServiceUnavailableException('Unable to generate recipe');
     }
 
-    const recipeBody: Prisma.InputJsonValue = {
+    const recipeBody = {
       ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
       method: recipe.method ?? '',
       glassware: recipe.glassware ?? '',
       garnish: recipe.garnish ?? '',
       warnings: [],
       notes: recipe.notes ?? '',
-    } as any;
+    } as unknown as Prisma.InputJsonValue;
 
     const storedRecipe = await this.prisma.recipe.create({
       data: {
