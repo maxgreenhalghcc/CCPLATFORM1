@@ -53,6 +53,9 @@ async function bootstrap() {
   app.useLogger(logger);
 
   const httpAdapter = app.getHttpAdapter().getInstance();
+  // We are behind Nginx in production/staging; trust X-Forwarded-* so rate limiting works correctly.
+  httpAdapter.set('trust proxy', 1);
+
   if (SENTRY_DSN) {
     httpAdapter.use(Sentry.Handlers.requestHandler());
     httpAdapter.use(Sentry.Handlers.tracingHandler());
