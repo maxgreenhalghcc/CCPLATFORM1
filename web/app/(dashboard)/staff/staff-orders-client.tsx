@@ -112,7 +112,7 @@ function saveSoundEnabled(enabled: boolean) {
 }
 
 function playNotificationBeep() {
-  // Intentionally loud + short “ding” (still capped by device volume / silent mode)
+  // Fallback beep (if MP3 fails / blocked). Still capped by device volume.
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
@@ -134,7 +134,6 @@ function playNotificationBeep() {
     o1.start(t0);
     o2.start(t0);
 
-    // Attack → sustain → release (louder than previous 0.15 peak)
     gain.gain.exponentialRampToValueAtTime(0.35, t0 + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.08);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
@@ -142,15 +141,26 @@ function playNotificationBeep() {
     o1.stop(t0 + 0.24);
     o2.stop(t0 + 0.24);
 
-    const cleanup = () => {
+    o2.onended = () => {
       try {
         ctx.close();
       } catch {}
     };
-
-    o2.onended = cleanup;
   } catch {
-    // Ignore (audio may be blocked until user gesture)
+    // Ignore
+  }
+}
+
+async function playNotificationSoundMp3(): Promise<void> {
+  try {
+    const audio = new Audio('/sounds/notification.mp3');
+    audio.volume = 1;
+    // Ensure it plays from the beginning
+    audio.currentTime = 0;
+    await audio.play();
+  } catch {
+    // If MP3 fails (blocked/missing), fallback
+    playNotificationBeep();
   }
 }
 
@@ -249,7 +259,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
 
         // Sound (if enabled)
         if (soundEnabledRef.current) {
-          playNotificationBeep();
+          void playNotificationSoundMp3();
         }
       }
 
@@ -441,6 +451,14 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
             title={soundEnabled ? 'Sound notifications enabled' : 'Sound notifications disabled'}
           >
             {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
+          </button>
+          <button
+            onClick={() => void playNotificationSoundMp3()}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
+            title="Play a test notification sound"
+            type="button"
+          >
+            Test sound
           </button>
         </div>
         <p className="text-xs text-muted-foreground">
