@@ -456,14 +456,10 @@ export class OrdersService {
 
   async updateStatus(
     orderId: string,
-    status: 'fulfilled',
+    status: 'making' | 'served' | 'fulfilled',
     requester?: AuthenticatedUser,
   ) {
-    if (status !== 'fulfilled') {
-      throw new BadRequestException('Unsupported status transition');
-    }
-
-    return Sentry.startSpan({ name: 'orders.fulfill', op: 'service' }, async () => {
+    return Sentry.startSpan({ name: 'orders.status', op: 'service' }, async () => {
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
         select: {
@@ -471,6 +467,8 @@ export class OrdersService {
           status: true,
           fulfilledAt: true,
           barId: true,
+          claimedById: true,
+          claimedAt: true,
         },
       });
 
@@ -488,8 +486,51 @@ export class OrdersService {
         }
       }
 
-      // If already fulfilled, just ensure fulfilledAt is set and send the email once
-      if (order.status === PrismaOrderStatus.fulfilled) {
+      const currentStatus = order.status;
+
+      // === MAKING (claim) ===
+      if (status === 'making') {
+        if (currentStatus === PrismaOrderStatus.making) {
+          return {
+            id: order.id,
+            status: order.status,
+            fulfilledAt: order.fulfilledAt?.toISOString() ?? null,
+          };
+        }
+
+        if (currentStatus !== PrismaOrderStatus.paid) {
+          throw new ConflictException('Only paid orders can be moved to making');
+        }
+
+        const updated = await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: PrismaOrderStatus.making,
+            claimedById: requester?.sub ?? null,
+            claimedAt: new Date(),
+          },
+          select: {
+            id: true,
+            status: true,
+            fulfilledAt: true,
+          },
+        });
+
+        return {
+          id: updated.id,
+          status: updated.status,
+          fulfilledAt: updated.fulfilledAt?.toISOString() ?? null,
+        };
+      }
+
+      // Normalize served/fulfilled as the same terminal state.
+      const targetServed = status === 'served' || status === 'fulfilled';
+
+      // If already served (legacy fulfilled counts), idempotent.
+      if (
+        currentStatus === PrismaOrderStatus.served ||
+        currentStatus === PrismaOrderStatus.fulfilled
+      ) {
         if (!order.fulfilledAt) {
           const updated = await this.prisma.order.update({
             where: { id: order.id },
@@ -517,9 +558,13 @@ export class OrdersService {
         };
       }
 
-      // You can only move to fulfilled from paid
-      if (order.status !== PrismaOrderStatus.paid) {
-        throw new ConflictException('Only paid orders can be fulfilled');
+      if (!targetServed) {
+        throw new BadRequestException('Unsupported status transition');
+      }
+
+      // You can only move to served from paid or making
+      if (currentStatus !== PrismaOrderStatus.paid && currentStatus !== PrismaOrderStatus.making) {
+        throw new ConflictException('Only paid/making orders can be served');
       }
 
       const fulfilledAt = new Date();
@@ -527,7 +572,7 @@ export class OrdersService {
       const updated = await this.prisma.order.update({
         where: { id: order.id },
         data: {
-          status: PrismaOrderStatus.fulfilled,
+          status: PrismaOrderStatus.served,
           fulfilledAt,
         },
         select: {

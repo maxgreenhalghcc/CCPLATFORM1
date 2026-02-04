@@ -16,6 +16,9 @@ enum UserRole {
 enum OrderStatus {
   created
   paid
+  making
+  served
+  // Legacy (pre-lifecycle). Treat as served.
   fulfilled
   cancelled
 }
@@ -35,9 +38,10 @@ model User {
   barId         String?
   createdAt     DateTime  @default(now())
 
-  bar      Bar?      @relation(fields: [barId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  accounts Account[]
-  sessions Session[]
+  bar          Bar?    @relation(fields: [barId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  accounts     Account[]
+  sessions     Session[]
+  claimedOrders Order[]  @relation("OrderClaimedBy")
 }
 
 model Account {
@@ -185,17 +189,21 @@ model Order {
   stripeSessionId String?
   createdAt       DateTime    @default(now())
   fulfilledAt     DateTime?
+  claimedById     String?
+  claimedAt       DateTime?
   items           OrderItem[]
   recipeJson      Json?
   contact         String?
 
-  bar      Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  session  QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  recipe   Recipe?     @relation(fields: [recipeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  payments Payment[]
+  bar       Bar         @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  session   QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  recipe    Recipe?     @relation(fields: [recipeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  claimedBy User?       @relation("OrderClaimedBy", fields: [claimedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  payments  Payment[]
 
   @@unique([stripeSessionId])
   @@index([barId, status])
+  @@index([claimedById])
 }
 
 model OrderItem {

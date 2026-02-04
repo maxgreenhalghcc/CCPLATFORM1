@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useSession } from 'next-auth/react';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import * as Sentry from '@sentry/nextjs';
 import { toast } from 'sonner';
 
-export type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
+export type OrderStatus = 'created' | 'paid' | 'making' | 'served' | 'cancelled' | 'fulfilled';
 
 export interface OrderSummary {
   id: string;
@@ -30,12 +31,23 @@ interface UpdateStatusResponse {
   fulfilledAt: string | null;
 }
 
+function statusVariant(status: OrderStatus): 'primary' | 'muted' | 'success' {
+  if (status === 'created') return 'muted';
+  if (status === 'paid') return 'primary';
+  if (status === 'making') return 'primary';
+  if (status === 'served' || status === 'fulfilled') return 'success';
+  return 'muted';
+}
+
 function formatStatus(status: OrderStatus) {
   switch (status) {
     case 'created':
       return 'Awaiting payment';
     case 'paid':
       return 'Ready to mix';
+    case 'making':
+      return 'Making';
+    case 'served':
     case 'fulfilled':
       return 'Served';
     case 'cancelled':
@@ -132,16 +144,16 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
   const filteredOrders = useMemo(() => {
     if (filter === 'all') return orders;
     if (filter === 'pending') return orders.filter(o => o.status === 'created');
-    if (filter === 'paid') return orders.filter(o => o.status === 'paid');
-    if (filter === 'served') return orders.filter(o => o.status === 'fulfilled');
+    if (filter === 'paid') return orders.filter(o => o.status === 'paid' || o.status === 'making');
+    if (filter === 'served') return orders.filter(o => o.status === 'served' || o.status === 'fulfilled');
     return orders;
   }, [orders, filter]);
 
   const counts = useMemo(() => ({
     all: orders.length,
     pending: orders.filter(o => o.status === 'created').length,
-    paid: orders.filter(o => o.status === 'paid').length,
-    served: orders.filter(o => o.status === 'fulfilled').length,
+    paid: orders.filter(o => o.status === 'paid' || o.status === 'making').length,
+    served: orders.filter(o => o.status === 'served' || o.status === 'fulfilled').length,
   }), [orders]);
 
   const [isPolling, setIsPolling] = useState(true);
@@ -218,11 +230,11 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
         }
       }
 
-      // Clean up unread set: only keep paid orders that still exist
+      // Clean up unread set: only keep actionable orders that still exist
       setUnread((current) => {
         const next = new Set<string>();
         refreshed.forEach((order) => {
-          if (order.status === 'paid' && current.has(order.id)) {
+          if ((order.status === 'paid' || order.status === 'making') && current.has(order.id)) {
             next.add(order.id);
           }
         });
@@ -250,7 +262,51 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     return () => clearInterval(interval);
   }, [isPolling, refreshOrders]);
 
-  const handleFulfilled = async (orderId: string) => {
+  const handleMaking = async (orderId: string) => {
+    const token = session?.apiToken;
+    if (!token) {
+      setError('Session expired. Please refresh the page to sign in again.');
+      return;
+    }
+
+    const snapshot = orders.map((order) => ({ ...order }));
+
+    setPendingId(orderId);
+    setError(null);
+    setOrders((current) =>
+      current.map((order) => (order.id === orderId ? { ...order, status: 'making' } : order))
+    );
+
+    try {
+      const result = await Sentry.startSpan({ name: 'orders.making', op: 'ui.action' }, () =>
+        patchJson<UpdateStatusResponse>(
+          `${baseUrl}/v1/orders/${orderId}/status`,
+          { status: 'making' },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status: result.status,
+                fulfilledAt: result.fulfilledAt
+              }
+            : order
+        )
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      setOrders(snapshot);
+      setError('Unable to claim order. Please try again.');
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  const handleServed = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
       return;
     }
@@ -269,16 +325,16 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     setOrders((current) =>
       current.map((order) =>
         order.id === orderId
-          ? { ...order, status: 'fulfilled', fulfilledAt: optimisticTimestamp }
+          ? { ...order, status: 'served', fulfilledAt: optimisticTimestamp }
           : order
       )
     );
 
     try {
-      const result = await Sentry.startSpan({ name: 'orders.fulfill', op: 'ui.action' }, () =>
+      const result = await Sentry.startSpan({ name: 'orders.served', op: 'ui.action' }, () =>
         patchJson<UpdateStatusResponse>(
           `${baseUrl}/v1/orders/${orderId}/status`,
-          { status: 'fulfilled' },
+          { status: 'served' },
           { headers: { Authorization: `Bearer ${token}` } }
         )
       );
@@ -448,13 +504,13 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
                     <p className="text-xs text-muted-foreground">Guest order</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide">
-                    <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
+                    <Badge variant={statusVariant(order.status)}>
                       {formatStatus(order.status)}
-                    </span>
+                    </Badge>
                     {isUnread ? (
-                      <span className="rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-semibold tracking-wide text-amber-700">
+                      <Badge variant="warning" size="sm">
                         Unread
-                      </span>
+                      </Badge>
                     ) : null}
                     {fulfilledLabel ? (
                       <span className="text-muted-foreground">Served {fulfilledLabel}</span>
@@ -468,9 +524,15 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
                     </Link>
                   </Button>
                   {order.status === 'paid' ? (
-                    <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
+                    <Button size="sm" onClick={() => handleMaking(order.id)} disabled={isPending}>
+                      {isPending ? 'Claiming…' : 'Claim'}
+                    </Button>
+                  ) : order.status === 'making' ? (
+                    <Button size="sm" onClick={() => handleServed(order.id)} disabled={isPending}>
                       {isPending ? 'Marking…' : 'Mark served'}
                     </Button>
+                  ) : order.status === 'served' || order.status === 'fulfilled' ? (
+                    <span className="text-xs text-muted-foreground">Served</span>
                   ) : (
                     <span className="text-xs text-muted-foreground">Awaiting payment</span>
                   )}
