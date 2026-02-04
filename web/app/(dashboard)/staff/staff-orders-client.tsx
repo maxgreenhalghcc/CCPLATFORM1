@@ -310,6 +310,9 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
       current.map((order) => (order.id === orderId ? { ...order, status: 'making' } : order))
     );
 
+    // Accepting the order clears its unread/alert state.
+    markRead(orderId);
+
     try {
       const result = await Sentry.startSpan({ name: 'orders.making', op: 'ui.action' }, () =>
         patchJson<UpdateStatusResponse>(
@@ -399,6 +402,87 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
       return next;
     });
   }, []);
+
+  // === ALERT LOOP ===
+  const alertIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const alertCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const alertWindowTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopAlertLoop = useCallback(() => {
+    if (alertIntervalRef.current) {
+      clearInterval(alertIntervalRef.current);
+      alertIntervalRef.current = null;
+    }
+    if (alertCooldownRef.current) {
+      clearTimeout(alertCooldownRef.current);
+      alertCooldownRef.current = null;
+    }
+    if (alertWindowTimeoutRef.current) {
+      clearTimeout(alertWindowTimeoutRef.current);
+      alertWindowTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startAlertLoop = useCallback(() => {
+    // Already running
+    if (alertIntervalRef.current || alertWindowTimeoutRef.current || alertCooldownRef.current) {
+      return;
+    }
+
+    const startWindow = () => {
+      // Play immediately, then every few seconds for 30 seconds.
+      void playNotificationSoundMp3();
+      alertIntervalRef.current = setInterval(() => {
+        void playNotificationSoundMp3();
+      }, 5000);
+
+      alertWindowTimeoutRef.current = setTimeout(() => {
+        if (alertIntervalRef.current) {
+          clearInterval(alertIntervalRef.current);
+          alertIntervalRef.current = null;
+        }
+        if (alertWindowTimeoutRef.current) {
+          clearTimeout(alertWindowTimeoutRef.current);
+          alertWindowTimeoutRef.current = null;
+        }
+
+        // Cooldown for 30 seconds, then repeat
+        alertCooldownRef.current = setTimeout(() => {
+          if (alertCooldownRef.current) {
+            clearTimeout(alertCooldownRef.current);
+            alertCooldownRef.current = null;
+          }
+          startWindow();
+        }, 30000);
+      }, 30000);
+    };
+
+    startWindow();
+  }, []);
+
+  // Attention = unread paid orders that haven’t been accepted yet.
+  const needsAttention = useMemo(() => {
+    if (!unread.size) return false;
+    return orders.some((order) => order.status === 'paid' && unread.has(order.id));
+  }, [orders, unread]);
+
+  useEffect(() => {
+    if (!soundEnabled) {
+      stopAlertLoop();
+      return;
+    }
+
+    if (needsAttention) {
+      startAlertLoop();
+    } else {
+      stopAlertLoop();
+    }
+
+    return () => {
+      // avoid dangling timers
+      stopAlertLoop();
+    };
+  }, [needsAttention, soundEnabled, startAlertLoop, stopAlertLoop]);
 
   const unreadCount = unread.size;
 
@@ -566,7 +650,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
                   </Button>
                   {order.status === 'paid' ? (
                     <Button size="sm" onClick={() => handleMaking(order.id)} disabled={isPending}>
-                      {isPending ? 'Claiming…' : 'Claim'}
+                      {isPending ? 'Accepting…' : 'Accept'}
                     </Button>
                   ) : order.status === 'making' ? (
                     <Button size="sm" onClick={() => handleServed(order.id)} disabled={isPending}>
