@@ -460,11 +460,11 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     startWindow();
   }, []);
 
-  // Attention = unread paid orders that haven’t been accepted yet.
+  // Attention = any paid orders that haven’t been accepted yet.
+  // This avoids missing alerts after a hard refresh (where the “new order” diff is lost).
   const needsAttention = useMemo(() => {
-    if (!unread.size) return false;
-    return orders.some((order) => order.status === 'paid' && unread.has(order.id));
-  }, [orders, unread]);
+    return orders.some((order) => order.status === 'paid');
+  }, [orders]);
 
   useEffect(() => {
     if (!soundEnabled) {
@@ -479,10 +479,22 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     }
 
     return () => {
-      // avoid dangling timers
       stopAlertLoop();
     };
   }, [needsAttention, soundEnabled, startAlertLoop, stopAlertLoop]);
+
+  // Ensure paid orders present on initial render are treated as needing attention.
+  useEffect(() => {
+    setUnread((current) => {
+      const next = new Set(current);
+      orders.forEach((order) => {
+        if (order.status === 'paid') {
+          next.add(order.id);
+        }
+      });
+      return next;
+    });
+  }, [orders]);
 
   const unreadCount = unread.size;
 
