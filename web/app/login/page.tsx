@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
+import { Field, Input } from '@/components/ui/input';
 
 type Status = 'idle' | 'pending' | 'sent' | 'error';
 
@@ -115,17 +116,15 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         {mode === 'email' && (
           <form className="space-y-4" onSubmit={handleEmailSubmit}>
             <div>
-              <label className="block text-sm font-medium">
-                Staff or admin email
-                <input
-                  className="cc-input"
+              <Field label="Staff or admin email">
+                <Input
                   type="email"
                   required
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="staff@demo.bar"
                 />
-              </label>
+              </Field>
             </div>
 
             <Button className="w-full" type="submit" disabled={isPending}>
@@ -151,22 +150,18 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         {mode === 'pin' && (
           <form className="space-y-4" onSubmit={handlePinSubmit}>
             <div className="space-y-3">
-              <label className="block text-sm font-medium">
-                Bar slug
-                <input
-                  className="cc-input"
+              <Field label="Bar slug" helper="Usually demo-bar on staging.">
+                <Input
                   type="text"
                   required
                   value={slug}
                   onChange={(event) => setSlug(event.target.value)}
                   placeholder="demo-bar"
                 />
-              </label>
+              </Field>
 
-              <label className="block text-sm font-medium">
-                Staff PIN
-                <input
-                  className="cc-input"
+              <Field label="Staff PIN">
+                <Input
                   type="password"
                   inputMode="numeric"
                   required
@@ -174,7 +169,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                   onChange={(event) => setPin(event.target.value)}
                   placeholder="1234"
                 />
-              </label>
+              </Field>
             </div>
 
             <Button className="w-full" type="submit" disabled={isPending}>
