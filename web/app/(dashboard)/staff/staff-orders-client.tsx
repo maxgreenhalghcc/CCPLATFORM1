@@ -146,13 +146,19 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
 
   const [isPolling, setIsPolling] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled());
+  const soundEnabledRef = useRef(soundEnabled);
   const [unread, setUnread] = useState<Set<string>>(() => loadUnread());
   const previousOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)));
 
   useEffect(() => {
     saveUnread(unread);
   }, [unread]);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+    saveSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
 
   const refreshOrders = useCallback(async () => {
     const token = session?.apiToken;
@@ -185,41 +191,30 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
         recipeName: item.recipeName ?? 'Custom cocktail',
       }));
 
-      // Detect new orders
-      const currentIds = new Set(refreshed.map(o => o.id));
-      const newOrders = refreshed.filter(o => !previousOrderIdsRef.current.has(o.id));
-      
-      if (newOrders.length > 0) {
+      // Detect new PAID orders (the ones staff care about)
+      const currentIds = new Set(refreshed.map((o) => o.id));
+      const newOrders = refreshed.filter((o) => !previousOrderIdsRef.current.has(o.id));
+      const newPaidOrders = newOrders.filter((o) => o.status === 'paid');
+
+      if (newPaidOrders.length > 0) {
         // Mark paid orders as unread for attention
         setUnread((current) => {
           const next = new Set(current);
-          newOrders.forEach((order) => {
-            if (order.status === 'paid') {
-              next.add(order.id);
-            }
-          });
+          newPaidOrders.forEach((order) => next.add(order.id));
           return next;
         });
 
-        // Show toast for new orders
-        newOrders.forEach(order => {
-          const statusLabel = order.status === 'paid' ? '💳 Ready to mix' : '⏳ Awaiting payment';
-          toast.success(`New order: ${order.recipeName}`, {
-            description: statusLabel,
+        // Toast(s)
+        newPaidOrders.forEach((order) => {
+          toast.success(`New paid order: ${order.recipeName}`, {
+            description: 'Ready to mix',
             duration: 5000,
           });
         });
 
-        // Play sound if enabled
-        if (soundEnabled) {
-          try {
-            const audio = new Audio('/sounds/notification.mp3');
-            void audio.play().catch(() => {
-              // Silent fail if sound can't play (e.g., no interaction yet)
-            });
-          } catch {
-            // Silent fail
-          }
+        // Sound (if enabled)
+        if (soundEnabledRef.current) {
+          playNotificationBeep();
         }
       }
 
@@ -340,7 +335,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
 
       {/* Polling controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card/50 p-3">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => void refreshOrders()}
             className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
@@ -358,7 +353,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
             {isPolling ? '● Auto-refresh ON' : 'Auto-refresh OFF'}
           </button>
           <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
+            onClick={() => setSoundEnabled((current) => !current)}
             className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
               soundEnabled
                 ? 'border-primary/50 bg-primary/10 text-primary'
