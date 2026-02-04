@@ -21,7 +21,7 @@ const sections: Section[] = [
 
 export default function HelpPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-10 px-4 py-10 sm:flex-row sm:gap-14 sm:px-6 lg:px-8">
+    <main className="cc-page cc-page-section flex min-h-screen max-w-5xl flex-col gap-10 sm:flex-row sm:gap-14">
       {/* Sidebar navigation (desktop) */}
       <aside className="sm:w-56 sm:shrink-0">
         <div className="mb-6">

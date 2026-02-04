@@ -11,7 +11,7 @@ export default function CheckoutCancelPage({ searchParams }: CancelPageProps) {
   const orderId = searchParams?.orderId;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-6 py-16">
+    <div className="cc-page cc-page-section flex min-h-screen max-w-3xl flex-col gap-6">
       <header className="space-y-2 text-center">
         <h1 className="text-3xl font-semibold">Checkout cancelled</h1>
         <p className="text-muted-foreground">

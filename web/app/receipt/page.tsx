@@ -62,7 +62,7 @@ export default async function ReceiptPage({ searchParams }: ReceiptPageProps) {
   const warnings = normalizeWarnings(Array.isArray(recipe.warnings) ? recipe.warnings : []);
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-4xl px-6 py-16">
+    <div className="cc-page cc-page-section min-h-screen max-w-4xl">
       <header className="space-y-3 text-center">
         <p className="text-xs uppercase tracking-[0.45em] text-muted-foreground">Your bespoke cocktail</p>
         <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">{recipe.name}</h1>

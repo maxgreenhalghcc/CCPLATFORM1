@@ -28,7 +28,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
   const bar = await loadBar(params.barSlug);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-10 px-6 py-14">
+    <div className="cc-page cc-page-section flex min-h-screen max-w-5xl flex-col gap-10">
       <header className="space-y-2 text-center">
         <p className="text-xs uppercase tracking-[0.45em] text-muted-foreground">
           Mixology quiz

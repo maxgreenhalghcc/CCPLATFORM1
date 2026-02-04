@@ -153,7 +153,7 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
     .filter((entry): entry is { name: string; amount: string } => Boolean(entry));
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-16">
+    <div className="cc-page cc-page-section flex w-full max-w-4xl flex-col gap-8">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           Order #{initialOrder.orderId}

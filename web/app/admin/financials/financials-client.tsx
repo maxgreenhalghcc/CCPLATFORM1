@@ -216,7 +216,7 @@ export default function AdminFinancialsClient() {
   const showInitialSkeleton = isLoading && !revenue && !orders && !error;
 
   return (
-    <div className="space-y-10 px-6 py-16">
+    <div className="cc-page cc-page-section space-y-10">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Financial dashboard</h1>
         <p className="text-sm text-muted-foreground">

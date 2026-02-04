@@ -1,6 +1,6 @@
 export default function AdminIngredientsPage() {
   return (
-    <div className="space-y-6 px-6 py-16">
+    <div className="cc-page cc-page-section space-y-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Ingredients</h1>
         <p className="text-sm text-muted-foreground">

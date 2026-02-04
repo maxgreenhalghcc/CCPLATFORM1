@@ -122,7 +122,7 @@ export default function BarsClient() {
   const items = useMemo(() => data?.items ?? [], [data]);
 
   return (
-    <div className="space-y-8 px-6 py-16">
+    <div className="cc-page cc-page-section space-y-8">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -141,7 +141,7 @@ export default function BarsClient() {
             placeholder="Search by name, slug, or location"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="h-10 w-full max-w-md rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="cc-input h-10 max-w-md"
             aria-label="Search bars"
           />
           <div className="flex items-center gap-2">

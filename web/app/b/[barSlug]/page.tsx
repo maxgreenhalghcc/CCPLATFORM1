@@ -33,7 +33,7 @@ export default async function BarLandingPage({ params }: BarPageProps) {
   const bar = await loadBar(params.barSlug);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-16 px-6 py-20">
+    <div className="cc-page cc-page-section flex min-h-screen max-w-5xl flex-col gap-16">
       <header className="space-y-3 text-center">
         <span className="text-xs uppercase tracking-[0.45em] text-muted-foreground">
           {bar.location ?? 'Your favourite bar'}

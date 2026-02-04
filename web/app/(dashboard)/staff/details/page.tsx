@@ -78,7 +78,7 @@ export default async function StaffDetailsPage() {
     settings = await fetchBarSettings(barIdentifier, session.apiToken);
   } catch (error) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-6 py-16">
+      <div className="cc-page cc-page-section flex min-h-screen max-w-4xl flex-col gap-6">
         <header className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold">Venue details</h1>
           <p className="text-muted-foreground">Unable to load the bar configuration for this account.</p>
@@ -107,7 +107,7 @@ export default async function StaffDetailsPage() {
   const swatches = paletteSwatches(settings.brandPalette);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-6 py-16">
+    <div className="cc-page cc-page-section flex min-h-screen max-w-5xl flex-col gap-8">
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Venue details</h1>
         <p className="text-muted-foreground">

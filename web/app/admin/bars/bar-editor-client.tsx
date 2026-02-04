@@ -496,8 +496,8 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
   );
 
   return (
-    <div className="px-6 py-16">
-      <div className="mx-auto max-w-5xl space-y-8">
+    <div className="cc-page cc-page-section max-w-5xl">
+      <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-semibold">
             {isNew ? 'Create a new bar' : `Manage ${detail.name || 'bar'}`}
@@ -538,7 +538,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                       onChange={(event) =>
                         setDetail((current) => ({ ...current, name: event.target.value }))
                       }
-                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="cc-input h-10"
                     />
                   </label>
                   <label className="space-y-2">
@@ -573,7 +573,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                       onChange={(event) =>
                         setDetail((current) => ({ ...current, location: event.target.value }))
                       }
-                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="cc-input h-10"
                       placeholder="City or region"
                     />
                   </label>
@@ -655,7 +655,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                         step="0.5"
                         value={pricingInput}
                         onChange={(event) => setPricingInput(event.target.value)}
-                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="cc-input h-10"
                         required
                       />
                     </label>
@@ -673,7 +673,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               theme: { ...current.theme, [key]: event.target.value }
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="#000000"
                         />
                       </label>
@@ -696,7 +696,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               contactName: event.target.value
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="e.g. Alex Turner"
                         />
                       </label>
@@ -711,7 +711,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               contactEmail: event.target.value
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="owner@bar.com"
                         />
                       </label>
@@ -725,7 +725,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               contactPhone: event.target.value
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="+44 20 0000 0000"
                         />
                       </label>
@@ -745,7 +745,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setAddressForm((current) => ({ ...current, line1: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="123 High Street"
                         />
                       </label>
@@ -756,7 +756,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setAddressForm((current) => ({ ...current, line2: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="Suite or building"
                         />
                       </label>
@@ -767,7 +767,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setAddressForm((current) => ({ ...current, city: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="London"
                         />
                       </label>
@@ -778,7 +778,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setAddressForm((current) => ({ ...current, postcode: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="E1 6AN"
                         />
                       </label>
@@ -789,7 +789,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setAddressForm((current) => ({ ...current, country: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="United Kingdom"
                         />
                       </label>
@@ -836,7 +836,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               stockListUrl: event.target.value
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="https://cdn.example.com/bars/demo-bar/stock.pdf"
                         />
                       </label>
@@ -856,7 +856,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setBankForm((current) => ({ ...current, accountName: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="Demo Bar Ltd"
                         />
                       </label>
@@ -867,7 +867,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setBankForm((current) => ({ ...current, accountNumber: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="00012345"
                         />
                       </label>
@@ -878,7 +878,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setBankForm((current) => ({ ...current, sortCode: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="00-00-00"
                         />
                       </label>
@@ -889,7 +889,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           onChange={(event) =>
                             setBankForm((current) => ({ ...current, iban: event.target.value }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="GB00BARC00000000000000"
                         />
                       </label>
@@ -924,7 +924,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               stripeConnectId: event.target.value
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="acct_123456789"
                         />
                       </label>
@@ -938,7 +938,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               stripeConnectLink: event.target.value
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="https://dashboard.stripe.com/..."
                         />
                       </label>
@@ -952,7 +952,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                               logoUrl: event.target.value
                             }))
                           }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="cc-input h-10"
                           placeholder="https://cdn.example.com/bars/demo-bar/logo.png"
                         />
                       </label>
