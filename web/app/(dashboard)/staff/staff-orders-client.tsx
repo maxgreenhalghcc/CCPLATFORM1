@@ -112,20 +112,43 @@ function saveSoundEnabled(enabled: boolean) {
 }
 
 function playNotificationBeep() {
+  // Intentionally loud + short “ding” (still capped by device volume / silent mode)
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'sine';
-    o.frequency.value = 880;
-    g.gain.value = 0.001;
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-    o.stop(ctx.currentTime + 0.2);
-    o.onended = () => ctx.close();
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.0001;
+    gain.connect(ctx.destination);
+
+    const o1 = ctx.createOscillator();
+    o1.type = 'square';
+    o1.frequency.value = 880;
+    o1.connect(gain);
+
+    const o2 = ctx.createOscillator();
+    o2.type = 'square';
+    o2.frequency.value = 660;
+    o2.connect(gain);
+
+    const t0 = ctx.currentTime;
+    o1.start(t0);
+    o2.start(t0);
+
+    // Attack → sustain → release (louder than previous 0.15 peak)
+    gain.gain.exponentialRampToValueAtTime(0.35, t0 + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+
+    o1.stop(t0 + 0.24);
+    o2.stop(t0 + 0.24);
+
+    const cleanup = () => {
+      try {
+        ctx.close();
+      } catch {}
+    };
+
+    o2.onended = cleanup;
   } catch {
     // Ignore (audio may be blocked until user gesture)
   }
