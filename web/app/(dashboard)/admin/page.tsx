@@ -28,7 +28,7 @@ export default async function AdminDashboardPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-16">
+    <div className="cc-page cc-page-section flex min-h-screen flex-col gap-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold">Admin console</h1>
         <p className="text-muted-foreground">
@@ -37,7 +37,7 @@ export default async function AdminDashboardPage() {
       </header>
       <section className="grid gap-6 md:grid-cols-2">
         {cards.map((card) => (
-          <article className="flex flex-col gap-3 rounded-2xl border bg-card p-6 shadow-sm" key={card.href}>
+          <article className="cc-card flex flex-col gap-3" key={card.href}>
             <div>
               <h2 className="text-xl font-semibold">{card.title}</h2>
               <p className="text-sm text-muted-foreground">{card.description}</p>

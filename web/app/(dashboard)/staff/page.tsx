@@ -62,15 +62,15 @@ export default async function StaffDashboardPage() {
   const barId = session.user.barId ?? 'demo-bar';
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-16">
+    <div className="cc-page cc-page-section flex min-h-screen flex-col gap-8">
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Staff orders</h1>
         <p className="text-muted-foreground">
           Monitor live orders and access generated recipes once payments clear.
         </p>
         <nav className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">Orders</span>
-          <Link className="rounded-full border border-border px-3 py-1 transition hover:border-primary/60 hover:text-foreground" href="/staff/details">
+          <span className="cc-chip bg-primary/10 text-primary">Orders</span>
+          <Link className="cc-chip border border-border text-muted-foreground transition hover:border-primary/60 hover:text-foreground" href="/staff/details">
             Venue details
           </Link>
         </nav>

@@ -43,7 +43,24 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['var(--font-sans)', ...fontFamily.sans]
-      }
+      },
+      fontSize: {
+        // Premium SaaS scale (keeps hierarchy consistent)
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['0.9375rem', { lineHeight: '1.5rem' }],
+        lg: ['1.0625rem', { lineHeight: '1.75rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+      },
+      boxShadow: {
+        card: '0 1px 0 rgba(255,255,255,0.04), 0 12px 30px rgba(0,0,0,0.35)',
+      },
+      letterSpacing: {
+        tightest: '-0.04em',
+      },
     }
   },
   plugins: [require('tailwindcss-animate')]

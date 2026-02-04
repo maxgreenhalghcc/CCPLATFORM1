@@ -64,8 +64,9 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
   const isPending = status === 'pending';
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-sm space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="cc-page cc-page-section flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-md cc-card space-y-6">
         {/* Header */}
         <header className="space-y-1 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -117,7 +118,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
               <label className="block text-sm font-medium">
                 Staff or admin email
                 <input
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                  className="cc-input"
                   type="email"
                   required
                   value={email}
@@ -153,7 +154,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
               <label className="block text-sm font-medium">
                 Bar slug
                 <input
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                  className="cc-input"
                   type="text"
                   required
                   value={slug}
@@ -165,7 +166,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
               <label className="block text-sm font-medium">
                 Staff PIN
                 <input
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                  className="cc-input"
                   type="password"
                   inputMode="numeric"
                   required
@@ -194,6 +195,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             ) : null}
           </form>
         )}
+        </div>
       </div>
     </div>
   );
