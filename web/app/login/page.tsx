@@ -4,13 +4,15 @@ import { FormEvent, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
-interface LoginFormProps {
-  callbackUrl?: string;
-}
-
 type Status = 'idle' | 'pending' | 'sent' | 'error';
 
-export default function LoginForm({ callbackUrl }: LoginFormProps) {
+type LoginPageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default function LoginPage({ searchParams }: LoginPageProps) {
+  const callbackParam = searchParams?.callbackUrl;
+  const callbackUrl = typeof callbackParam === 'string' ? callbackParam : undefined;
   const [mode, setMode] = useState<'email' | 'pin'>('email');
 
   const [email, setEmail] = useState('');
