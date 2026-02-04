@@ -429,12 +429,17 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
       return;
     }
 
+    // Tunables
+    const ALERT_ON_MS = 60000; // how long we keep beeping
+    const ALERT_OFF_MS = 15000; // silence between windows
+    const BEEP_EVERY_MS = 4000;
+
     const startWindow = () => {
-      // Play immediately, then every few seconds for 30 seconds.
+      // Play immediately, then every few seconds for a window.
       void playNotificationSoundMp3();
       alertIntervalRef.current = setInterval(() => {
         void playNotificationSoundMp3();
-      }, 5000);
+      }, BEEP_EVERY_MS);
 
       alertWindowTimeoutRef.current = setTimeout(() => {
         if (alertIntervalRef.current) {
@@ -446,15 +451,15 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
           alertWindowTimeoutRef.current = null;
         }
 
-        // Cooldown for 30 seconds, then repeat
+        // Cooldown (silence), then repeat
         alertCooldownRef.current = setTimeout(() => {
           if (alertCooldownRef.current) {
             clearTimeout(alertCooldownRef.current);
             alertCooldownRef.current = null;
           }
           startWindow();
-        }, 30000);
-      }, 30000);
+        }, ALERT_OFF_MS);
+      }, ALERT_ON_MS);
     };
 
     startWindow();
