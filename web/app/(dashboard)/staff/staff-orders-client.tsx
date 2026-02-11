@@ -146,7 +146,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
 
   const [isPolling, setIsPolling] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled());
   const [unread, setUnread] = useState<Set<string>>(() => loadUnread());
   const previousOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)));
 
@@ -154,13 +154,17 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     saveUnread(unread);
   }, [unread]);
 
+  useEffect(() => {
+    saveSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
+
   const refreshOrders = useCallback(async () => {
     const token = session?.apiToken;
     if (!token) return;
 
     try {
-      const barId = session.user?.barId ?? 'demo-bar';
-      const res = await fetch(`${baseUrl}/v1/bars/${barId}/orders`, {
+      const targetBarId = barId || session.user?.barId || 'demo-bar';
+      const res = await fetch(`${baseUrl}/v1/bars/${targetBarId}/orders`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store'
       });
@@ -332,6 +336,18 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     const permission = await Notification.requestPermission();
     setBanner(permission === 'granted' ? 'Browser notifications enabled.' : 'Browser notifications blocked.');
   };
+  const testSound = () => {
+    // Needs user gesture in most browsers; this button provides it.
+    playNotificationBeep();
+    try {
+      const audio = new Audio('/sounds/notification.mp3');
+      void audio.play().catch(() => {
+        // ignore
+      });
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -368,6 +384,13 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
           >
             {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
           </button>
+          <button
+            onClick={testSound}
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
+          >
+            Test sound
+          </button>
+
         </div>
         <p className="text-xs text-muted-foreground">
           Last updated: {lastRefreshed.toLocaleTimeString()}

@@ -4,6 +4,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 FROM base AS deps
+# Build requires devDependencies (TypeScript/Nest CLI/types). Runner stays production.
+ENV NODE_ENV=development
 COPY package*.json ./
 RUN npm install
 
