@@ -66,6 +66,7 @@ function formatFulfilledAt(value: string | null) {
 
 const UNREAD_KEY = 'cc.staff.unreadOrders.v1';
 const SOUND_KEY = 'cc.staff.soundEnabled.v1';
+const ACCEPTED_KEY = 'cc.staff.acceptedOrders.v1';
 
 function loadUnread(): Set<string> {
   if (typeof window === 'undefined') return new Set();
@@ -97,6 +98,24 @@ function loadSoundEnabled(): boolean {
 function saveSoundEnabled(enabled: boolean) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(SOUND_KEY, enabled ? 'true' : 'false');
+}
+
+function loadAccepted(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(ACCEPTED_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((v) => typeof v === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveAccepted(accepted: Set<string>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(ACCEPTED_KEY, JSON.stringify(Array.from(accepted)));
 }
 
 function playNotificationBeep() {
@@ -148,11 +167,16 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [soundEnabled, setSoundEnabled] = useState(() => loadSoundEnabled());
   const [unread, setUnread] = useState<Set<string>>(() => loadUnread());
+  const [accepted, setAccepted] = useState<Set<string>>(() => loadAccepted());
   const previousOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)));
 
   useEffect(() => {
     saveUnread(unread);
   }, [unread]);
+
+  useEffect(() => {
+    saveAccepted(accepted);
+  }, [accepted]);
 
   useEffect(() => {
     saveSoundEnabled(soundEnabled);
@@ -198,7 +222,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
         setUnread((current) => {
           const next = new Set(current);
           newOrders.forEach((order) => {
-            if (order.status === 'paid') {
+            if (order.status === 'paid' && !accepted.has(order.id)) {
               next.add(order.id);
             }
           });
@@ -227,11 +251,11 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
         }
       }
 
-      // Clean up unread set: only keep paid orders that still exist
+      // Clean up unread set: keep only PAID orders that still exist and aren't accepted on this device
       setUnread((current) => {
         const next = new Set<string>();
         refreshed.forEach((order) => {
-          if (order.status === 'paid' && current.has(order.id)) {
+          if (order.status === 'paid' && current.has(order.id) && !accepted.has(order.id)) {
             next.add(order.id);
           }
         });
@@ -258,6 +282,31 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
 
     return () => clearInterval(interval);
   }, [isPolling, refreshOrders]);
+
+  const needsAttentionCount = useMemo(() => {
+    return orders.filter((o) => o.status === 'paid' && unread.has(o.id) && !accepted.has(o.id)).length;
+  }, [orders, unread, accepted]);
+
+  // Loop sound until orders are accepted (device-local)
+  useEffect(() => {
+    if (!soundEnabled) return;
+    if (needsAttentionCount <= 0) return;
+
+    const interval = window.setInterval(() => {
+      // repeat alert while there are unseen paid orders
+      playNotificationBeep();
+      try {
+        const audio = new Audio('/sounds/notification.mp3');
+        void audio.play().catch(() => {
+          // ignore
+        });
+      } catch {
+        // ignore
+      }
+    }, 10000);
+
+    return () => window.clearInterval(interval);
+  }, [soundEnabled, needsAttentionCount]);
 
   const handleFulfilled = async (orderId: string) => {
     if (!window.confirm('Mark this order as served?')) {
@@ -313,6 +362,20 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
   };
 
   const markRead = useCallback((orderId: string) => {
+    setUnread((current) => {
+      const next = new Set(current);
+      next.delete(orderId);
+      return next;
+    });
+  }, []);
+
+  const acceptOrder = useCallback((orderId: string) => {
+    // Device-local accept: stops sound + clears unread without needing a DB change.
+    setAccepted((current) => {
+      const next = new Set(current);
+      next.add(orderId);
+      return next;
+    });
     setUnread((current) => {
       const next = new Set(current);
       next.delete(orderId);
@@ -496,9 +559,16 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
                     </Link>
                   </Button>
                   {order.status === 'paid' ? (
-                    <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
-                      {isPending ? 'Marking…' : 'Mark served'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {isUnread && !accepted.has(order.id) ? (
+                        <Button size="sm" onClick={() => acceptOrder(order.id)} variant="default">
+                          Accept
+                        </Button>
+                      ) : null}
+                      <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
+                        {isPending ? 'Marking…' : 'Mark served'}
+                      </Button>
+                    </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">Awaiting payment</span>
                   )}
