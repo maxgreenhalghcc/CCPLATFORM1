@@ -4,9 +4,10 @@ import { ConfigModule } from '@nestjs/config';
 import { WebhooksController } from './webhooks.controller';
 import { WebhooksService } from './webhooks.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { OrdersModule } from '../orders/orders.module';
 
 @Module({
-  imports: [ConfigModule, PrismaModule],
+  imports: [ConfigModule, PrismaModule, OrdersModule],
   controllers: [WebhooksController],
   providers: [WebhooksService]
 })

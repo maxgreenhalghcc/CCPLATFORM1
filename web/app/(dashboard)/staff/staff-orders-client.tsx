@@ -8,6 +8,7 @@ import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import { AnimatePresence, motion, FadeIn, DURATION, EASE } from '@/app/components/motion';
 import * as Sentry from '@sentry/nextjs';
 import { toast } from 'sonner';
+import { useOrderStream } from './use-order-stream';
 
 export type OrderStatus = 'created' | 'paid' | 'cancelled' | 'fulfilled';
 
@@ -171,6 +172,47 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
   const [accepted, setAccepted] = useState<Set<string>>(() => loadAccepted());
   const previousOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)));
 
+  const handleSseOrder = useCallback((order: { id: string; recipeName: string; status: string; createdAt: string }) => {
+    setOrders((current) => {
+      if (current.some((o) => o.id === order.id)) return current;
+      const newOrder: OrderSummary = {
+        id: order.id,
+        status: order.status as OrderStatus,
+        createdAt: order.createdAt,
+        fulfilledAt: null,
+        recipeName: order.recipeName,
+      };
+      return [newOrder, ...current];
+    });
+
+    previousOrderIdsRef.current.add(order.id);
+
+    setUnread((current) => {
+      const next = new Set(current);
+      next.add(order.id);
+      return next;
+    });
+
+    toast.success(`New order: ${order.recipeName}`, {
+      description: '💳 Ready to mix',
+      duration: 5000,
+    });
+
+    if (soundEnabled) {
+      playNotificationBeep();
+      try {
+        const audio = new Audio('/sounds/notification.wav');
+        void audio.play().catch(() => {});
+      } catch {}
+    }
+  }, [soundEnabled]);
+
+  const { connected: sseConnected } = useOrderStream({
+    barId,
+    token: session?.apiToken as string | undefined,
+    onNewOrder: handleSseOrder,
+  });
+
   useEffect(() => {
     saveUnread(unread);
   }, [unread]);
@@ -242,7 +284,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
         // Play sound if enabled
         if (soundEnabled) {
           try {
-            const audio = new Audio('/sounds/notification.mp3');
+            const audio = new Audio('/sounds/notification.wav');
             void audio.play().catch(() => {
               // Silent fail if sound can't play (e.g., no interaction yet)
             });
@@ -273,16 +315,17 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     }
   }, [session, baseUrl]);
 
-  // Auto-refresh every 30 seconds when polling is enabled
+  // Auto-refresh: 60s when SSE connected, 30s otherwise
+  const pollInterval = sseConnected ? 60000 : 30000;
   useEffect(() => {
     if (!isPolling) return;
 
     const interval = setInterval(() => {
       void refreshOrders();
-    }, 30000);
+    }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [isPolling, refreshOrders]);
+  }, [isPolling, refreshOrders, pollInterval]);
 
   const needsAttentionCount = useMemo(() => {
     return orders.filter((o) => o.status === 'paid' && unread.has(o.id) && !accepted.has(o.id)).length;
@@ -297,7 +340,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
       // repeat alert while there are unseen paid orders
       playNotificationBeep();
       try {
-        const audio = new Audio('/sounds/notification.mp3');
+        const audio = new Audio('/sounds/notification.wav');
         void audio.play().catch(() => {
           // ignore
         });
@@ -404,7 +447,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
     // Needs user gesture in most browsers; this button provides it.
     playNotificationBeep();
     try {
-      const audio = new Audio('/sounds/notification.mp3');
+      const audio = new Audio('/sounds/notification.wav');
       void audio.play().catch(() => {
         // ignore
       });
@@ -427,6 +470,15 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
           >
             Refresh now
           </button>
+          {sseConnected ? (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Live
+            </span>
+          ) : null}
           <button
             onClick={() => setIsPolling(!isPolling)}
             className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
@@ -458,7 +510,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
         </div>
         <p className="text-xs text-muted-foreground">
           Last updated: {lastRefreshed.toLocaleTimeString()}
-          {isPolling ? ' • refreshing every 30s' : ''}
+          {isPolling ? ` • refreshing every ${sseConnected ? '60' : '30'}s` : ''}
         </p>
       </div>
 

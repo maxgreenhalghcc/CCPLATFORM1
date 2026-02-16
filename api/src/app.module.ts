@@ -12,6 +12,7 @@ import {
   HttpAdapterHost,
 } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 import type { Params } from 'nestjs-pino';
@@ -118,6 +119,7 @@ class SentryFilter extends BaseExceptionFilter {
         };
       },
     }),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     AuthModule,
     BarsModule,

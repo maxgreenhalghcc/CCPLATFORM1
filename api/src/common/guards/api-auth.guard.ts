@@ -50,19 +50,19 @@ export class ApiAuthGuard implements CanActivate {
   private extractToken(request: AuthenticatedRequest): string | null {
     const header = request.headers['authorization'] ?? request.headers['Authorization'];
 
-    if (!header) {
-      return null;
+    if (header && !Array.isArray(header)) {
+      const [scheme, token] = header.split(' ');
+      if (scheme?.toLowerCase() === 'bearer' && token) {
+        return token;
+      }
     }
 
-    if (Array.isArray(header)) {
-      return null;
+    // Fallback: query param for EventSource (cannot set custom headers)
+    const queryToken = (request.query as Record<string, unknown>)?.token;
+    if (typeof queryToken === 'string' && queryToken) {
+      return queryToken;
     }
 
-    const [scheme, token] = header.split(' ');
-    if (scheme?.toLowerCase() !== 'bearer' || !token) {
-      return null;
-    }
-
-    return token;
+    return null;
   }
 }

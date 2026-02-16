@@ -9,6 +9,7 @@ import { OrderStatus, Prisma } from '@prisma/client';
 import Stripe from 'stripe';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { OrderEventsService } from '../orders/order-events.service';
 
 @Injectable()
 export class WebhooksService {
@@ -16,7 +17,8 @@ export class WebhooksService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly orderEvents: OrderEventsService
   ) {}
 
   private stripeClient?: Stripe;
@@ -131,9 +133,18 @@ export class WebhooksService {
       // NOTE: Stripe may report `no_payment_required` in some flows; treat it as paid.
       if (paymentStatus === 'paid' || paymentStatus === 'no_payment_required') {
         if (order.status !== OrderStatus.paid && order.status !== OrderStatus.fulfilled) {
-          await this.prisma.order.update({
+          const updated = await this.prisma.order.update({
             where: { id: orderId },
-            data: { status: OrderStatus.paid }
+            data: { status: OrderStatus.paid },
+            select: { id: true, barId: true, createdAt: true, recipe: { select: { name: true } } }
+          });
+
+          this.orderEvents.emitOrderPaid({
+            id: updated.id,
+            barId: updated.barId,
+            recipeName: updated.recipe?.name ?? 'Custom cocktail',
+            status: 'paid',
+            createdAt: updated.createdAt.toISOString(),
           });
         }
       } else {
@@ -189,9 +200,18 @@ export class WebhooksService {
       }
 
       if (order.status !== OrderStatus.paid && order.status !== OrderStatus.fulfilled) {
-        await this.prisma.order.update({
+        const updated = await this.prisma.order.update({
           where: { id: orderId },
-          data: { status: OrderStatus.paid }
+          data: { status: OrderStatus.paid },
+          select: { id: true, barId: true, createdAt: true, recipe: { select: { name: true } } }
+        });
+
+        this.orderEvents.emitOrderPaid({
+          id: updated.id,
+          barId: updated.barId,
+          recipeName: updated.recipe?.name ?? 'Custom cocktail',
+          status: 'paid',
+          createdAt: updated.createdAt.toISOString(),
         });
       }
 
