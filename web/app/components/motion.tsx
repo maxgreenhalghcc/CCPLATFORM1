@@ -7,7 +7,7 @@ import {
   AnimatePresence,
   useReducedMotion,
 } from 'framer-motion';
-import { forwardRef, type ReactNode, type Ref } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 
 // ── Shared duration / easing tokens ──────────────────────────────────
 export const DURATION = {
@@ -40,7 +40,7 @@ export const FadeIn = forwardRef<HTMLDivElement, FadeInProps>(
     const safe = useMotionSafe();
     return (
       <motion.div
-        ref={ref as Ref<HTMLDivElement>}
+        ref={ref as any}
         initial={safe ? { opacity: 0, y: 8 } : undefined}
         animate={{ opacity: 1, y: 0 }}
         exit={safe ? { opacity: 0, y: -4 } : undefined}
@@ -78,7 +78,7 @@ export const SlideIn = forwardRef<HTMLDivElement, SlideInProps>(
     const offset = slideOffsets[direction];
     return (
       <motion.div
-        ref={ref as Ref<HTMLDivElement>}
+        ref={ref as any}
         initial={safe ? { opacity: 0, ...offset } : undefined}
         animate={{ opacity: 1, x: 0, y: 0 }}
         exit={safe ? { opacity: 0, ...offset } : undefined}
