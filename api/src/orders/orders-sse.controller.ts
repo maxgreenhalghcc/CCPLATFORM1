@@ -7,6 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { UserRole } from '@prisma/client';
 
 import { ApiAuthGuard } from '../common/guards/api-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -20,7 +21,7 @@ interface MessageEvent {
 }
 
 @UseGuards(ApiAuthGuard, RolesGuard)
-@Roles('admin', 'staff')
+@Roles(UserRole.admin, UserRole.staff)
 @Controller('bars')
 export class OrdersSseController {
   constructor(private readonly orderEvents: OrderEventsService) {}
