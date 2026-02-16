@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { getApiBaseUrl, patchJson } from '@/app/lib/api';
+import { AnimatePresence, motion, FadeIn, DURATION, EASE } from '@/app/components/motion';
 import * as Sentry from '@sentry/nextjs';
 import { toast } from 'sonner';
 
@@ -506,77 +507,88 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
       </div>
 
       {orders.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
-        </p>
+        <FadeIn>
+          <p className="text-sm text-muted-foreground">
+            No orders yet. Stripe webhook events will populate this list once the payment flow is connected.
+          </p>
+        </FadeIn>
       ) : filteredOrders.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No {filter} orders.
-        </p>
+        <FadeIn>
+          <p className="text-sm text-muted-foreground">
+            No {filter} orders.
+          </p>
+        </FadeIn>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredOrders.map((order) => {
-            const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
-            const isPending = pendingId === order.id;
-            const isUnread = unread.has(order.id) && order.status === 'paid';
+        <motion.div layout className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <AnimatePresence mode="popLayout">
+            {filteredOrders.map((order, index) => {
+              const fulfilledLabel = order.status === 'fulfilled' ? formatFulfilledAt(order.fulfilledAt) : null;
+              const isPending = pendingId === order.id;
+              const isUnread = unread.has(order.id) && order.status === 'paid';
 
-            return (
-              <div
-                key={order.id}
-                className={`flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm ${
-                  isUnread ? 'ring-2 ring-primary/40' : ''
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="font-mono">{order.id}</span>
-                    <span>{formatDate(order.createdAt)}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {order.recipeName || 'Custom cocktail'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Guest order</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide">
-                    <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
-                      {formatStatus(order.status)}
-                    </span>
-                    {isUnread ? (
-                      <span className="rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-semibold tracking-wide text-amber-700">
-                        Unread
-                      </span>
-                    ) : null}
-                    {fulfilledLabel ? (
-                      <span className="text-muted-foreground">Served {fulfilledLabel}</span>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={`/staff/orders/${order.id}`} onClick={() => markRead(order.id)}>
-                      View recipe
-                    </Link>
-                  </Button>
-                  {order.status === 'paid' ? (
-                    <div className="flex items-center gap-2">
-                      {isUnread && !accepted.has(order.id) ? (
-                        <Button size="sm" onClick={() => acceptOrder(order.id)} variant="default">
-                          Accept
-                        </Button>
-                      ) : null}
-                      <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
-                        {isPending ? 'Marking…' : 'Mark served'}
-                      </Button>
+              return (
+                <motion.div
+                  key={order.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: DURATION.normal, delay: index < 12 ? index * 0.04 : 0, ease: EASE.out }}
+                  className={`flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm ${
+                    isUnread ? 'ring-2 ring-primary/40' : ''
+                  }`}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="font-mono">{order.id}</span>
+                      <span>{formatDate(order.createdAt)}</span>
                     </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Awaiting payment</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        {order.recipeName || 'Custom cocktail'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Guest order</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide">
+                      <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
+                        {formatStatus(order.status)}
+                      </span>
+                      {isUnread ? (
+                        <span className="animate-badge-pulse rounded-full bg-amber-500/20 px-2 py-1 text-[10px] font-semibold tracking-wide text-amber-700">
+                          Unread
+                        </span>
+                      ) : null}
+                      {fulfilledLabel ? (
+                        <span className="text-muted-foreground">Served {fulfilledLabel}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <Button asChild size="sm" variant="secondary">
+                      <Link href={`/staff/orders/${order.id}`} onClick={() => markRead(order.id)}>
+                        View recipe
+                      </Link>
+                    </Button>
+                    {order.status === 'paid' ? (
+                      <div className="flex items-center gap-2">
+                        {isUnread && !accepted.has(order.id) ? (
+                          <Button size="sm" onClick={() => acceptOrder(order.id)} variant="default">
+                            Accept
+                          </Button>
+                        ) : null}
+                        <Button size="sm" onClick={() => handleFulfilled(order.id)} disabled={isPending}>
+                          {isPending ? 'Marking…' : 'Mark served'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Awaiting payment</span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
       )}
     </div>
   );

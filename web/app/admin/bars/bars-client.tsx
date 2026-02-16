@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { cn, fetchJson, getApiUrl } from '@/lib/utils';
+import {
+  FadeIn,
+  motion,
+  DURATION,
+  EASE,
+} from '@/app/components/motion';
 
 interface BarListItem {
   id: string;
@@ -167,7 +173,7 @@ export default function BarsClient() {
       {status === 'loading' || isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-20 animate-pulse rounded-lg bg-muted/40" />
+            <div key={index} className="h-20 animate-shimmer rounded-lg" />
           ))}
         </div>
       ) : error ? (
@@ -202,8 +208,18 @@ export default function BarsClient() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {items.map((bar) => (
-                  <tr key={bar.id} className="hover:bg-muted/30">
+                {items.map((bar, index) => (
+                  <motion.tr
+                    key={bar.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      duration: DURATION.micro,
+                      ease: EASE.out,
+                      delay: index < 12 ? index * 0.04 : 0,
+                    }}
+                    className="hover:bg-muted/30"
+                  >
                     <td className="px-4 py-4">
                       <div className="font-medium text-foreground">{bar.name}</div>
                       <div className="text-xs text-muted-foreground">ID: {bar.id}</div>
@@ -247,7 +263,7 @@ export default function BarsClient() {
                         <Link href={`/admin/bars/${bar.id}`}>Manage</Link>
                       </Button>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>

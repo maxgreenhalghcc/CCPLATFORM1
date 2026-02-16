@@ -1,10 +1,18 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { cn, fetchJson, getApiUrl } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
+import {
+  FadeIn,
+  StaggerChildren,
+  StaggerItem,
+  motion,
+  DURATION,
+  EASE,
+} from '@/app/components/motion';
 
 interface RevenueSeriesPoint {
   date: string;
@@ -105,6 +113,38 @@ function SimpleLineChart<T>({ data, getValue, className }: LineChartProps<T>) {
       })}
     </svg>
   );
+}
+
+function AnimatedNumber({ value, format }: { value: number; format: (v: number) => string }) {
+  const [displayed, setDisplayed] = useState(value);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const start = displayed;
+    const diff = value - start;
+    if (Math.abs(diff) < 0.01) {
+      setDisplayed(value);
+      return;
+    }
+    const duration = 600;
+    const startTime = performance.now();
+
+    function tick(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayed(start + diff * eased);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value]);
+
+  return <>{format(displayed)}</>;
 }
 
 export default function AdminFinancialsClient() {
@@ -295,32 +335,40 @@ export default function AdminFinancialsClient() {
         </section>
       ) : (
         <>
-          <section className="grid gap-4 md:grid-cols-3">
+          <StaggerChildren className="grid gap-4 md:grid-cols-3">
             {[
               {
                 label: `Total revenue (last ${range})`,
-                content: showInitialSkeleton ? null : formatCurrency(totalRevenue, currencyCode)
+                value: totalRevenue,
+                format: (v: number) => formatCurrency(v, currencyCode),
               },
               {
                 label: `Orders processed (last ${range})`,
-                content: showInitialSkeleton ? null : orderCount.toLocaleString()
+                value: orderCount,
+                format: (v: number) => Math.round(v).toLocaleString(),
               },
               {
                 label: 'Average order value',
-                content: showInitialSkeleton ? null : formatCurrency(averageOrderValue, currencyCode)
+                value: averageOrderValue,
+                format: (v: number) => formatCurrency(v, currencyCode),
               }
             ].map((card, index) => (
-              <article key={index} className="rounded-xl border bg-card p-6 shadow-sm">
-                <p className="text-sm text-muted-foreground">{card.label}</p>
-                {showInitialSkeleton ? (
-                  <div className="mt-4 h-8 w-2/3 animate-pulse rounded bg-muted" />
-                ) : (
-                  <p className="mt-2 text-3xl font-semibold">{card.content}</p>
-                )}
-              </article>
+              <StaggerItem key={index}>
+                <article className="rounded-xl border bg-card p-6 shadow-sm">
+                  <p className="text-sm text-muted-foreground">{card.label}</p>
+                  {showInitialSkeleton ? (
+                    <div className="mt-4 h-8 w-2/3 animate-shimmer rounded" />
+                  ) : (
+                    <p className="mt-2 text-3xl font-semibold">
+                      <AnimatedNumber value={card.value} format={card.format} />
+                    </p>
+                  )}
+                </article>
+              </StaggerItem>
             ))}
-          </section>
+          </StaggerChildren>
 
+          <FadeIn delay={0.15}>
           <section className="grid gap-8 md:grid-cols-2">
             <div className="rounded-xl border bg-card p-6">
               <div className="flex items-center justify-between">
@@ -329,7 +377,7 @@ export default function AdminFinancialsClient() {
               </div>
               <div className="mt-4">
                 {showInitialSkeleton ? (
-                  <div className="h-36 w-full animate-pulse rounded-lg bg-muted" />
+                  <div className="h-36 w-full animate-shimmer rounded-lg" />
                 ) : (
                   <SimpleLineChart data={revenueSeries} getValue={(point) => point.value} />
                 )}
@@ -353,7 +401,7 @@ export default function AdminFinancialsClient() {
               </div>
               <div className="mt-4">
                 {showInitialSkeleton ? (
-                  <div className="h-36 w-full animate-pulse rounded-lg bg-muted" />
+                  <div className="h-36 w-full animate-shimmer rounded-lg" />
                 ) : (
                   <SimpleLineChart data={ordersSeries} getValue={(point) => point.count} />
                 )}
@@ -370,6 +418,7 @@ export default function AdminFinancialsClient() {
               )}
             </div>
           </section>
+          </FadeIn>
         </>
       )}
     </div>

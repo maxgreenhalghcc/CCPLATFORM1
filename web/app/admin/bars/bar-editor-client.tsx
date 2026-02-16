@@ -6,6 +6,12 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/app/lib/api';
 import { cn, getApiUrl, themeToCssVars } from '@/lib/utils';
+import {
+  AnimatePresence,
+  motion,
+  DURATION,
+  EASE,
+} from '@/app/components/motion';
 
 interface BarDetail {
   id: string;
@@ -497,26 +503,50 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
 
         {renderTabs}
 
+        <AnimatePresence mode="wait">
         {activeTab === 'details' ? (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <motion.div
+            key="details"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: DURATION.micro, ease: EASE.out }}
+            className="rounded-xl border border-border bg-card p-6 shadow-sm"
+          >
             {isLoadingDetail ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="h-12 animate-pulse rounded-md bg-muted/40" />
+                  <div key={index} className="h-12 animate-shimmer rounded-md" />
                 ))}
               </div>
             ) : (
               <form className="space-y-6" onSubmit={handleDetailSubmit}>
-                {detailError && (
-                  <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                    {detailError}
-                  </div>
-                )}
-                {detailSuccess && (
-                  <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-500">
-                    {detailSuccess}
-                  </div>
-                )}
+                <AnimatePresence>
+                  {detailError && (
+                    <motion.div
+                      key="detail-error"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: DURATION.micro, ease: EASE.out }}
+                      className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                    >
+                      {detailError}
+                    </motion.div>
+                  )}
+                  {detailSuccess && (
+                    <motion.div
+                      key="detail-success"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: DURATION.micro, ease: EASE.out }}
+                      className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-500"
+                    >
+                      {detailSuccess}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="space-y-2">
                     <span className="text-sm font-medium text-foreground">Name</span>
@@ -584,28 +614,51 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                 </div>
               </form>
             )}
-          </div>
+          </motion.div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <motion.div
+            key="settings"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: DURATION.micro, ease: EASE.out }}
+            className="grid gap-6 lg:grid-cols-[2fr_1fr]"
+          >
             <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
               {isLoadingSettings ? (
                 <div className="space-y-3">
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <div key={index} className="h-12 animate-pulse rounded-md bg-muted/40" />
+                    <div key={index} className="h-12 animate-shimmer rounded-md" />
                   ))}
                 </div>
               ) : (
                 <form className="space-y-6" onSubmit={handleSettingsSubmit}>
-                  {settingsError && (
-                    <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                      {settingsError}
-                    </div>
-                  )}
-                  {settingsSuccess && (
-                    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-500">
-                      {settingsSuccess}
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {settingsError && (
+                      <motion.div
+                        key="settings-error"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: DURATION.micro, ease: EASE.out }}
+                        className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                      >
+                        {settingsError}
+                      </motion.div>
+                    )}
+                    {settingsSuccess && (
+                      <motion.div
+                        key="settings-success"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: DURATION.micro, ease: EASE.out }}
+                        className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-500"
+                      >
+                        {settingsSuccess}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <div className="grid gap-4">
                     <label className="space-y-2">
                       <span className="text-sm font-medium text-foreground">Intro copy</span>
@@ -1013,7 +1066,8 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                 style={{
                   ...previewStyle,
                   background: settings.theme.background,
-                  color: settings.theme.foreground
+                  color: settings.theme.foreground,
+                  transition: 'all 0.4s ease',
                 }}
               >
                 <div>
@@ -1043,8 +1097,9 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                 </div>
               </div>
             </aside>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -6,6 +6,13 @@ import { getApiBaseUrl, patchJson } from '@/app/lib/api';
 import { useSession } from 'next-auth/react';
 import type { OrderStatus } from '../../staff-orders-client';
 import * as Sentry from '@sentry/nextjs';
+import {
+  AnimatePresence,
+  motion,
+  FadeIn,
+  DURATION,
+  EASE,
+} from '@/app/components/motion';
 
 interface IngredientEntry {
   name?: string;
@@ -152,79 +159,115 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
     .filter((entry): entry is { name: string; amount: string } => Boolean(entry));
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-16">
-      <header className="space-y-2">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-          Order #{initialOrder.orderId}
-        </p>
+    <FadeIn>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-16">
+        <header className="space-y-2">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Order #{initialOrder.orderId}
+          </p>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-semibold leading-tight">
-            {initialOrder.recipe.name}
-          </h1>
-          <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs capitalize text-muted-foreground">
-            {formatStatusLabel(status)}
-          </span>
-        </div>
-
-        {status === 'fulfilled' && servedLabel ? (
-          <p className="text-sm text-muted-foreground">Served at {servedLabel}</p>
-        ) : null}
-
-        {status === 'paid' ? (
-          <div>
-            <Button onClick={markServed} disabled={pending}>
-              {pending ? 'Marking…' : 'Mark served'}
-            </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-semibold leading-tight">
+              {initialOrder.recipe.name}
+            </h1>
+            <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs capitalize text-muted-foreground">
+              {formatStatusLabel(status)}
+            </span>
           </div>
-        ) : null}
 
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      </header>
+          {status === 'fulfilled' && servedLabel ? (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: DURATION.micro, ease: EASE.out }}
+              className="text-sm text-muted-foreground"
+            >
+              Served at {servedLabel}
+            </motion.p>
+          ) : null}
 
-      <section className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
-        <div>
-          <h2 className="text-xl font-semibold">Ingredients</h2>
-          <ul className="mt-4 space-y-2 text-sm">
-            {normalizedIngredients.length > 0 ? (
-              normalizedIngredients.map((ingredient) => (
-                <li
-                  className="flex items-center justify-between"
-                  key={`${ingredient.name}-${ingredient.amount}`}
-                >
-                  <span>{ingredient.name}</span>
-                  {ingredient.amount ? (
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {ingredient.amount}
-                    </span>
-                  ) : null}
+          <AnimatePresence mode="wait">
+            {status === 'paid' ? (
+              <motion.div
+                key="mark-served"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: DURATION.micro, ease: EASE.out }}
+              >
+                <Button onClick={markServed} disabled={pending}>
+                  {pending ? 'Marking…' : 'Mark served'}
+                </Button>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {error ? (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: DURATION.micro, ease: EASE.out }}
+                className="text-sm text-destructive"
+              >
+                {error}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
+        </header>
+
+        <section className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
+          <div>
+            <h2 className="text-xl font-semibold">Ingredients</h2>
+            <ul className="mt-4 space-y-2 text-sm">
+              {normalizedIngredients.length > 0 ? (
+                normalizedIngredients.map((ingredient, i) => (
+                  <motion.li
+                    className="flex items-center justify-between"
+                    key={`${ingredient.name}-${ingredient.amount}`}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      duration: DURATION.micro,
+                      ease: EASE.out,
+                      delay: i * 0.04,
+                    }}
+                  >
+                    <span>{ingredient.name}</span>
+                    {ingredient.amount ? (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {ingredient.amount}
+                      </span>
+                    ) : null}
+                  </motion.li>
+                ))
+              ) : (
+                <li className="text-muted-foreground">
+                  Ingredients will be confirmed at the bar.
                 </li>
-              ))
-            ) : (
-              <li className="text-muted-foreground">
-                Ingredients will be confirmed at the bar.
-              </li>
-            )}
-          </ul>
-        </div>
+              )}
+            </ul>
+          </div>
 
-        <div className="space-y-4 text-sm text-muted-foreground">
-          <p>
-            <strong>Method:</strong>{' '}
-            {initialOrder.recipe.method
-              ? initialOrder.recipe.method
-              : 'Refer to the recipe engine output.'}
-          </p>
-          <p>
-            <strong>Glassware:</strong>{' '}
-            {initialOrder.recipe.glassware || "Bartender's choice"}
-          </p>
-          <p>
-            <strong>Garnish:</strong>{' '}
-            {initialOrder.recipe.garnish || 'To be decided by staff'}
-          </p>
-        </div>
-      </section>
-    </div>
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <p>
+              <strong>Method:</strong>{' '}
+              {initialOrder.recipe.method
+                ? initialOrder.recipe.method
+                : 'Refer to the recipe engine output.'}
+            </p>
+            <p>
+              <strong>Glassware:</strong>{' '}
+              {initialOrder.recipe.glassware || "Bartender's choice"}
+            </p>
+            <p>
+              <strong>Garnish:</strong>{' '}
+              {initialOrder.recipe.garnish || 'To be decided by staff'}
+            </p>
+          </div>
+        </section>
+      </div>
+    </FadeIn>
   );
 }
