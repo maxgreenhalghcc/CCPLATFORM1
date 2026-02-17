@@ -101,11 +101,11 @@ export default function HelpPage() {
           <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
             <li>Answer the questions in the quiz and submit your choices.</li>
             <li>
-              At the end, you'll see your personalised recipe card (or a summary
-              screen) with the name of your drink and how it's made.
+              At the end, you&apos;ll see your personalised recipe card (or a summary
+              screen) with the name of your drink and how it&apos;s made.
             </li>
             <li>
-              Go to the bar and let the team know you'd like to order a{' '}
+              Go to the bar and let the team know you&apos;d like to order a{' '}
               <span className="font-medium">Custom Cocktail</span>.
             </li>
             <li>
@@ -115,7 +115,7 @@ export default function HelpPage() {
           </ol>
 
           <p className="text-sm text-muted-foreground">
-            Once they've confirmed your order, the bar team will mix and serve your
+            Once they&apos;ve confirmed your order, the bar team will mix and serve your
             Custom Cocktail just like any other drink – normal wait times and
             service rules apply.
           </p>
@@ -128,7 +128,7 @@ export default function HelpPage() {
               When do I see my full recipe and method?
             </h2>
             <p className="text-sm text-muted-foreground">
-              You'll see a summary of your drink at the end of the quiz. Depending
+              You&apos;ll see a summary of your drink at the end of the quiz. Depending
               on how your bar has set things up, you may:
             </p>
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
@@ -137,7 +137,7 @@ export default function HelpPage() {
             </ul>
             <p className="text-sm text-muted-foreground">
               If you need to double-check ingredients or method, just ask the bar
-              staff – they'll be able to see the full spec on their system.
+              staff – they&apos;ll be able to see the full spec on their system.
             </p>
           </div>
 
