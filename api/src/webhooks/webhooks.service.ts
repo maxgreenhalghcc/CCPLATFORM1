@@ -7,9 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { OrderStatus, Prisma } from '@prisma/client';
 import Stripe from 'stripe';
-
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderEventsService } from '../orders/order-events.service';
 
 @Injectable()
 export class WebhooksService {
@@ -17,8 +15,7 @@ export class WebhooksService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly prisma: PrismaService,
-    private readonly orderEvents: OrderEventsService
+    private readonly prisma: PrismaService
   ) {}
 
   private stripeClient?: Stripe;
@@ -79,32 +76,31 @@ export class WebhooksService {
   }
 
   private async processEvent(event: Stripe.Event) {
-    // We listen to multiple Stripe event types to reduce the chance that an order stays stuck in
-    // `created` due to checkout timing differences (e.g. async card flows) or missing metadata.
-
-    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+    if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      // Primary reconciliation path: metadata on the Checkout Session
+      // Prefer explicit metadata, but fall back to matching by Stripe session id.
+      // This handles legacy sessions created before we reliably stamped metadata.
       let orderId = session.metadata?.orderId;
 
-      // Fallback: reconcile by Stripe session id (in case metadata was dropped)
       if (!orderId && session.id) {
-        const match = await this.prisma.order.findFirst({
+        const orderBySession = await this.prisma.order.findFirst({
           where: { stripeSessionId: session.id },
           select: { id: true }
         });
-        orderId = match?.id;
+        orderId = orderBySession?.id;
       }
 
       if (!orderId) {
-        this.logger.warn(`Stripe ${event.type} received without order linkage (missing metadata + stripeSessionId match).`);
+        this.logger.warn(
+          `Checkout session completed without order metadata (sessionId=${session.id ?? 'unknown'}).`
+        );
         return;
       }
 
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
-        select: { id: true, amount: true, stripeSessionId: true, status: true }
+        select: { id: true, amount: true }
       });
 
       if (!order) {
@@ -112,44 +108,21 @@ export class WebhooksService {
         return;
       }
 
-      // Keep the order's stripeSessionId in sync if Stripe reports a different session id.
-      if (session.id && (!order.stripeSessionId || order.stripeSessionId !== session.id)) {
-        await this.prisma.order.update({
-          where: { id: orderId },
-          data: { stripeSessionId: session.id }
-        });
-      }
-
       const amount =
         session.amount_total != null
           ? new Prisma.Decimal(session.amount_total).dividedBy(100)
           : order.amount;
-
       const paymentStatus = session.payment_status ?? 'unknown';
       const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
-      const intentReference = paymentIntentId ?? event.id;
 
-      // Only flip the order into `paid` when Stripe indicates payment has cleared.
-      // NOTE: Stripe may report `no_payment_required` in some flows; treat it as paid.
-      if (paymentStatus === 'paid' || paymentStatus === 'no_payment_required') {
-        if (order.status !== OrderStatus.paid && order.status !== OrderStatus.fulfilled) {
-          const updated = await this.prisma.order.update({
-            where: { id: orderId },
-            data: { status: OrderStatus.paid },
-            select: { id: true, barId: true, createdAt: true, recipe: { select: { name: true } } }
-          });
+      // Use the PaymentIntent when available (stable across retries), otherwise fall back to the Checkout Session id.
+      // (Using event.id can create duplicate Payment rows if Stripe retries the webhook.)
+      const intentReference = paymentIntentId ?? session.id ?? event.id;
 
-          this.orderEvents.emitOrderPaid({
-            id: updated.id,
-            barId: updated.barId,
-            recipeName: updated.recipe?.name ?? 'Custom cocktail',
-            status: 'paid',
-            createdAt: updated.createdAt.toISOString(),
-          });
-        }
-      } else {
-        this.logger.warn(`Stripe checkout session completed but payment_status=${paymentStatus} for order ${orderId}. Leaving status as-is.`);
-      }
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.paid }
+      });
 
       const existing = await this.prisma.payment.findFirst({
         where: { intentId: intentReference }
@@ -173,76 +146,6 @@ export class WebhooksService {
           intentId: intentReference,
           amount,
           status: paymentStatus,
-          raw: event as unknown as Prisma.InputJsonValue
-        }
-      });
-
-      return;
-    }
-
-    if (event.type === 'payment_intent.succeeded') {
-      const intent = event.data.object as Stripe.PaymentIntent;
-      const orderId = intent.metadata?.orderId;
-
-      if (!orderId) {
-        this.logger.warn('payment_intent.succeeded received without orderId metadata');
-        return;
-      }
-
-      const order = await this.prisma.order.findUnique({
-        where: { id: orderId },
-        select: { id: true, amount: true, status: true }
-      });
-
-      if (!order) {
-        this.logger.warn(`Order ${orderId} not found for payment_intent webhook.`);
-        return;
-      }
-
-      if (order.status !== OrderStatus.paid && order.status !== OrderStatus.fulfilled) {
-        const updated = await this.prisma.order.update({
-          where: { id: orderId },
-          data: { status: OrderStatus.paid },
-          select: { id: true, barId: true, createdAt: true, recipe: { select: { name: true } } }
-        });
-
-        this.orderEvents.emitOrderPaid({
-          id: updated.id,
-          barId: updated.barId,
-          recipeName: updated.recipe?.name ?? 'Custom cocktail',
-          status: 'paid',
-          createdAt: updated.createdAt.toISOString(),
-        });
-      }
-
-      const intentId = intent.id;
-      const amount = intent.amount_received != null
-        ? new Prisma.Decimal(intent.amount_received).dividedBy(100)
-        : order.amount;
-      const status = intent.status ?? 'unknown';
-
-      const existing = await this.prisma.payment.findFirst({
-        where: { intentId }
-      });
-
-      if (existing) {
-        await this.prisma.payment.update({
-          where: { id: existing.id },
-          data: {
-            amount,
-            status,
-            raw: event as unknown as Prisma.InputJsonValue
-          }
-        });
-        return;
-      }
-
-      await this.prisma.payment.create({
-        data: {
-          orderId,
-          intentId,
-          amount,
-          status,
           raw: event as unknown as Prisma.InputJsonValue
         }
       });
