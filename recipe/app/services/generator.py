@@ -96,7 +96,7 @@ def generate_recipe(payload: GenerateRequest) -> Dict[str, Any]:
     print("Request payload:", request_json)
 
     try:
-        with httpx.Client(timeout=20.0) as client:
+        with httpx.Client(timeout=60.0) as client:
             resp = client.post(
                 f"{RECIPEBUILDER_BASE_URL}/generate",
                 json=request_json,

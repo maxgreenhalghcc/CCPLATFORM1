@@ -40,10 +40,10 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     title: 'Choose a dream escape',
     prompt: 'Where would you sip this drink?',
     options: [
-      { value: 'beach house', label: 'Beach house' },
-      { value: 'modern house', label: 'Modern house' },
-      { value: 'haunted house', label: 'Haunted house' },
-      { value: 'tree house', label: 'Tree house' },
+      { value: 'beach house', label: 'Beach house', description: 'Breezy & refreshing' },
+      { value: 'modern house', label: 'Modern house', description: 'Clean & sophisticated' },
+      { value: 'haunted house', label: 'Haunted house', description: 'Dark & enigmatic' },
+      { value: 'tree house', label: 'Tree house', description: 'Earthy & adventurous' },
     ],
   },
   {
@@ -54,18 +54,22 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
       {
         label: 'A balanced blend of flavours',
         value: 'a balanced blend of flavours',
+        description: 'Harmonious & well-rounded',
       },
       {
         label: 'Subtle tastes which advertise freshness',
         value: 'subtle tastes which advertise freshness',
+        description: 'Light, crisp & delicate',
       },
       {
         label: 'Refreshing and vibrant flavours which awaken my senses',
         value: 'refreshing and vibrant flavours which awaken my senses',
+        description: 'Bright, zesty & energising',
       },
       {
         label: 'A sweet tooth indulging in rich flavours',
         value: 'a sweet tooth indulging in rich flavours',
+        description: 'Dessert-like & indulgent',
       },
     ],
   },
@@ -74,10 +78,10 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     title: 'Set the soundtrack',
     prompt: 'What’s playing in the background?',
     options: [
-      { value: 'jazz/blues', label: 'Jazz / blues' },
-      { value: 'pop', label: 'Pop' },
-      { value: 'rock', label: 'Rock' },
-      { value: 'rap', label: 'Rap' },
+      { value: 'jazz/blues', label: 'Jazz / blues', description: 'Smooth & soulful' },
+      { value: 'pop', label: 'Pop', description: 'Upbeat & playful' },
+      { value: 'rock', label: 'Rock', description: 'Bold & electrifying' },
+      { value: 'rap', label: 'Rap', description: 'Rhythmic & intense' },
     ],
   },
   {
@@ -85,10 +89,10 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     title: 'Choose an aroma',
     prompt: 'Pick the fragrance that draws you in.',
     options: [
-      { value: 'citrus', label: 'Citrus zest' },
-      { value: 'floral', label: 'Floral bouquet' },
-      { value: 'woody', label: 'Campfire wood' },
-      { value: 'sweet', label: 'Sweet sugar' },
+      { value: 'citrus', label: 'Citrus zest', description: 'Bright & invigorating' },
+      { value: 'floral', label: 'Floral bouquet', description: 'Soft & aromatic' },
+      { value: 'woody', label: 'Campfire wood', description: 'Smoky & earthy' },
+      { value: 'sweet', label: 'Sweet sugar', description: 'Warm & indulgent' },
     ],
   },
   {
@@ -96,10 +100,10 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     title: 'Pick a base spirit',
     prompt: 'Select the spirit to anchor your cocktail.',
     options: [
-      { value: 'gin', label: 'Gin' },
-      { value: 'vodka', label: 'Vodka' },
-      { value: 'rum', label: 'Rum' },
-      { value: 'tequila', label: 'Tequila' },
+      { value: 'gin', label: 'Gin', description: 'Herbal & aromatic' },
+      { value: 'vodka', label: 'Vodka', description: 'Clean & versatile' },
+      { value: 'rum', label: 'Rum', description: 'Warm & characterful' },
+      { value: 'tequila', label: 'Tequila', description: 'Vibrant & earthy' },
     ],
   },
   {
@@ -107,9 +111,9 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     title: 'Bitterness level',
     prompt: 'How do you feel about bitterness?',
     options: [
-      { label: 'Low', value: 'low' },
-      { label: 'Medium', value: 'medium' },
-      { label: 'High', value: 'high' },
+      { label: 'Low', value: 'low', description: 'Soft & gentle' },
+      { label: 'Medium', value: 'medium', description: 'Balanced & noticeable' },
+      { label: 'High', value: 'high', description: 'Bold & assertive' },
     ],
   },
   {
@@ -117,10 +121,10 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     title: 'How sweet should it be?',
     prompt: 'Dial in the sweetness level.',
     options: [
-      { label: 'Classic', value: 'classic' },
-      { label: 'Rich', value: 'rich' },
-      { label: 'Floral', value: 'floral' },
-      { label: 'Zesty', value: 'zesty' },
+      { label: 'Classic', value: 'classic', description: 'Balanced & familiar' },
+      { label: 'Rich', value: 'rich', description: 'Decadent & syrupy' },
+      { label: 'Floral', value: 'floral', description: 'Light & perfumed' },
+      { label: 'Zesty', value: 'zesty', description: 'Bright & tangy' },
     ],
   },
   {
@@ -128,12 +132,13 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     title: 'How strong should it be?',
     prompt: 'Dial in the booze level.',
     options: [
-      { label: 'Low', value: 'low' },
-      { label: 'Medium', value: 'medium' },
-      { label: 'Strong', value: 'strong' },
+      { label: 'Low', value: 'low', description: 'Light & easy-going' },
+      { label: 'Medium', value: 'medium', description: 'Smooth & balanced' },
+      { label: 'Strong', value: 'strong', description: 'Bold & spirited' },
     ],
   },
 ];
 
 
 export const CONTACT_QUESTION_ID = 'contact';
+export const ALLERGENS_QUESTION_ID = 'allergens';

@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { OrderStatus as PrismaOrderStatus, Prisma, UserRole } from '@prisma/client';
 import Stripe from 'stripe';
 import * as Sentry from '@sentry/node';
+import * as nodemailer from 'nodemailer';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
@@ -64,6 +65,92 @@ export class OrdersService {
     });
 
     return this.stripeClient;
+  }
+
+  private createMailTransport() {
+    const server = this.configService.get<string>('EMAIL_SERVER');
+    if (server && server.length > 0) {
+      return nodemailer.createTransport(server);
+    }
+    return nodemailer.createTransport({ jsonTransport: true });
+  }
+
+  private getEmailFromAddress(): string {
+    return this.configService.get<string>('EMAIL_FROM') ?? 'login@example.com';
+  }
+
+  async sendRecipeEmail(orderId: string) {
+    const recipe = await this.getRecipe(orderId);
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { contact: true },
+    });
+
+    if (!order?.contact) return;
+
+    const to = order.contact;
+    const from = this.getEmailFromAddress();
+
+    const rawIngredients = Array.isArray((recipe as any).ingredients)
+      ? (recipe as any).ingredients
+      : [];
+
+    const ingredientLines = rawIngredients
+      .map((item: any) => {
+        if (!item) return '';
+        if (typeof item === 'string') return item;
+        if (typeof item === 'object') {
+          const { amount, unit, ingredient, name } = item as any;
+          const qty = [amount, unit].filter(Boolean).join(' ');
+          const label = ingredient || name || '';
+          return [qty, label].filter(Boolean).join(' ') || JSON.stringify(item);
+        }
+        return String(item);
+      })
+      .filter(Boolean);
+
+    const ingredientsList =
+      ingredientLines.length > 0 ? ingredientLines.join('\n') : 'Ask the bartender';
+
+    const text = [
+      `Here's your custom cocktail recipe: ${recipe.name}`,
+      '',
+      'Ingredients:',
+      ingredientsList,
+      '',
+      recipe.method ? `Method:\n${recipe.method}` : '',
+      '',
+      recipe.glassware ? `Glassware: ${recipe.glassware}` : '',
+      recipe.garnish ? `Garnish: ${recipe.garnish}` : '',
+      '',
+      'Enjoy!',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const html = `
+<h1>Your custom cocktail: ${recipe.name}</h1>
+<p>Here's your custom cocktail recipe.</p>
+<h2>Ingredients</h2>
+<ul>${ingredientLines.map((item: string) => `<li>${item}</li>`).join('')}</ul>
+${recipe.method ? `<h2>Method</h2><p>${recipe.method.replace(/\n/g, '<br/>')}</p>` : ''}
+${recipe.glassware ? `<p><strong>Glassware:</strong> ${recipe.glassware}</p>` : ''}
+${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
+`;
+
+    const transport = this.createMailTransport();
+    try {
+      await transport.sendMail({
+        to,
+        from,
+        subject: `Your custom cocktail recipe: ${recipe.name}`,
+        text,
+        html,
+      });
+    } catch (err) {
+      Sentry.captureException(err);
+    }
   }
 
   private resolveFrontendUrl(path: string) {
@@ -385,6 +472,9 @@ export class OrdersService {
         }
       });
 
+      // Fire-and-forget: send recipe email to guest if they provided a contact
+      this.sendRecipeEmail(updated.id).catch((err) => Sentry.captureException(err));
+
       return {
         id: updated.id,
         status: updated.status,
@@ -393,16 +483,10 @@ export class OrdersService {
     });
   }
 
-  // inside OrdersService
   async saveContact(orderId: string, contact: string) {
     await this.prisma.order.update({
       where: { id: orderId },
-      data: {
-        // 👇 adjust this field name to match your schema
-        contact,
-      },
+      data: { contact },
     });
   }
-
-
 }

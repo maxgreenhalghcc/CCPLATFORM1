@@ -81,7 +81,8 @@ model Bar {
   name     String
   slug     String   @unique
   location String?
-  active   Boolean  @default(true)
+  active       Boolean  @default(true)
+  staffPinHash String?
 
   settings   BarSettings?
   users      User[]

@@ -36,7 +36,7 @@ export default function CheckoutSuccessClient({
     setError(null);
 
     try {
-      const res = await fetch(`${getApiBaseUrl()}/orders/${orderId}/contact`, {
+      const res = await fetch(`${getApiBaseUrl()}/v1/orders/${orderId}/contact`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
