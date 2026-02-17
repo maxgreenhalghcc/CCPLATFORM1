@@ -22,7 +22,7 @@ export function AgeGateButton({
 
   const handleYes = () => {
     setOpen(false);
-    router.push(href);
+    router.push(href as any);
   };
 
   const handleNo = () => {
