@@ -14,12 +14,12 @@ export default function HomePage() {
           Personalised cocktail experiences for every bar.
         </h1>
         <p className="max-w-2xl text-lg text-muted-foreground">
-          Configure branded quiz flows, generate deterministic cocktail recipes, and give staff the tools to fulfil orders fast.
-          This repository contains the monorepo scaffolding for the Custom Cocktails MVP.
+          Craft unforgettable cocktail moments at scale.
+	  Our platform blends intelligence, flavour profiling, and smart workflows to turn every order into a personalised experience. From quiz-driven taste discovery to deterministic recipe generation and seamless staff fulfilment — this is the future of cocktail service.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <Button asChild size="lg">
-            <Link href="/b/sample-bar">Explore sample bar</Link>
+            <Link href="/b/demo-bar">Explore Demo Bar</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link href="/admin">Admin console</Link>

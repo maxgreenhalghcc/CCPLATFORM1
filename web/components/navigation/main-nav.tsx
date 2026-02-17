@@ -8,7 +8,7 @@ const SHOW_BETA_BADGE =
   (process.env.NEXT_PUBLIC_FEATURE_SHOW_BETA_BADGE ?? 'false').toLowerCase() === 'true';
 
 const links: Array<{ href: string; label: string; roles?: Array<'admin' | 'staff'> }> = [
-  { href: '/b/sample-bar', label: 'Sample Bar' },
+  { href: '/b/demo-bar', label: 'Demo Bar' },
   { href: '/staff', label: 'Staff Orders', roles: ['staff'] },
   { href: '/staff/details', label: 'Staff Details', roles: ['staff'] },
   { href: '/admin', label: 'Admin Console', roles: ['admin'] }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { fetchJson, getApiUrl } from '@/lib/utils';
+import { AgeGateButton } from '@/components/age-gate-button';
 import {
   AnimatedHero,
   AnimatedCTA,
@@ -89,7 +90,9 @@ export default async function BarLandingPage({ params }: BarPageProps) {
               You&apos;ll preview the recipe immediately after checkout, with the full method ready for the bar team.
             </p>
             <Button asChild size="lg" className="sm:w-auto">
-              <Link href={`/b/${bar.slug}/quiz`}>Begin the experience</Link>
+              <AgeGateButton href={`/b/${bar.slug}/quiz`}>
+                Begin the experience
+              </AgeGateButton>
             </Button>
           </div>
         </section>
