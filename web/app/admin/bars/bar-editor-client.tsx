@@ -1073,7 +1073,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                     <div className="space-y-3">
                       <label className="text-sm font-medium text-foreground">Visual Preset</label>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        {(Object.values(PRESETS) as typeof PRESETS[PresetId][]).map((preset) => (
+                        {Object.values(PRESETS).map((preset) => (
                           <button
                             key={preset.id}
                             type="button"

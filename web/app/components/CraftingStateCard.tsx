@@ -84,7 +84,7 @@ export function CraftingStateCard({
     const timer = setTimeout(() => {
       readyRef.current = true;
       if (dismissPendingRef.current && onDismiss) {
-        navigator.vibrate?.(50);
+        (navigator as any).vibrate?.(50);
         onDismiss();
       }
     }, minDuration);
@@ -98,7 +98,7 @@ export function CraftingStateCard({
       return;
     }
     if (readyRef.current) {
-      navigator.vibrate?.(50);
+      (navigator as any).vibrate?.(50);
       onDismiss?.();
     } else {
       dismissPendingRef.current = true;
