@@ -1,14 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { fetchJson, getApiUrl } from '@/lib/utils';
 import { AgeGateButton } from '@/components/age-gate-button';
-import {
-  AnimatedHero,
-  AnimatedCTA,
-  AnimatedStats,
-  AnimatedStat,
-} from './landing-animations';
+import { AppShell } from '@/app/components/AppShell';
+import { LogoLockup } from '@/app/components/LogoLockup';
+import { GlowPulse, FadeIn, StaggerChildren, StaggerItem } from '@/app/components/motion';
+import { MotionButton } from '@/components/ui/motion-button';
 
 interface BarSettingsResponse {
   name: string;
@@ -18,6 +15,8 @@ interface BarSettingsResponse {
   outroText?: string | null;
   theme: Record<string, string>;
   pricingPounds?: number | null;
+  logoUrl?: string | null;
+  logoLockupMode?: string | null;
 }
 
 interface BarPageProps {
@@ -39,68 +38,60 @@ export default async function BarLandingPage({ params }: BarPageProps) {
   const bar = await loadBar(params.barSlug);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-16 px-6 py-20">
-      <AnimatedHero>
-        <header className="space-y-3 text-center">
-          <span className="text-xs uppercase tracking-[0.45em] text-muted-foreground">
-            {bar.location ?? 'Your favourite bar'}
-          </span>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
+    <AppShell>
+      <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col items-center justify-center gap-10 px-6 py-16">
+        <LogoLockup
+          delay={0}
+          size="md"
+          mode="symbol-only"
+          treatment="glass-badge"
+          logoUrl={bar.logoUrl}
+          barName={bar.name}
+        />
+
+        <FadeIn delay={0.1} className="flex flex-col items-center gap-3 text-center">
+          <h1 className="text-3xl font-display font-semibold tracking-tight text-foreground">
             {bar.name}
           </h1>
-          {bar.introText ? (
-            <p className="mx-auto max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg">
-              {bar.introText}
-            </p>
-          ) : null}
-        </header>
-      </AnimatedHero>
+          <p className="text-sm text-muted-foreground text-center max-w-xs">
+            {bar.introText ?? 'A bespoke cocktail, crafted to your taste in under 3 minutes.'}
+          </p>
+        </FadeIn>
 
-      <AnimatedCTA>
-        <section className="grid gap-8 rounded-3xl border border-border/50 bg-card/70 p-10 shadow-xl shadow-primary/10 backdrop-blur">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold">Discover your cocktail personality</h2>
-            <p className="text-balance text-sm text-muted-foreground sm:text-base">
-              Step through nine quick questions inspired by our mixologists. We&apos;ll analyse your answers, mix in the
-              bar&apos;s signature ingredients and reveal a cocktail that&apos;s crafted just for you.
-            </p>
+        <StaggerChildren>
+          <div className="flex flex-wrap justify-center gap-2">
+            <StaggerItem>
+              <span className="rounded-full border border-border/60 bg-card/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">3 minutes</span>
+            </StaggerItem>
+            <StaggerItem>
+              <span className="rounded-full border border-border/60 bg-card/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">9 questions</span>
+            </StaggerItem>
+            <StaggerItem>
+              <span className="rounded-full border border-border/60 bg-card/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">Bespoke recipe</span>
+            </StaggerItem>
           </div>
-          <AnimatedStats className="grid gap-4 text-sm sm:grid-cols-3">
-            <AnimatedStat>
-              <dl className="rounded-2xl border border-border/60 bg-background/60 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Time</dt>
-                <dd className="mt-1 text-lg font-semibold">3 minutes</dd>
-              </dl>
-            </AnimatedStat>
-            <AnimatedStat>
-              <dl className="rounded-2xl border border-border/60 bg-background/60 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Questions</dt>
-                <dd className="mt-1 text-lg font-semibold">9 tailored prompts</dd>
-              </dl>
-            </AnimatedStat>
-            <AnimatedStat>
-              <dl className="rounded-2xl border border-border/60 bg-background/60 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Result</dt>
-                <dd className="mt-1 text-lg font-semibold">Bespoke recipe</dd>
-              </dl>
-            </AnimatedStat>
-          </AnimatedStats>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              You&apos;ll preview the recipe immediately after checkout, with the full method ready for the bar team.
-            </p>
-            <Button asChild size="lg" className="sm:w-auto">
+        </StaggerChildren>
+
+        <FadeIn delay={0.25} className="flex w-full flex-col gap-3">
+          <GlowPulse className="w-full" idleDelay={1200}>
+            <MotionButton variant="pill" size="xl" glowOnHover asChild>
               <AgeGateButton href={`/b/${bar.slug}/quiz`}>
-                Begin the experience
+                Start your cocktail quiz
               </AgeGateButton>
-            </Button>
-          </div>
-        </section>
-      </AnimatedCTA>
+            </MotionButton>
+          </GlowPulse>
+          <p className="text-center text-xs text-muted-foreground">
+            18+ only &middot;{' '}
+            <Link href="/help" className="underline hover:text-foreground">
+              How it works
+            </Link>
+          </p>
+        </FadeIn>
 
-      {bar.outroText ? (
-        <footer className="text-center text-sm text-muted-foreground">{bar.outroText}</footer>
-      ) : null}
-    </div>
+        {bar.outroText && (
+          <footer className="text-center text-xs text-muted-foreground">{bar.outroText}</footer>
+        )}
+      </div>
+    </AppShell>
   );
 }

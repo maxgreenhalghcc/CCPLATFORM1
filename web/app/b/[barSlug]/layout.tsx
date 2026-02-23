@@ -1,12 +1,16 @@
 import { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { fetchJson, getApiUrl } from '@/lib/utils';
+import { getPreset, getFontGoogleUrl, getFontFamilyValue } from '@/app/lib/presets';
 
 interface BarSettingsResponse {
   name: string;
   slug: string;
   theme: Record<string, string>;
   pricingPounds?: number | null;
+  preset?: string | null;
+  fontFamily?: string | null;
+  logoLockupMode?: string | null;
 }
 
 interface BarLayoutProps {
@@ -163,7 +167,11 @@ function subtleForeground(color: Hsl): string {
   return color.l > 0.6 ? '0 0% 35%' : '0 0% 85%';
 }
 
-function createThemeVars(theme: Record<string, string> = {}): Record<string, string> {
+function createThemeVars(
+  theme: Record<string, string> = {},
+  preset?: string | null,
+  fontFamily?: string | null,
+): Record<string, string> {
   const background = parseColorToHsl(theme.background, FALLBACK_THEME.background);
   const foreground = parseColorToHsl(theme.foreground, FALLBACK_THEME.foreground);
   const primary = parseColorToHsl(theme.primary, FALLBACK_THEME.primary);
@@ -173,6 +181,10 @@ function createThemeVars(theme: Record<string, string> = {}): Record<string, str
   const muted = adjustSaturation(surface(background, 0.12), 0.6);
   const border = adjustSaturation(surface(background, 0.18), 0.55);
   const accent = adjustSaturation(surface(primary, 0.12), 0.85);
+
+  const presetConfig = getPreset(preset);
+  const fontFamily_ = getFontFamilyValue(fontFamily);
+  const presetOverrides = presetConfig.cssOverrides;
 
   return {
     '--bg': toHslColor(background),
@@ -194,17 +206,31 @@ function createThemeVars(theme: Record<string, string> = {}): Record<string, str
     '--ring': toHslVar(primary),
     '--destructive': '0 84% 60%',
     '--destructive-foreground': '0 0% 98%',
-    '--radius': '0.75rem'
+    '--radius': '0.75rem',
+    ...presetOverrides,
+    '--font-display': fontFamily_,
+    '--font-body': fontFamily_,
   };
 }
 
 export default async function BarLayout({ children, params }: BarLayoutProps) {
   const settings = await getBarSettings(params.barSlug);
-  const cssVars = createThemeVars(settings.theme ?? {});
+  const cssVars = createThemeVars(settings.theme ?? {}, settings.preset, settings.fontFamily);
+
+  const fontUrl = settings.fontFamily ? getFontGoogleUrl(settings.fontFamily) : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={cssVars}>
-      {children}
-    </div>
+    <>
+      {fontUrl && (
+        <link
+          rel="stylesheet"
+          href={fontUrl}
+          crossOrigin="anonymous"
+        />
+      )}
+      <div className="min-h-screen bg-background text-foreground" style={cssVars}>
+        {children}
+      </div>
+    </>
   );
 }

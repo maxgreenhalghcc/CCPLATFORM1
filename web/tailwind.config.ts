@@ -42,8 +42,19 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)'
       },
       fontFamily: {
-        sans: ['var(--font-sans)', ...fontFamily.sans]
-      }
+        sans: ['var(--font-sans)', ...fontFamily.sans],
+        display: ['var(--font-display)', 'var(--font-sans)', ...fontFamily.sans],
+        body: ['var(--font-body)', 'var(--font-sans)', ...fontFamily.sans],
+      },
+      boxShadow: {
+        'glow-sm': '0 0 12px hsl(var(--primary) / var(--glow-intensity))',
+        glow: '0 0 24px hsl(var(--primary) / var(--glow-intensity))',
+        'glow-lg': '0 0 40px hsl(var(--primary) / var(--glow-intensity))',
+        card: '0 4px var(--shadow-softness) hsl(var(--primary) / calc(var(--glow-intensity) * 0.6))',
+      },
+      backdropBlur: {
+        surface: 'var(--surface-blur)',
+      },
     }
   },
   plugins: [require('tailwindcss-animate')]

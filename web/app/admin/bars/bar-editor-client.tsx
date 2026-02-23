@@ -12,6 +12,8 @@ import {
   DURATION,
   EASE,
 } from '@/app/components/motion';
+import { PRESETS, FONT_OPTIONS, type PresetId } from '@/app/lib/presets';
+import { LogoLockup } from '@/app/components/LogoLockup';
 
 interface BarDetail {
   id: string;
@@ -42,6 +44,9 @@ interface BarSettingsResponse {
   stripeConnectLink: string | null;
   brandPalette: Record<string, string> | null;
   logoUrl: string | null;
+  preset?: string;
+  fontFamily?: string;
+  logoLockupMode?: string;
 }
 
 interface BarEditorClientProps {
@@ -148,7 +153,10 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
     stripeConnectId: null,
     stripeConnectLink: null,
     brandPalette: { ...DEFAULT_PALETTE },
-    logoUrl: null
+    logoUrl: null,
+    preset: 'modern',
+    fontFamily: 'inter',
+    logoLockupMode: 'symbol-only'
   });
   const [pricingInput, setPricingInput] = useState('12');
   const [openingHoursInput, setOpeningHoursInput] = useState('');
@@ -245,7 +253,10 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           stripeConnectId: settingsResponse.stripeConnectId,
           stripeConnectLink: settingsResponse.stripeConnectLink,
           brandPalette: { ...DEFAULT_PALETTE, ...palette },
-          logoUrl: settingsResponse.logoUrl
+          logoUrl: settingsResponse.logoUrl,
+          preset: settingsResponse.preset ?? 'modern',
+          fontFamily: settingsResponse.fontFamily ?? 'inter',
+          logoLockupMode: settingsResponse.logoLockupMode ?? 'symbol-only'
         });
         setPricingInput(settingsResponse.pricingPounds.toFixed(2));
         setPaletteState(palette);
@@ -417,7 +428,10 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           bankDetails: buildBankPayload(bankForm),
           openingHours: parseOpeningHoursInput(openingHoursInput),
           stock: parseStockInput(stockInput),
-          brandPalette: buildPalettePayload(paletteState)
+          brandPalette: buildPalettePayload(paletteState),
+          preset: settings.preset,
+          fontFamily: settings.fontFamily,
+          logoLockupMode: settings.logoLockupMode
         };
 
         const response = await requestJson<BarSettingsResponse>(`${api}/bars/${barId}/settings`, {
@@ -447,7 +461,10 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           stripeConnectId: response.stripeConnectId,
           stripeConnectLink: response.stripeConnectLink,
           brandPalette: { ...DEFAULT_PALETTE, ...palette },
-          logoUrl: response.logoUrl
+          logoUrl: response.logoUrl,
+          preset: response.preset ?? 'modern',
+          fontFamily: response.fontFamily ?? 'inter',
+          logoLockupMode: response.logoLockupMode ?? 'symbol-only'
         });
         setPricingInput(String(response.pricingPounds));
         setPaletteState(palette);
@@ -1045,6 +1062,89 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           />
                         </label>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* ── Brand Studio ──────────────────────────────── */}
+                  <div className="space-y-6 rounded-2xl border border-border/60 bg-card/40 p-6">
+                    <h3 className="text-base font-semibold">Brand Studio</h3>
+
+                    {/* Preset selector */}
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-foreground">Visual Preset</label>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {(Object.values(PRESETS) as typeof PRESETS[PresetId][]).map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setSettings((s) => ({ ...s, preset: preset.id }))}
+                            className={cn(
+                              'flex flex-col gap-1 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                              settings.preset === preset.id
+                                ? 'border-primary bg-primary/10 text-foreground'
+                                : 'border-border/60 bg-background/60 text-muted-foreground hover:border-primary/40',
+                            )}
+                          >
+                            <span className="text-sm font-semibold text-foreground">{preset.label}</span>
+                            <span className="text-xs leading-snug">{preset.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Font family */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground" htmlFor="font-family-select">
+                        Font Family
+                      </label>
+                      <select
+                        id="font-family-select"
+                        value={settings.fontFamily ?? 'inter'}
+                        onChange={(e) => setSettings((s) => ({ ...s, fontFamily: e.target.value }))}
+                        className="w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        {FONT_OPTIONS.map((font) => (
+                          <option key={font.key} value={font.key}>
+                            {font.label} — {font.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Logo lockup mode */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Logo Display Mode</label>
+                      <div className="flex gap-2">
+                        {(['symbol-only', 'horizontal', 'stacked'] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setSettings((s) => ({ ...s, logoLockupMode: mode }))}
+                            className={cn(
+                              'rounded-lg border px-3 py-2 text-xs font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                              settings.logoLockupMode === mode
+                                ? 'border-primary bg-primary/10 text-foreground'
+                                : 'border-border/60 bg-background/60 text-muted-foreground hover:border-primary/40',
+                            )}
+                          >
+                            {mode.replace('-', ' ')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Logo preview */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Logo Preview</label>
+                      <div className="flex items-center justify-center rounded-xl border border-border/40 bg-background/60 p-6">
+                        <LogoLockup
+                          logoUrl={settings.logoUrl}
+                          barName={detail.name || 'Your Bar'}
+                          mode={(settings.logoLockupMode as any) ?? 'symbol-only'}
+                          treatment="glass-badge"
+                          size="md"
+                        />
+                      </div>
                     </div>
                   </div>
 

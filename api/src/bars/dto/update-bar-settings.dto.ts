@@ -78,4 +78,16 @@ export class UpdateBarSettingsDto {
   @IsOptional()
   @IsUrl()
   logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  preset?: string;
+
+  @IsOptional()
+  @IsString()
+  fontFamily?: string;
+
+  @IsOptional()
+  @IsString()
+  logoLockupMode?: string;
 }

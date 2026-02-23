@@ -5,9 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { QUIZ_QUESTIONS, CONTACT_QUESTION_ID, ALLERGENS_QUESTION_ID } from '@/app/lib/questions';
 import { apiFetch } from '@/app/lib/api';
 import { OptionCard } from '@/app/components/OptionCard';
-import { Progress } from '@/app/components/Progress';
-import { FooterNav } from '@/app/components/FooterNav';
 import { AnimatePresence, motion, DURATION, EASE, useMotionSafe } from '@/app/components/motion';
+import { AppShell } from '@/app/components/AppShell';
+import { ProgressHeader } from '@/app/components/ProgressHeader';
+import { QuestionStepLayout } from '@/app/components/QuestionStepLayout';
+import { CraftingStateCard, deriveFlavourKeywords } from '@/app/components/CraftingStateCard';
+import { MotionButton } from '@/components/ui/motion-button';
 import { getApiUrl } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
 
@@ -16,6 +19,7 @@ const PAYMENTS_ENABLED =
 
 interface QuizFlowProps {
   barSlug: string;
+  barName?: string;
   outroText?: string;
 }
 
@@ -47,7 +51,7 @@ function resolveCheckoutPath(checkoutUrl: string, orderId: string): string {
   }
 }
 
-export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
+export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps) {
   const router = useRouter();
   const apiUrl = useMemo(getApiUrl, []);
   const detailsStepIndex = QUIZ_QUESTIONS.length;
@@ -62,6 +66,7 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
   const [error, setError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
   const safe = useMotionSafe();
+  const flavourKeywords = deriveFlavourKeywords(answers);
 
   useEffect(() => {
     let cancelled = false;
@@ -294,152 +299,139 @@ export default function QuizFlow({ barSlug, outroText }: QuizFlowProps) {
   const stepKey = isDetailsStep ? 'details' : currentQuestion!.id;
 
   return (
-    <section className="relative flex flex-1 flex-col rounded-3xl border border-border/60 bg-card/80 p-8 shadow-lg shadow-primary/10 backdrop-blur">
-      <div className="mb-4">
-        <Progress
-          currentStep={currentStep + 1}
-          totalSteps={totalSteps}
-          label={`Step ${currentStep + 1} of ${totalSteps}`}
-        />
-      </div>
+    <AppShell>
+      <CraftingStateCard
+        barName={barName ?? barSlug}
+        flavourKeywords={flavourKeywords}
+        visible={submitting}
+      />
 
-      <AnimatePresence mode="wait" custom={direction}>
-        <motion.div
-          key={stepKey}
-          custom={direction}
-          initial={safe ? { opacity: 0, x: direction * 40 } : undefined}
-          animate={{ opacity: 1, x: 0 }}
-          exit={safe ? { opacity: 0, x: direction * -40 } : undefined}
-          transition={{ duration: DURATION.normal, ease: EASE.out }}
-        >
-          {/* Question UI – only when NOT on the details step */}
-          {!isDetailsStep && (
-            <>
-              <div className="mt-8 space-y-4">
-                <div className="space-y-2">
-                  <h2 id={headingId} className="text-2xl font-semibold tracking-tight">
-                    {title}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">{promptText}</p>
-                </div>
+      <QuestionStepLayout
+        header={
+          <ProgressHeader
+            currentStep={currentStep + 1}
+            totalSteps={totalSteps}
+            onBack={handleBack}
+            showBack={currentStep > 0}
+          />
+        }
+        footer={
+          <div className="flex flex-col gap-3">
+            {error && (
+              <p role="alert" className="text-center text-sm font-medium text-destructive">
+                {error}
+              </p>
+            )}
+            <MotionButton
+              variant="pill"
+              size="xl"
+              glowOnHover
+              disabled={submitting || !canProceed}
+              onClick={isLastStep ? handleSubmit : handleNext}
+            >
+              {submitting ? 'Mixing your cocktail…' : isLastStep ? 'Reveal my cocktail' : 'Next question'}
+            </MotionButton>
+            <p className="text-center text-xs text-muted-foreground">
+              Need help?{' '}
+              <a href="/help" target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+                Info &amp; FAQ
+              </a>
+            </p>
+          </div>
+        }
+      >
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={stepKey}
+            custom={direction}
+            initial={safe ? { opacity: 0, y: direction > 0 ? 16 : -16 } : undefined}
+            animate={{ opacity: 1, y: 0 }}
+            exit={safe ? { opacity: 0, y: direction > 0 ? -16 : 16 } : undefined}
+            transition={{ duration: DURATION.normal, ease: EASE.out }}
+            className="flex flex-col gap-6"
+          >
+            {!isDetailsStep && (
+              <div className="space-y-1.5">
+                <h2 id={headingId} className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                  {title}
+                </h2>
+                <p className="text-sm text-muted-foreground">{promptText}</p>
               </div>
+            )}
 
+            {!isDetailsStep && (
               <div
                 role="radiogroup"
                 aria-labelledby={headingId}
-                className="grid gap-4 sm:grid-cols-2"
+                className="grid gap-3 sm:grid-cols-2"
                 aria-busy={isLoadingSession}
               >
                 {currentQuestion!.options.map((option, index) => {
                   const isSelected = option.value === selectedAnswer;
-                  const tabIndex =
-                    isSelected || firstFocusableIndex === index ? 0 : -1;
-
+                  const tabIndex = isSelected || firstFocusableIndex === index ? 0 : -1;
                   return (
                     <OptionCard
                       key={option.value}
                       label={option.label}
                       description={option.description}
                       selected={isSelected}
-                      onSelect={() =>
-                        handleSelect(currentQuestion!.id, option.value)
-                      }
+                      onSelect={() => handleSelect(currentQuestion!.id, option.value)}
                       disabled={isLoadingSession || submitting}
                       tabIndex={tabIndex}
                     />
                   );
                 })}
               </div>
-            </>
-          )}
+            )}
 
-          {/* Details step – guest name + allergens */}
-          {isDetailsStep && (
-            <div className="mt-6 space-y-4">
-              <div className="space-y-2">
-                <h2 id={headingId} className="text-2xl font-semibold tracking-tight">
-                  {title}
-                </h2>
-                <p className="text-sm text-muted-foreground">{promptText}</p>
+            {isDetailsStep && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <h2 id={headingId} className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                    {title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{promptText}</p>
+                </div>
+
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
+                  <label className="flex flex-col gap-2 text-sm font-medium" htmlFor="customer-name">
+                    Who is this cocktail for?
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Add the guest&apos;s name so the bar team knows who to serve.
+                    </span>
+                  </label>
+                  <input
+                    id="customer-name"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="name"
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
+                    placeholder="e.g. Alex"
+                    className="mt-3 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
+                  <label className="flex flex-col gap-2 text-sm font-medium" htmlFor="allergens">
+                    Allergies / dislikes
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Optional — list anything the bar should avoid.
+                    </span>
+                  </label>
+                  <textarea
+                    id="allergens"
+                    value={allergens}
+                    onChange={(e) => setAllergens(e.target.value)}
+                    placeholder="e.g. peanuts, dairy, dislikes tequila"
+                    className="mt-3 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  />
+                </div>
               </div>
-
-              {/* Name */}
-              <div className="rounded-2xl border border-border/60 bg-background/70 p-5">
-                <label
-                  className="flex flex-col gap-2 text-sm font-medium"
-                  htmlFor="customer-name"
-                >
-                  Who is this cocktail for?
-                  <span className="text-xs font-normal text-muted-foreground">
-                    Add the guest&apos;s name so the bar team knows who to serve.
-                  </span>
-                </label>
-
-                <input
-                  id="customer-name"
-                  type="text"
-                  inputMode="text"
-                  autoComplete="name"
-                  value={contact}
-                  onChange={(event) => setContact(event.target.value)}
-                  placeholder="e.g. Alex"
-                  className="mt-3 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                />
-              </div>
-
-              {/* Allergens / dislikes */}
-              <div className="rounded-2xl border border-border/60 bg-background/70 p-5">
-                <label
-                  className="flex flex-col gap-2 text-sm font-medium"
-                  htmlFor="allergens"
-                >
-                  Allergies / dislikes
-                  <span className="text-xs font-normal text-muted-foreground">
-                    Optional – list anything the bar should avoid.
-                  </span>
-                </label>
-
-                <textarea
-                  id="allergens"
-                  value={allergens}
-                  onChange={(event) => setAllergens(event.target.value)}
-                  placeholder="e.g. peanuts, dairy, dislikes tequila"
-                  className="mt-3 w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                />
-              </div>
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-
-      {error ? (
-        <p role="alert" className="mt-4 text-sm font-medium text-destructive">
-          {error}
-        </p>
-      ) : null}
-
-      <div className="mt-auto pt-10">
-        <FooterNav
-          showBack={currentStep > 0}
-          onBack={handleBack}
-          onNext={isLastStep ? handleSubmit : handleNext}
-          nextLabel={isLastStep ? 'Reveal my cocktail' : 'Next question'}
-          disabled={submitting || !canProceed}
-          isSubmitting={submitting}
-        />
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Need more details?{' '}
-          <a
-            href="/help"
-            target="_blank"
-            rel="noreferrer"
-            className="underline hover:text-foreground"
-          >
-            Help &amp; info
-          </a>
-        </p>
-      </div>
-    </section>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </QuestionStepLayout>
+    </AppShell>
   );
 }

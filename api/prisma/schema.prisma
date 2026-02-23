@@ -114,6 +114,9 @@ model BarSettings {
   stripeConnectLink String?
   brandPalette      Json?
   logoUrl           String?
+  preset         String?  @default("modern")
+  fontFamily     String?  @default("inter")
+  logoLockupMode String?  @default("symbol-only")
 
   bar Bar @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }

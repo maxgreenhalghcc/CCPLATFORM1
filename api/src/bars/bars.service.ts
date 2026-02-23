@@ -46,6 +46,9 @@ export interface BarSettingsResponse {
   stripeConnectLink: string | null;
   brandPalette: StructuredRecord | null;
   logoUrl: string | null;
+  preset: string;
+  fontFamily: string;
+  logoLockupMode: string;
 }
 
 const DEFAULT_THEME: Record<string, string> = {
@@ -299,6 +302,9 @@ export class BarsService {
         stripeConnectLink: dto.stripeConnectLink !== undefined ? dto.stripeConnectLink ?? null : undefined,
         brandPalette: this.prepareJsonUpdate(updatePalette),
         logoUrl: dto.logoUrl !== undefined ? dto.logoUrl ?? null : undefined,
+        ...(dto.preset !== undefined && { preset: dto.preset }),
+        ...(dto.fontFamily !== undefined && { fontFamily: dto.fontFamily }),
+        ...(dto.logoLockupMode !== undefined && { logoLockupMode: dto.logoLockupMode }),
       }
     });
 
@@ -388,7 +394,10 @@ export class BarsService {
       stripeConnectId: bar.settings.stripeConnectId ?? null,
       stripeConnectLink: bar.settings.stripeConnectLink ?? null,
       brandPalette,
-      logoUrl: bar.settings.logoUrl ?? null
+      logoUrl: bar.settings.logoUrl ?? null,
+      preset: bar.settings.preset ?? 'modern',
+      fontFamily: bar.settings.fontFamily ?? 'inter',
+      logoLockupMode: bar.settings.logoLockupMode ?? 'symbol-only'
     };
   }
 

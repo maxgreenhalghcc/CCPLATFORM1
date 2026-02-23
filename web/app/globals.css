@@ -23,6 +23,15 @@
   --card: 242 32% 12%;
   --card-foreground: 240 100% 96%;
   --radius: 0.75rem;
+  --glow-intensity: 0.15;
+  --shadow-softness: 24px;
+  --surface-blur: 12px;
+  --border-alpha: 0.5;
+  --texture-opacity: 0.03;
+  --radius-scale: 1;
+  --motion-speed: 1;
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
 }
 
 [data-theme='dark'] {
@@ -45,6 +54,15 @@
   --ring: 244 70% 48%;
   --card: 242 32% 12%;
   --card-foreground: 240 100% 96%;
+  --glow-intensity: 0.15;
+  --shadow-softness: 24px;
+  --surface-blur: 12px;
+  --border-alpha: 0.5;
+  --texture-opacity: 0.03;
+  --radius-scale: 1;
+  --motion-speed: 1;
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
 }
 
 * {
@@ -102,4 +120,29 @@ body {
 
 .animate-badge-pulse {
   animation: badge-pulse 2s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2.4s ease-in-out infinite;
+}
+
+.animate-ambient-drift {
+  animation: ambient-drift 12s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px hsl(var(--primary) / 0.15); }
+  50% { box-shadow: 0 0 28px hsl(var(--primary) / 0.35); }
+}
+
+@keyframes ambient-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(8px, -12px) scale(1.04); }
+  66% { transform: translate(-6px, 8px) scale(0.97); }
+}
+
+@keyframes keyword-fade {
+  0% { opacity: 0; transform: translateY(6px); }
+  20%, 80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
 }
