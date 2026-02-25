@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
+import { DashboardShell } from '@/app/components/DashboardShell';
+import { LiftIn, StaggerChildren, StaggerItem } from '@/app/components/motion';
 
 interface BarSettingsResponse {
   id: string;
@@ -64,6 +66,8 @@ function paletteSwatches(palette: Record<string, string> | null | undefined) {
   ];
 }
 
+const cardClass = 'rounded-2xl border border-border/[var(--border-alpha,0.5)] bg-card/80 p-6 shadow-card';
+
 export default async function StaffDetailsPage() {
   const session = await auth();
 
@@ -78,19 +82,23 @@ export default async function StaffDetailsPage() {
     settings = await fetchBarSettings(barIdentifier, session.apiToken);
   } catch (error) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-6 py-16">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold">Venue details</h1>
-          <p className="text-muted-foreground">Unable to load the bar configuration for this account.</p>
-          <nav className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
-            <Link className="rounded-full border border-border px-3 py-1 transition hover:border-primary/60 hover:text-foreground" href="/staff">
-              Orders
-            </Link>
-            <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">Venue details</span>
-          </nav>
-        </header>
-        <p className="text-sm text-destructive">{error instanceof Error ? error.message : 'Unknown error'}.</p>
-      </div>
+      <DashboardShell>
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-16">
+          <LiftIn delay={0.05}>
+            <header className="flex flex-col gap-2">
+              <h1 className="text-3xl font-semibold">Venue details</h1>
+              <p className="text-muted-foreground">Unable to load the bar configuration for this account.</p>
+              <nav className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
+                <Link className="rounded-full border border-border px-3 py-1 transition hover:border-primary/60 hover:text-foreground" href="/staff">
+                  Orders
+                </Link>
+                <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">Venue details</span>
+              </nav>
+            </header>
+          </LiftIn>
+          <p className="text-sm text-destructive">{error instanceof Error ? error.message : 'Unknown error'}.</p>
+        </div>
+      </DashboardShell>
     );
   }
 
@@ -107,139 +115,155 @@ export default async function StaffDetailsPage() {
   const swatches = paletteSwatches(settings.brandPalette);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-6 py-16">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">Venue details</h1>
-        <p className="text-muted-foreground">
-          Reference contact, stock, and payout details for <span className="font-medium text-foreground">{settings.name}</span>.
-        </p>
-        <nav className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
-          <Link className="rounded-full border border-border px-3 py-1 transition hover:border-primary/60 hover:text-foreground" href="/staff">
-            Orders
-          </Link>
-          <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">Venue details</span>
-        </nav>
-      </header>
+    <DashboardShell>
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-16">
+        <LiftIn delay={0.05}>
+          <header className="flex flex-col gap-2">
+            <h1 className="text-3xl font-semibold">Venue details</h1>
+            <p className="text-muted-foreground">
+              Reference contact, stock, and payout details for <span className="font-medium text-foreground">{settings.name}</span>.
+            </p>
+            <nav className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
+              <Link className="rounded-full border border-border px-3 py-1 transition hover:border-primary/60 hover:text-foreground" href="/staff">
+                Orders
+              </Link>
+              <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">Venue details</span>
+            </nav>
+          </header>
+        </LiftIn>
 
-      <section className="grid gap-6 md:grid-cols-2">
-        <article className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Contact</h2>
-          <dl className="mt-4 space-y-2 text-sm">
-            {contactItems.map((item) => (
-              <div className="flex justify-between gap-4" key={item.label}>
-                <dt className="text-muted-foreground">{item.label}</dt>
-                <dd className="text-right text-foreground">{item.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </article>
+        <StaggerChildren className="grid gap-6 md:grid-cols-2">
+          <StaggerItem>
+            <article className={cardClass}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Contact</h2>
+              <dl className="mt-4 space-y-2 text-sm">
+                {contactItems.map((item) => (
+                  <div className="flex justify-between gap-4" key={item.label}>
+                    <dt className="text-muted-foreground">{item.label}</dt>
+                    <dd className="text-right text-foreground">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          </StaggerItem>
 
-        <article className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Stock</h2>
-          {stockItems.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">No stock list has been captured yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-2 text-sm">
-              {stockItems.map((item) => (
-                <li className="flex items-center justify-between" key={item}>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {settings.stockListUrl ? (
-            <a
-              className="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-primary/80"
-              href={settings.stockListUrl}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Download stock list
-            </a>
-          ) : null}
-        </article>
-      </section>
-
-      <section className="grid gap-6 md:grid-cols-2">
-        <article className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Address</h2>
-          {addressItems.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">Address not configured.</p>
-          ) : (
-            <address className="mt-4 space-y-1 text-sm not-italic text-foreground">
-              {addressItems.map((item) => (
-                <div key={item.label}>{item.value}</div>
-              ))}
-            </address>
-          )}
-        </article>
-
-        <article className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Opening hours</h2>
-          {openingHours.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">Hours not configured.</p>
-          ) : (
-            <ul className="mt-4 space-y-2 text-sm text-foreground">
-              {openingHours.map((item) => (
-                <li className="flex items-center justify-between" key={item.label}>
-                  <span className="text-muted-foreground">{item.label}</span>
-                  <span>{item.value}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </article>
-      </section>
-
-      <section className="grid gap-6 md:grid-cols-2">
-        <article className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Payouts</h2>
-          {bankItems.length === 0 && !settings.stripeConnectId ? (
-            <p className="mt-4 text-sm text-muted-foreground">Bank details not yet provided.</p>
-          ) : (
-            <dl className="mt-4 space-y-2 text-sm">
-              {bankItems.map((item) => (
-                <div className="flex justify-between gap-4" key={item.label}>
-                  <dt className="text-muted-foreground">{item.label}</dt>
-                  <dd className="text-right text-foreground">{item.value}</dd>
-                </div>
-              ))}
-              {settings.stripeConnectId ? (
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Stripe account</dt>
-                  <dd className="text-right text-foreground">{settings.stripeConnectId}</dd>
-                </div>
+          <StaggerItem>
+            <article className={cardClass}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Stock</h2>
+              {stockItems.length === 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">No stock list has been captured yet.</p>
+              ) : (
+                <ul className="mt-4 space-y-2 text-sm">
+                  {stockItems.map((item) => (
+                    <li className="flex items-center justify-between" key={item}>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {settings.stockListUrl ? (
+                <a
+                  className="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-primary/80"
+                  href={settings.stockListUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Download stock list
+                </a>
               ) : null}
-            </dl>
-          )}
-          {settings.stripeConnectLink ? (
-            <a
-              className="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-primary/80"
-              href={settings.stripeConnectLink}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Open Stripe Connect
-            </a>
-          ) : null}
-        </article>
+            </article>
+          </StaggerItem>
+        </StaggerChildren>
 
-        <article className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Brand palette</h2>
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            {swatches.map((swatch) => (
-              <div key={swatch.label} className="rounded-xl border border-border/60 p-3 text-center text-xs">
-                <div
-                  className="mx-auto mb-2 h-12 w-12 rounded-full border border-border"
-                  style={{ backgroundColor: swatch.value }}
-                />
-                <p className="font-medium text-foreground">{swatch.label}</p>
-                <p className="font-mono text-[10px] text-muted-foreground">{swatch.value}</p>
+        <StaggerChildren className="grid gap-6 md:grid-cols-2">
+          <StaggerItem>
+            <article className={cardClass}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Address</h2>
+              {addressItems.length === 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">Address not configured.</p>
+              ) : (
+                <address className="mt-4 space-y-1 text-sm not-italic text-foreground">
+                  {addressItems.map((item) => (
+                    <div key={item.label}>{item.value}</div>
+                  ))}
+                </address>
+              )}
+            </article>
+          </StaggerItem>
+
+          <StaggerItem>
+            <article className={cardClass}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Opening hours</h2>
+              {openingHours.length === 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">Hours not configured.</p>
+              ) : (
+                <ul className="mt-4 space-y-2 text-sm text-foreground">
+                  {openingHours.map((item) => (
+                    <li className="flex items-center justify-between" key={item.label}>
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span>{item.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          </StaggerItem>
+        </StaggerChildren>
+
+        <StaggerChildren className="grid gap-6 md:grid-cols-2">
+          <StaggerItem>
+            <article className={cardClass}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Payouts</h2>
+              {bankItems.length === 0 && !settings.stripeConnectId ? (
+                <p className="mt-4 text-sm text-muted-foreground">Bank details not yet provided.</p>
+              ) : (
+                <dl className="mt-4 space-y-2 text-sm">
+                  {bankItems.map((item) => (
+                    <div className="flex justify-between gap-4" key={item.label}>
+                      <dt className="text-muted-foreground">{item.label}</dt>
+                      <dd className="text-right text-foreground">{item.value}</dd>
+                    </div>
+                  ))}
+                  {settings.stripeConnectId ? (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Stripe account</dt>
+                      <dd className="text-right text-foreground">{settings.stripeConnectId}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              )}
+              {settings.stripeConnectLink ? (
+                <a
+                  className="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-primary/80"
+                  href={settings.stripeConnectLink}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Open Stripe Connect
+                </a>
+              ) : null}
+            </article>
+          </StaggerItem>
+
+          <StaggerItem>
+            <article className={cardClass}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Brand palette</h2>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {swatches.map((swatch) => (
+                  <div key={swatch.label} className="rounded-xl border border-border/60 p-3 text-center text-xs">
+                    <div
+                      className="mx-auto mb-2 h-12 w-12 rounded-full border border-border"
+                      style={{ backgroundColor: swatch.value }}
+                    />
+                    <p className="font-medium text-foreground">{swatch.label}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground">{swatch.value}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </article>
-      </section>
-    </div>
+            </article>
+          </StaggerItem>
+        </StaggerChildren>
+      </div>
+    </DashboardShell>
   );
 }

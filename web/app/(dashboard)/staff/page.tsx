@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
 import StaffOrdersClient, { type OrderSummary } from './staff-orders-client';
+import { DashboardShell } from '@/app/components/DashboardShell';
+import { LiftIn, FadeIn } from '@/app/components/motion';
 
 async function fetchOrders(token: string, barIdentifier: string): Promise<OrderSummary[]> {
   const baseUrl = getApiBaseUrl();
@@ -62,22 +64,32 @@ export default async function StaffDashboardPage() {
   const barId = session.user.barId ?? 'demo-bar';
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-16">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">Staff orders</h1>
-        <p className="text-muted-foreground">
-          Monitor live orders and access generated recipes once payments clear.
-        </p>
-        <nav className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">Orders</span>
-          <Link className="rounded-full border border-border px-3 py-1 transition hover:border-primary/60 hover:text-foreground" href="/staff/details">
-            Venue details
-          </Link>
-        </nav>
-      </header>
-      <Suspense fallback={<p>Loading orders…</p>}>
-        <StaffOrdersTable barId={barId} token={session.apiToken} />
-      </Suspense>
-    </div>
+    <DashboardShell>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-16">
+        <LiftIn delay={0.05}>
+          <header className="flex flex-col gap-2">
+            <h1 className="text-3xl font-semibold">Staff orders</h1>
+            <p className="text-muted-foreground">
+              Monitor live orders and access generated recipes once payments clear.
+            </p>
+            <nav className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
+              <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">Orders</span>
+              <Link className="rounded-full border border-border px-3 py-1 transition hover:border-primary/60 hover:text-foreground" href="/staff/details">
+                Venue details
+              </Link>
+            </nav>
+          </header>
+        </LiftIn>
+        <FadeIn delay={0.15}>
+          <Suspense
+            fallback={
+              <div className="h-48 animate-pulse rounded-2xl border border-border/[var(--border-alpha,0.5)] bg-card/60" />
+            }
+          >
+            <StaffOrdersTable barId={barId} token={session.apiToken} />
+          </Suspense>
+        </FadeIn>
+      </div>
+    </DashboardShell>
   );
 }

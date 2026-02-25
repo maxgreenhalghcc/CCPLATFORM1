@@ -586,7 +586,7 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: DURATION.normal, delay: index < 12 ? index * 0.04 : 0, ease: EASE.out }}
-                  className={`flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm ${
+                  className={`flex h-full flex-col justify-between rounded-2xl border border-border/[var(--border-alpha,0.5)] bg-card/80 p-5 shadow-card ${
                     isUnread ? 'ring-2 ring-primary/40' : ''
                   }`}
                 >
@@ -602,7 +602,11 @@ export default function StaffOrdersClient({ barId, initialOrders, initialError =
                       <p className="text-xs text-muted-foreground">Guest order</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide">
-                      <span className="rounded-full bg-primary/15 px-2 py-1 font-medium text-primary">
+                      <span className={`rounded-full px-2 py-1 font-medium text-primary ${
+                        order.status === 'paid'
+                          ? 'bg-primary/20 shadow-glow-sm ring-1 ring-primary/30'
+                          : 'bg-primary/15'
+                      }`}>
                         {formatStatus(order.status)}
                       </span>
                       {isUnread ? (
