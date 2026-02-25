@@ -20,7 +20,7 @@ export function DashboardShell({ children, className }: DashboardShellProps) {
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           background:
-            'radial-gradient(ellipse 80% 40% at 50% 0%, hsl(var(--primary) / calc(var(--glow-intensity) * 0.3)) 0%, transparent 60%)',
+            'radial-gradient(ellipse 80% 40% at 50% 0%, hsl(var(--primary) / 0.18) 0%, transparent 65%)',
         }}
         aria-hidden="true"
       />

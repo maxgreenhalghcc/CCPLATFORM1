@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import AdminFinancialsClient from './financials-client';
+import { DashboardShell } from '@/app/components/DashboardShell';
 
 export default async function AdminFinancialsPage() {
   const session = await auth();
@@ -9,5 +10,9 @@ export default async function AdminFinancialsPage() {
     redirect(`/login?callbackUrl=${encodeURIComponent('/admin/financials')}`);
   }
 
-  return <AdminFinancialsClient />;
+  return (
+    <DashboardShell>
+      <AdminFinancialsClient />
+    </DashboardShell>
+  );
 }

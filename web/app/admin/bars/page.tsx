@@ -1,7 +1,12 @@
 import dynamic from 'next/dynamic';
+import { DashboardShell } from '@/app/components/DashboardShell';
 
 const BarsClient = dynamic(() => import('./bars-client'), { ssr: false });
 
 export default function AdminBarsPage() {
-  return <BarsClient />;
+  return (
+    <DashboardShell>
+      <BarsClient />
+    </DashboardShell>
+  );
 }

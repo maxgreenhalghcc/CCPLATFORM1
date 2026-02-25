@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn, fetchJson, getApiUrl } from '@/lib/utils';
 import {
   FadeIn,
+  LiftIn,
   motion,
   DURATION,
   EASE,
@@ -129,18 +130,19 @@ export default function BarsClient() {
 
   return (
     <div className="space-y-8 px-6 py-16">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">Bars</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage bar tenants, configure branding, and assign pricing.
-            </p>
+      <LiftIn delay={0.05}>
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-semibold">Bars</h1>
+              <p className="text-sm text-muted-foreground">
+                Manage bar tenants, configure branding, and assign pricing.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/admin/bars/new">Add bar</Link>
+            </Button>
           </div>
-          <Button asChild>
-            <Link href="/admin/bars/new">Add bar</Link>
-          </Button>
-        </div>
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="search"
@@ -169,6 +171,7 @@ export default function BarsClient() {
           </div>
         </div>
       </header>
+      </LiftIn>
 
       {status === 'loading' || isLoading ? (
         <div className="space-y-3">
