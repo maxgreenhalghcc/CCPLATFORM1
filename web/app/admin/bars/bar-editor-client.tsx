@@ -1028,20 +1028,6 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           placeholder="https://dashboard.stripe.com/..."
                         />
                       </label>
-                      <label className="space-y-2 md:col-span-2">
-                        <span className="text-sm font-medium text-foreground">Logo URL</span>
-                        <input
-                          value={settings.logoUrl ?? ''}
-                          onChange={(event) =>
-                            setSettings((current) => ({
-                              ...current,
-                              logoUrl: event.target.value
-                            }))
-                          }
-                          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="https://cdn.example.com/bars/demo-bar/logo.png"
-                        />
-                      </label>
                     </div>
                   </div>
 
@@ -1116,6 +1102,29 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    {/* Logo URL */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground" htmlFor="logo-url-input">
+                        Logo URL
+                      </label>
+                      <input
+                        id="logo-url-input"
+                        type="url"
+                        value={settings.logoUrl ?? ''}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            logoUrl: event.target.value || null
+                          }))
+                        }
+                        className="h-10 w-full rounded-xl border border-border/70 bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        placeholder="https://cdn.example.com/your-logo.png"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Paste a direct link to your logo image (PNG, SVG, or WebP recommended).
+                      </p>
                     </div>
 
                     {/* Logo lockup mode */}
