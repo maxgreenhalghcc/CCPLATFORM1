@@ -480,7 +480,14 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
         setIsSavingSettings(false);
       }
     },
-    [barId, isNew, pricingInput, session?.apiToken, settings.introText, settings.outroText, settings.theme, status, settings.quizPaused]
+    [
+      barId, isNew, pricingInput, session?.apiToken, status,
+      settings.introText, settings.outroText, settings.theme, settings.quizPaused,
+      settings.contactName, settings.contactEmail, settings.contactPhone,
+      settings.stockListUrl, settings.stripeConnectId, settings.stripeConnectLink,
+      settings.logoUrl, settings.preset, settings.fontFamily, settings.logoLockupMode,
+      addressForm, bankForm, openingHoursInput, stockInput, paletteState,
+    ]
   );
 
   const renderTabs = (
