@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { QUIZ_QUESTIONS, CONTACT_QUESTION_ID, ALLERGENS_QUESTION_ID } from '@/app/lib/questions';
 import { apiFetch } from '@/app/lib/api';
 import { OptionCard } from '@/app/components/OptionCard';
@@ -65,6 +65,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safe = useMotionSafe();
   const flavourKeywords = deriveFlavourKeywords(answers);
 
@@ -112,6 +113,12 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
     };
   }, [apiUrl, barSlug]);
 
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    };
+  }, []);
+
   const isDetailsStep = currentStep === detailsStepIndex;
 
   const currentQuestion = !isDetailsStep
@@ -135,8 +142,15 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
     (questionId: string, value: string) => {
       setAnswers((prev) => ({ ...prev, [questionId]: value }));
       setError(null);
+      if (!isDetailsStep) {
+        if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+        autoAdvanceRef.current = setTimeout(() => {
+          setDirection(1);
+          setCurrentStep((prev) => Math.min(prev + 1, totalSteps - 1));
+        }, 380);
+      }
     },
-    []
+    [isDetailsStep, totalSteps]
   );
 
   const handleNext = useCallback(() => {
@@ -154,6 +168,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
 
   const handleBack = useCallback(() => {
     setError(null);
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
     setDirection(-1);
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   }, []);
@@ -329,7 +344,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
               disabled={submitting || !canProceed}
               onClick={isLastStep ? handleSubmit : handleNext}
             >
-              {submitting ? 'Mixing your cocktail…' : isLastStep ? 'Reveal my cocktail' : 'Next question'}
+              {submitting ? 'Mixing your cocktail…' : isLastStep ? 'Reveal my cocktail' : 'Continue'}
             </MotionButton>
             <p className="text-center text-xs text-muted-foreground">
               Need help?{' '}
@@ -363,7 +378,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
               <div
                 role="radiogroup"
                 aria-labelledby={headingId}
-                className="grid gap-3 sm:grid-cols-2"
+                className="flex flex-col gap-2 sm:grid sm:grid-cols-2 sm:gap-3"
                 aria-busy={isLoadingSession}
               >
                 {currentQuestion!.options.map((option, index) => {

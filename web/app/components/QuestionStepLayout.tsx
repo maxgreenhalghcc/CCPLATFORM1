@@ -21,7 +21,7 @@ export function QuestionStepLayout({
   return (
     <div
       className={cn(
-        'flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col px-5 pb-6 pt-5',
+        'flex min-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col px-5 pt-5 pb-[max(env(safe-area-inset-bottom),1.5rem)]',
         className,
       )}
     >
