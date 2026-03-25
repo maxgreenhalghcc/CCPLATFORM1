@@ -336,7 +336,7 @@ export class BarsService {
 
     await this.prisma.barSettings.upsert({
       where: { barId: bar.id },
-      create: { barId: bar.id, quizPaused },
+      create: { barId: bar.id, quizPaused, theme: {} },
       update: { quizPaused },
     });
 
