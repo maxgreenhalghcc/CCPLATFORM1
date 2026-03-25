@@ -26,7 +26,7 @@ export class RecipesService {
     const url =
       this.recipeApiUrl ||
       this.configService.get<string>('recipeService.url') ||
-      'http://localhost:8000';
+      'http://localhost:4001';
 
     const payload = {
       bar_id: dto.barId,
