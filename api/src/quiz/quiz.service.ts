@@ -444,7 +444,7 @@ export class QuizService {
           ]),
           foam_toggle: randomChoice(['yes', 'no']),
           abv_lane: choice('abv_lane'),
-          allergens: '',
+          allergens: choice('allergens'),
 
           seed,
         };
