@@ -43,7 +43,11 @@ export default async function BarLandingPage({ params }: BarPageProps) {
         <LogoLockup
           delay={0}
           size="md"
-          mode="symbol-only"
+          mode={
+            bar.logoLockupMode === 'horizontal' || bar.logoLockupMode === 'stacked'
+              ? bar.logoLockupMode
+              : 'symbol-only'
+          }
           treatment="glass-badge"
           logoUrl={bar.logoUrl}
           barName={bar.name}

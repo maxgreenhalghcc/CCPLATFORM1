@@ -3,11 +3,15 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
+  Req,
   UseGuards
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import { UserRole } from '@prisma/client';
 
 import { BarsService } from './bars.service';
@@ -69,6 +73,17 @@ export class BarsController {
     @Body() dto: UpdateBarSettingsDto,
   ): Promise<BarSettingsResponse> {
     return this.barsService.updateSettings(id, dto);
+  }
+
+  @Patch(':id/settings/quiz-paused')
+  @UseGuards(ApiAuthGuard, RolesGuard)
+  @Roles(UserRole.admin, UserRole.staff)
+  toggleQuizPaused(
+    @Param('id') id: string,
+    @Body() body: { quizPaused: boolean },
+    @Req() req: Request & { user: AuthenticatedUser },
+  ): Promise<{ quizPaused: boolean }> {
+    return this.barsService.toggleQuizPaused(id, body.quizPaused, req.user);
   }
 
   @Post(':id/assets')

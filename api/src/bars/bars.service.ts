@@ -1,11 +1,13 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import { CreateBarDto } from './dto/create-bar.dto';
 import { UpdateBarDto } from './dto/update-bar.dto';
 import { UpdateBarSettingsDto } from './dto/update-bar-settings.dto';
@@ -318,6 +320,27 @@ export class BarsService {
     }
 
     return this.mapSettings(refreshed);
+  }
+
+  async toggleQuizPaused(
+    barIdentifier: string,
+    quizPaused: boolean,
+    requester: AuthenticatedUser,
+  ): Promise<{ quizPaused: boolean }> {
+    const bar = await this.ensureBar(barIdentifier, true);
+
+    // Staff may only update their own bar
+    if (requester.role === UserRole.staff && requester.barId !== bar.id) {
+      throw new ForbiddenException('Staff can only update their own bar');
+    }
+
+    await this.prisma.barSettings.upsert({
+      where: { barId: bar.id },
+      create: { barId: bar.id, quizPaused },
+      update: { quizPaused },
+    });
+
+    return { quizPaused };
   }
 
   createAssetUpload(id: string) {

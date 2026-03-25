@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
 import { DashboardShell } from '@/app/components/DashboardShell';
 import { LiftIn, StaggerChildren, StaggerItem } from '@/app/components/motion';
+import { BusyNightToggle } from '../BusyNightToggle';
 
 interface BarSettingsResponse {
   id: string;
@@ -24,6 +25,7 @@ interface BarSettingsResponse {
   stripeConnectLink: string | null;
   brandPalette: Record<string, string> | null;
   logoUrl: string | null;
+  quizPaused: boolean;
 }
 
 async function fetchBarSettings(barIdentifier: string, token?: string): Promise<BarSettingsResponse> {
@@ -131,6 +133,17 @@ export default async function StaffDetailsPage() {
             </nav>
           </header>
         </LiftIn>
+
+        <article className={cardClass}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Service</h2>
+          <div className="mt-4">
+            <BusyNightToggle
+              barId={barIdentifier}
+              initialPaused={settings.quizPaused}
+              apiToken={session.apiToken}
+            />
+          </div>
+        </article>
 
         <StaggerChildren className="grid gap-6 md:grid-cols-2">
           <StaggerItem>
