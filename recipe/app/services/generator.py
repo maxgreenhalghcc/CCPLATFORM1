@@ -18,25 +18,12 @@ def _stable_seed(session_id: str, bar_id: str) -> int:
     return abs(hash((session_id, bar_id))) % (2**32)
 
 
-def _derive_warnings(
-    ingredients: List[Dict[str, str]],
-    quiz: Dict[str, Any] | None,
-) -> List[str]:
-    """Simple warning system for allergens."""
-    warnings: List[str] = []
-
-    if not quiz:
-        return warnings
-
-    allergens = quiz.get("allergens")
-    if isinstance(allergens, list):
-        allergen_set = {str(a).lower() for a in allergens}
-        for ing in ingredients:
-            name = ing.get("name", "").lower()
-            if name in allergen_set:
-                warnings.append(f"Contains {ing.get('name', '')}")
-
-    return warnings
+def _derive_warnings(allergens_str):
+    # type: (str) -> List[str]
+    """Surface the guest's free-text allergen note as a warning for bar staff."""
+    if not allergens_str or not allergens_str.strip():
+        return []
+    return ["Allergens / dislikes: " + allergens_str.strip()]
 
 
 def _local_recipe(payload: GenerateRequest) -> Dict[str, Any]:
@@ -69,7 +56,7 @@ def _local_recipe(payload: GenerateRequest) -> Dict[str, Any]:
         if filtered:
             ingredients = filtered
 
-    warnings = _derive_warnings(ingredients, payload.quiz)
+    warnings = _derive_warnings(payload.allergens)
 
     return {
         "id": f"recipe_{payload.session_id}",
@@ -91,7 +78,7 @@ def generate_recipe(payload: GenerateRequest) -> Dict[str, Any]:
     2. If it errors / times out / 5xx's, fall back to the local generator.
     3. Always return a *flat* recipe dict, matching what the Node API expects.
     """
-    request_json = payload.model_dump(exclude_none=True)
+    request_json = payload.dict(exclude_none=True)
     print("Sending to hosted recipe engine at", f"{RECIPEBUILDER_BASE_URL}/generate")
     print("Request payload:", request_json)
 
@@ -143,7 +130,7 @@ def generate_recipe(payload: GenerateRequest) -> Dict[str, Any]:
             "glassware": body.get("glassware") or "",
             "garnish": body.get("garnish") or "",
             "ingredients": ingredients,
-            "warnings": body.get("warnings") or [],
+            "warnings": _derive_warnings(payload.allergens) + (body.get("warnings") or []),
         }
 
         return recipe
