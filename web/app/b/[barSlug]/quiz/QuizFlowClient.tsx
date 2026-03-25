@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { QUIZ_QUESTIONS, CONTACT_QUESTION_ID, ALLERGENS_QUESTION_ID } from '@/app/lib/questions';
 import { apiFetch } from '@/app/lib/api';
 import { OptionCard } from '@/app/components/OptionCard';
@@ -11,6 +12,7 @@ import { ProgressHeader } from '@/app/components/ProgressHeader';
 import { QuestionStepLayout } from '@/app/components/QuestionStepLayout';
 import { CraftingStateCard, deriveFlavourKeywords } from '@/app/components/CraftingStateCard';
 import { MotionButton } from '@/components/ui/motion-button';
+import { Button } from '@/components/ui/button';
 import { getApiUrl } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
 
@@ -54,6 +56,7 @@ function resolveCheckoutPath(checkoutUrl: string, orderId: string): string {
 export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps) {
   const router = useRouter();
   const apiUrl = useMemo(getApiUrl, []);
+  const storageKey = `pending_order_${barSlug}`;
   const detailsStepIndex = QUIZ_QUESTIONS.length;
   const totalSteps = QUIZ_QUESTIONS.length + 1;
   const [currentStep, setCurrentStep] = useState(0);
@@ -65,9 +68,21 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [retryCount, setRetryCount] = useState(0);
+  const [resumeOrderId, setResumeOrderId] = useState<string | null>(null);
   const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safe = useMotionSafe();
   const flavourKeywords = deriveFlavourKeywords(answers);
+
+  // Check for a pending order the user may have already submitted (double-charge guard)
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      if (stored) setResumeOrderId(stored);
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing restrictions) — ignore
+    }
+  }, [storageKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +100,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
 
         if (!response.ok) {
           if (response.status === 404) {
-            setError('This bar is paused right now. Please speak to staff.');
+            if (!cancelled) setError('This bar is paused right now. Please speak to staff.');
             return;
           }
           throw new Error(`Failed to start quiz session: ${response.status}`);
@@ -97,7 +112,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
         }
       } catch (sessionError) {
         if (!cancelled) {
-          setError('We couldn\'t start the quiz. Please refresh and try again.');
+          setError('We couldn\'t start the quiz. Please try again.');
         }
       } finally {
         if (!cancelled) {
@@ -111,7 +126,20 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
     return () => {
       cancelled = true;
     };
-  }, [apiUrl, barSlug]);
+  }, [apiUrl, barSlug, retryCount]);
+
+  const handleRetrySession = useCallback(() => {
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  const handleStartFresh = useCallback(() => {
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      // ignore
+    }
+    setResumeOrderId(null);
+  }, [storageKey]);
 
   useEffect(() => {
     return () => {
@@ -243,6 +271,14 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
         const submitData = (await submitResponse.json()) as SubmitQuizResponse;
         const { orderId } = submitData;
 
+        // Persist orderId before any redirect so that if the user navigates
+        // back we can show them their existing order instead of a new quiz.
+        try {
+          sessionStorage.setItem(storageKey, orderId);
+        } catch {
+          // sessionStorage unavailable — ignore, safety net only
+        }
+
         if (!PAYMENTS_ENABLED) {
           router.push(`/receipt?orderId=${orderId}` as any);
           return;
@@ -283,10 +319,38 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
     } finally {
       setSubmitting(false);
     }
-  }, [answers, allergens, apiUrl, contact, router, sessionId]);
+  }, [answers, allergens, apiUrl, contact, router, sessionId, storageKey]);
 
   if (!currentQuestion && !isDetailsStep) {
     return null;
+  }
+
+  // Double-charge guard: if the user already submitted an order this session,
+  // show a resume prompt before allowing a fresh quiz submission.
+  if (resumeOrderId) {
+    return (
+      <AppShell>
+        <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-16">
+          <div className="w-full max-w-sm space-y-6 text-center">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold tracking-tight">You already have an order</h2>
+              <p className="text-sm text-muted-foreground">
+                It looks like you already submitted a cocktail order this session. View it below
+                or start a new quiz if you&apos;d like a different drink.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Button asChild variant="pill" size="xl" className="w-full">
+                <a href={`/receipt?orderId=${resumeOrderId}`}>View my order</a>
+              </Button>
+              <Button variant="pill-ghost" size="xl" className="w-full" onClick={handleStartFresh}>
+                Start a new order
+              </Button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
   }
 
   const headingId = isDetailsStep
@@ -337,15 +401,31 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
                 {error}
               </p>
             )}
-            <MotionButton
-              variant="pill"
-              size="xl"
-              glowOnHover
-              disabled={submitting || !canProceed}
-              onClick={isLastStep ? handleSubmit : handleNext}
-            >
-              {submitting ? 'Mixing your cocktail…' : isLastStep ? 'Reveal my cocktail' : 'Continue'}
-            </MotionButton>
+            {/* Session failed — show retry instead of the disabled submit button */}
+            {!sessionId && !isLoadingSession && error ? (
+              <MotionButton
+                variant="pill"
+                size="xl"
+                onClick={handleRetrySession}
+              >
+                Try again
+              </MotionButton>
+            ) : (
+              <MotionButton
+                variant="pill"
+                size="xl"
+                glowOnHover
+                disabled={submitting || !canProceed}
+                onClick={isLastStep ? handleSubmit : handleNext}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Mixing your cocktail…
+                  </>
+                ) : isLastStep ? 'Reveal my cocktail' : 'Continue'}
+              </MotionButton>
+            )}
             <p className="text-center text-xs text-muted-foreground">
               Need help?{' '}
               <a href="/help" target="_blank" rel="noreferrer" className="underline hover:text-foreground">
