@@ -159,6 +159,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
     fontFamily: 'inter',
     logoLockupMode: 'symbol-only'
   });
+  const [logoEnabled, setLogoEnabled] = useState(false);
   const [pricingInput, setPricingInput] = useState('12');
   const [openingHoursInput, setOpeningHoursInput] = useState('');
   const [stockInput, setStockInput] = useState('');
@@ -259,6 +260,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           fontFamily: settingsResponse.fontFamily ?? 'inter',
           logoLockupMode: settingsResponse.logoLockupMode ?? 'symbol-only'
         });
+        setLogoEnabled(!!settingsResponse.logoUrl);
         setPricingInput(settingsResponse.pricingPounds.toFixed(2));
         setPaletteState(palette);
         setAddressForm(toAddressState(settingsResponse.address));
@@ -424,7 +426,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           stockListUrl: normalizeNullableString(settings.stockListUrl),
           stripeConnectId: normalizeNullableString(settings.stripeConnectId),
           stripeConnectLink: normalizeNullableString(settings.stripeConnectLink),
-          logoUrl: normalizeNullableString(settings.logoUrl),
+          logoUrl: logoEnabled ? normalizeNullableString(settings.logoUrl) : null,
           address: buildAddressPayload(addressForm),
           bankDetails: buildBankPayload(bankForm),
           openingHours: parseOpeningHoursInput(openingHoursInput),
@@ -467,6 +469,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           fontFamily: response.fontFamily ?? 'inter',
           logoLockupMode: response.logoLockupMode ?? 'symbol-only'
         });
+        setLogoEnabled(!!response.logoUrl);
         setPricingInput(String(response.pricingPounds));
         setPaletteState(palette);
         setAddressForm(toAddressState(response.address));
@@ -487,7 +490,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
       settings.contactName, settings.contactEmail, settings.contactPhone,
       settings.stockListUrl, settings.stripeConnectId, settings.stripeConnectLink,
       settings.logoUrl, settings.preset, settings.fontFamily, settings.logoLockupMode,
-      addressForm, bankForm, openingHoursInput, stockInput, paletteState,
+      logoEnabled, addressForm, bankForm, openingHoursInput, stockInput, paletteState,
     ]
   );
 
@@ -1105,58 +1108,84 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                       </select>
                     </div>
 
-                    {/* Logo */}
+                    {/* Logo — enable/disable toggle */}
                     <div className="space-y-3">
                       <label className="text-sm font-medium text-foreground">Logo</label>
-                      <LogoUpload
-                        currentUrl={settings.logoUrl}
-                        barName={detail.name || 'Your Bar'}
-                        onUploaded={(url) => setSettings((s) => ({ ...s, logoUrl: url }))}
-                      />
-                      <p className="text-xs text-muted-foreground">Or paste a URL directly:</p>
-                      <input
-                        id="logo-url-input"
-                        type="url"
-                        value={settings.logoUrl ?? ''}
-                        onChange={(event) =>
-                          setSettings((current) => ({
-                            ...current,
-                            logoUrl: event.target.value || null
-                          }))
-                        }
-                        className="h-10 w-full rounded-xl border border-border/70 bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        placeholder="https://cdn.example.com/your-logo.png"
-                      />
+
+                      {/* On/off toggle */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={logoEnabled}
+                        onClick={() => setLogoEnabled((v) => !v)}
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors',
+                          logoEnabled
+                            ? 'border-primary/40 bg-primary/5 text-foreground'
+                            : 'border-border/60 bg-background/60 text-muted-foreground',
+                        )}
+                      >
+                        <span>{logoEnabled ? 'Logo enabled' : 'Logo off — bar name shown instead'}</span>
+                        <div className={cn('h-5 w-9 rounded-full transition-colors', logoEnabled ? 'bg-primary' : 'bg-muted')}>
+                          <div className={cn('mt-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', logoEnabled ? 'translate-x-4' : 'translate-x-0.5')} />
+                        </div>
+                      </button>
+
+                      {logoEnabled && (
+                        <>
+                          <LogoUpload
+                            currentUrl={settings.logoUrl}
+                            barName={detail.name || 'Your Bar'}
+                            onUploaded={(url) => setSettings((s) => ({ ...s, logoUrl: url }))}
+                          />
+                          <p className="text-xs text-muted-foreground">Or paste a URL directly:</p>
+                          <input
+                            id="logo-url-input"
+                            type="url"
+                            value={settings.logoUrl ?? ''}
+                            onChange={(event) =>
+                              setSettings((current) => ({
+                                ...current,
+                                logoUrl: event.target.value || null
+                              }))
+                            }
+                            className="h-10 w-full rounded-xl border border-border/70 bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            placeholder="https://cdn.example.com/your-logo.png"
+                          />
+                        </>
+                      )}
                     </div>
 
-                    {/* Logo lockup mode */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Logo Display Mode</label>
-                      <div className="flex gap-2">
-                        {(['symbol-only', 'horizontal', 'stacked'] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            onClick={() => setSettings((s) => ({ ...s, logoLockupMode: mode }))}
-                            className={cn(
-                              'rounded-lg border px-3 py-2 text-xs font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                              settings.logoLockupMode === mode
-                                ? 'border-primary bg-primary/10 text-foreground'
-                                : 'border-border/60 bg-background/60 text-muted-foreground hover:border-primary/40',
-                            )}
-                          >
-                            {mode.replace('-', ' ')}
-                          </button>
-                        ))}
+                    {/* Logo lockup mode — only shown when logo is enabled */}
+                    {logoEnabled && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">Logo Display Mode</label>
+                        <div className="flex gap-2">
+                          {(['symbol-only', 'horizontal', 'stacked'] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setSettings((s) => ({ ...s, logoLockupMode: mode }))}
+                              className={cn(
+                                'rounded-lg border px-3 py-2 text-xs font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                                settings.logoLockupMode === mode
+                                  ? 'border-primary bg-primary/10 text-foreground'
+                                  : 'border-border/60 bg-background/60 text-muted-foreground hover:border-primary/40',
+                              )}
+                            >
+                              {mode.replace('-', ' ')}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Logo preview */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground">Logo Preview</label>
                       <div className="flex items-center justify-center rounded-xl border border-border/40 bg-background/60 p-6">
                         <LogoLockup
-                          logoUrl={settings.logoUrl}
+                          logoUrl={logoEnabled ? settings.logoUrl : null}
                           barName={detail.name || 'Your Bar'}
                           mode={(settings.logoLockupMode as any) ?? 'symbol-only'}
                           treatment="glass-badge"
