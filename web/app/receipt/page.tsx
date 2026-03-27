@@ -12,7 +12,7 @@ interface RecipeResponse {
   method?: string;
   glassware?: string;
   garnish?: string;
-  warnings: unknown[];
+  allergens?: string | null;
 }
 
 interface ReceiptPageProps {
@@ -34,11 +34,6 @@ function normalizeIngredient(entry: unknown): string {
   return 'Ingredient';
 }
 
-function normalizeWarnings(entries: unknown[]): string[] {
-  return entries
-    .map((entry) => (typeof entry === 'string' ? entry : null))
-    .filter((warning): warning is string => Boolean(warning));
-}
 
 async function loadRecipe(orderId: string): Promise<RecipeResponse> {
   const url = `${getApiUrl()}/orders/${orderId}/recipe`;
@@ -61,7 +56,6 @@ export default async function ReceiptPage({ searchParams }: ReceiptPageProps) {
 
   const recipe = await loadRecipe(orderId);
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients.map(normalizeIngredient) : [];
-  const warnings = normalizeWarnings(Array.isArray(recipe.warnings) ? recipe.warnings : []);
 
   return (
     <AppShell>
@@ -126,14 +120,10 @@ export default async function ReceiptPage({ searchParams }: ReceiptPageProps) {
             </div>
           </FadeIn>
 
-          {warnings.length > 0 ? (
-            <aside className="rounded-2xl border border-border/[var(--border-alpha,0.5)] bg-card/80 shadow-card p-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Allergy & dietary notes</h3>
-              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-foreground">
-                {warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
+          {recipe.allergens ? (
+            <aside className="rounded-2xl border border-destructive/40 bg-destructive/10 p-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-destructive">Allergy & dietary notes</h3>
+              <p className="mt-3 text-sm text-foreground">{recipe.allergens}</p>
             </aside>
           ) : null}
         </section>

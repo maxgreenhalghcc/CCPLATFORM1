@@ -26,7 +26,7 @@ interface RecipePayload {
   method: string;
   glassware: string;
   garnish: string;
-  warnings: string[];
+  allergens: string | null;
 }
 
 interface OrderDetailProps {
@@ -267,18 +267,14 @@ export default function StaffOrderDetailClient({ initialOrder }: OrderDetailProp
             </p>
           </div>
 
-          {initialOrder.recipe.warnings.length > 0 && (
+          {initialOrder.recipe.allergens ? (
             <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-destructive">
                 Allergy / dietary notes
               </p>
-              <ul className="space-y-1 text-sm text-foreground">
-                {initialOrder.recipe.warnings.map((w) => (
-                  <li key={w}>{w}</li>
-                ))}
-              </ul>
+              <p className="text-sm text-foreground">{initialOrder.recipe.allergens}</p>
             </div>
-          )}
+          ) : null}
         </section>
       </div>
     </FadeIn>

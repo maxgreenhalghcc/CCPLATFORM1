@@ -303,8 +303,15 @@ ${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        recipe: true
-      }
+        recipe: true,
+        session: {
+          include: {
+            answers: {
+              where: { questionId: 'allergens' },
+            },
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -321,7 +328,14 @@ ${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
     const method = typeof body.method === 'string' ? body.method : '';
     const glassware = typeof body.glassware === 'string' ? body.glassware : '';
     const garnish = typeof body.garnish === 'string' ? body.garnish : '';
-    const warnings = Array.isArray(body.warnings) ? body.warnings : [];
+
+    // Pull allergens directly from the quiz answer record
+    const allergenAnswer = order.session?.answers?.[0]?.value;
+    const allergens = typeof allergenAnswer === 'string'
+      ? allergenAnswer.trim()
+      : typeof allergenAnswer === 'object' && allergenAnswer !== null && !Array.isArray(allergenAnswer)
+        ? String((allergenAnswer as Record<string, unknown>).choice ?? '').trim()
+        : '';
 
     return {
       orderId: order.id,
@@ -333,7 +347,7 @@ ${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
       method,
       glassware,
       garnish,
-      warnings
+      allergens: allergens || null,
     };
   }
 

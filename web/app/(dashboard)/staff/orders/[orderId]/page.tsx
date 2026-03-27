@@ -33,13 +33,10 @@ async function fetchOrder(orderId: string, token?: string) {
     method?: string;
     glassware?: string;
     garnish?: string;
-    warnings?: unknown;
+    allergens?: string | null;
   };
 
   const ingredients = Array.isArray(payload.ingredients) ? payload.ingredients : [];
-  const warnings = Array.isArray(payload.warnings)
-    ? (payload.warnings as string[])
-    : [];
 
   return {
     orderId: payload.orderId ?? orderId,
@@ -52,7 +49,7 @@ async function fetchOrder(orderId: string, token?: string) {
       method: payload.method ?? '',
       glassware: payload.glassware ?? '',
       garnish: payload.garnish ?? '',
-      warnings
+      allergens: payload.allergens ?? null,
     }
   };
 }

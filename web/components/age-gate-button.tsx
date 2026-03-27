@@ -70,12 +70,14 @@ export function AgeGateButton({
             animate={{ opacity: 1, scale: 1 }}
             exit={safe ? { opacity: 0, scale: 0.95 } : undefined}
             transition={{ duration: DURATION.fast, ease: EASE.out }}
+            transformTemplate={({ scale }) =>
+              `translate(-50%, -50%) scale(${scale ?? 1})`
+            }
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'fixed',
               top: '50%',
               left: '50%',
-              transform: 'translate(-50%, -50%)',
               zIndex: 9999,
               width: 'calc(100% - 2rem)',
               maxWidth: '24rem',
