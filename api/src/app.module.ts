@@ -28,6 +28,7 @@ import { OrdersModule } from './orders/orders.module';
 import { AdminModule } from './admin/admin.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { HealthModule } from './health/health.module';
+import { IncentivesModule } from './incentives/incentives.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -128,6 +129,7 @@ class SentryFilter extends BaseExceptionFilter {
     AdminModule,
     WebhooksModule,
     HealthModule,
+    IncentivesModule,
   ],
   providers: [
     {

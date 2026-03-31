@@ -7,7 +7,7 @@ import {
   NotFoundException
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus as PrismaOrderStatus, Prisma, UserRole } from '@prisma/client';
+import { FunnelEventType, OrderStatus as PrismaOrderStatus, Prisma, UserRole } from '@prisma/client';
 import Stripe from 'stripe';
 import * as Sentry from '@sentry/node';
 import * as nodemailer from 'nodemailer';
@@ -168,7 +168,7 @@ ${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
       throw new BadRequestException('Order requires at least one item');
     }
 
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         barId: params.barId,
         sessionId: params.sessionId,
@@ -185,6 +185,17 @@ ${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
         },
       },
     });
+
+    // Fire-and-forget funnel event
+    this.prisma.funnelEvent.create({
+      data: {
+        barId: params.barId,
+        sessionId: params.sessionId,
+        eventType: FunnelEventType.ORDER_CREATED,
+      },
+    }).catch((err) => Sentry.captureException(err));
+
+    return order;
   }
 
   async createCheckout(orderId: string, dto?: CreateCheckoutDto) {
@@ -421,7 +432,8 @@ ${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
           id: true,
           status: true,
           fulfilledAt: true,
-          barId: true
+          barId: true,
+          sessionId: true,
         }
       });
 
@@ -488,6 +500,15 @@ ${recipe.garnish ? `<p><strong>Garnish:</strong> ${recipe.garnish}</p>` : ''}
 
       // Fire-and-forget: send recipe email to guest if they provided a contact
       this.sendRecipeEmail(updated.id).catch((err) => Sentry.captureException(err));
+
+      // Fire-and-forget: funnel event for ORDER_FULFILLED
+      this.prisma.funnelEvent.create({
+        data: {
+          barId: order.barId,
+          sessionId: order.sessionId,
+          eventType: FunnelEventType.ORDER_FULFILLED,
+        },
+      }).catch((err) => Sentry.captureException(err));
 
       return {
         id: updated.id,

@@ -20,6 +20,11 @@ const cards = [
     title: 'Financial dashboard',
     description: 'Track revenue per bar, order volumes, and payout readiness.',
     href: '/admin/financials'
+  },
+  {
+    title: 'Staff payouts',
+    description: 'Review weekly incentive payouts across all bars and mark them as paid.',
+    href: '/admin/payouts'
   }
 ] as const;
 

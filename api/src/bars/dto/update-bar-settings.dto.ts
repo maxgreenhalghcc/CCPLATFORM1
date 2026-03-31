@@ -90,4 +90,8 @@ export class UpdateBarSettingsDto {
   @IsOptional()
   @IsString()
   logoLockupMode?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hideFromLeaderboard?: boolean;
 }

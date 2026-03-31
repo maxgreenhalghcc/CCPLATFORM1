@@ -7,6 +7,7 @@ interface QuizPageProps {
 }
 
 interface BarSettingsResponse {
+  id: string;
   name: string;
   slug: string;
   introText?: string | null;
@@ -27,6 +28,6 @@ export default async function QuizPage({ params }: QuizPageProps) {
   const bar = await loadBar(params.barSlug);
 
   return (
-    <QuizFlow barSlug={bar.slug} barName={bar.name} outroText={bar.outroText ?? undefined} />
+    <QuizFlow barSlug={bar.slug} barId={bar.id} barName={bar.name} outroText={bar.outroText ?? undefined} />
   );
 }

@@ -21,6 +21,7 @@ const PAYMENTS_ENABLED =
 
 interface QuizFlowProps {
   barSlug: string;
+  barId?: string;
   barName?: string;
   outroText?: string;
 }
@@ -53,10 +54,14 @@ function resolveCheckoutPath(checkoutUrl: string, orderId: string): string {
   }
 }
 
-export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps) {
+export default function QuizFlow({ barSlug, barId, barName, outroText }: QuizFlowProps) {
   const router = useRouter();
   const apiUrl = useMemo(getApiUrl, []);
   const storageKey = `pending_order_${barSlug}`;
+  // Stable funnel session ID tied to this page load — used for funnel event tracking
+  const funnelSessionId = useRef<string>(
+    typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `fs-${Date.now()}`,
+  );
   const detailsStepIndex = QUIZ_QUESTIONS.length;
   const totalSteps = QUIZ_QUESTIONS.length + 1;
   const [currentStep, setCurrentStep] = useState(0);
@@ -71,8 +76,37 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
   const [retryCount, setRetryCount] = useState(0);
   const [resumeOrderId, setResumeOrderId] = useState<string | null>(null);
   const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quizStartFiredRef = useRef(false);
   const safe = useMotionSafe();
   const flavourKeywords = deriveFlavourKeywords(answers);
+
+  // ── Funnel event helpers ──────────────────────────────────────────────────
+
+  const fireFunnelEvent = useCallback(
+    (eventType: 'PAGE_LOAD' | 'QUIZ_START' | 'QUIZ_COMPLETE') => {
+      if (!barId) return;
+      fetch(`${apiUrl}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barId,
+          sessionId: funnelSessionId.current,
+          eventType,
+        }),
+      }).catch(() => {
+        // Funnel events are non-critical — ignore failures silently
+      });
+    },
+    [apiUrl, barId],
+  );
+
+  // Fire PAGE_LOAD once on mount
+  useEffect(() => {
+    fireFunnelEvent('PAGE_LOAD');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Double-charge guard ───────────────────────────────────────────────────
 
   // Check for a pending order the user may have already submitted (double-charge guard)
   useEffect(() => {
@@ -170,6 +204,11 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
     (questionId: string, value: string) => {
       setAnswers((prev) => ({ ...prev, [questionId]: value }));
       setError(null);
+      // Fire QUIZ_START on the first answer
+      if (!quizStartFiredRef.current) {
+        quizStartFiredRef.current = true;
+        fireFunnelEvent('QUIZ_START');
+      }
       if (!isDetailsStep) {
         if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
         autoAdvanceRef.current = setTimeout(() => {
@@ -178,7 +217,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
         }, 380);
       }
     },
-    [isDetailsStep, totalSteps]
+    [isDetailsStep, totalSteps, fireFunnelEvent]
   );
 
   const handleNext = useCallback(() => {
@@ -271,6 +310,9 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
         const submitData = (await submitResponse.json()) as SubmitQuizResponse;
         const { orderId } = submitData;
 
+        // Fire QUIZ_COMPLETE funnel event
+        fireFunnelEvent('QUIZ_COMPLETE');
+
         // Persist orderId before any redirect so that if the user navigates
         // back we can show them their existing order instead of a new quiz.
         try {
@@ -319,7 +361,7 @@ export default function QuizFlow({ barSlug, barName, outroText }: QuizFlowProps)
     } finally {
       setSubmitting(false);
     }
-  }, [answers, allergens, apiUrl, contact, router, sessionId, storageKey]);
+  }, [answers, allergens, apiUrl, contact, fireFunnelEvent, router, sessionId, storageKey]);
 
   if (!currentQuestion && !isDetailsStep) {
     return null;

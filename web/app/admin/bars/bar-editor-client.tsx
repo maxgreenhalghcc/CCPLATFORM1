@@ -48,6 +48,7 @@ interface BarSettingsResponse {
   preset?: string;
   fontFamily?: string;
   logoLockupMode?: string;
+  hideFromLeaderboard?: boolean;
 }
 
 interface BarEditorClientProps {
@@ -157,7 +158,8 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
     logoUrl: null,
     preset: 'modern',
     fontFamily: 'inter',
-    logoLockupMode: 'symbol-only'
+    logoLockupMode: 'symbol-only',
+    hideFromLeaderboard: false,
   });
   const [logoEnabled, setLogoEnabled] = useState(false);
   const [pricingInput, setPricingInput] = useState('12');
@@ -258,7 +260,8 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           logoUrl: settingsResponse.logoUrl,
           preset: settingsResponse.preset ?? 'modern',
           fontFamily: settingsResponse.fontFamily ?? 'inter',
-          logoLockupMode: settingsResponse.logoLockupMode ?? 'symbol-only'
+          logoLockupMode: settingsResponse.logoLockupMode ?? 'symbol-only',
+          hideFromLeaderboard: settingsResponse.hideFromLeaderboard ?? false,
         });
         setLogoEnabled(!!settingsResponse.logoUrl);
         setPricingInput(settingsResponse.pricingPounds.toFixed(2));
@@ -434,7 +437,8 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           brandPalette: buildPalettePayload(paletteState),
           preset: settings.preset,
           fontFamily: settings.fontFamily,
-          logoLockupMode: settings.logoLockupMode
+          logoLockupMode: settings.logoLockupMode,
+          hideFromLeaderboard: settings.hideFromLeaderboard,
         };
 
         const response = await requestJson<BarSettingsResponse>(`${api}/bars/${barId}/settings`, {
@@ -467,7 +471,8 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
           logoUrl: response.logoUrl,
           preset: response.preset ?? 'modern',
           fontFamily: response.fontFamily ?? 'inter',
-          logoLockupMode: response.logoLockupMode ?? 'symbol-only'
+          logoLockupMode: response.logoLockupMode ?? 'symbol-only',
+          hideFromLeaderboard: response.hideFromLeaderboard ?? false,
         });
         setLogoEnabled(!!response.logoUrl);
         setPricingInput(String(response.pricingPounds));
@@ -490,6 +495,7 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
       settings.contactName, settings.contactEmail, settings.contactPhone,
       settings.stockListUrl, settings.stripeConnectId, settings.stripeConnectLink,
       settings.logoUrl, settings.preset, settings.fontFamily, settings.logoLockupMode,
+      settings.hideFromLeaderboard,
       logoEnabled, addressForm, bankForm, openingHoursInput, stockInput, paletteState,
     ]
   );
@@ -530,6 +536,23 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
         </div>
 
         {renderTabs}
+
+        {!isNew && barId && (
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={`/admin/incentives/${barId}`}
+              className="rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+            >
+              Incentive tiers →
+            </a>
+            <a
+              href={`/admin/analytics/${barId}`}
+              className="rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+            >
+              Funnel analytics →
+            </a>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
         {activeTab === 'details' ? (
@@ -733,6 +756,26 @@ export default function BarEditorClient({ barId }: BarEditorClientProps) {
                         <div className="text-sm font-medium text-foreground">Busy-night mode (pause quiz)</div>
                         <div className="text-xs text-muted-foreground">
                           Stops new guest quiz sessions for this bar. Staff dashboard stays live.
+                        </div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/20 px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={settings.hideFromLeaderboard ?? false}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            hideFromLeaderboard: event.target.checked
+                          }))
+                        }
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-foreground">Hide bar name on leaderboard</div>
+                        <div className="text-xs text-muted-foreground">
+                          Shows this bar as &quot;Competitor A/B/C…&quot; on the cross-venue leaderboard.
                         </div>
                       </div>
                     </label>

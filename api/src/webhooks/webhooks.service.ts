@@ -5,7 +5,7 @@ import {
   Logger
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { FunnelEventType, OrderStatus, Prisma } from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -100,7 +100,7 @@ export class WebhooksService {
 
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
-        select: { id: true, amount: true }
+        select: { id: true, amount: true, barId: true, sessionId: true }
       });
 
       if (!order) {
@@ -123,6 +123,15 @@ export class WebhooksService {
         where: { id: orderId },
         data: { status: OrderStatus.paid }
       });
+
+      // Fire-and-forget: funnel event for ORDER_PAID
+      this.prisma.funnelEvent.create({
+        data: {
+          barId: order.barId,
+          sessionId: order.sessionId,
+          eventType: FunnelEventType.ORDER_PAID,
+        },
+      }).catch((err) => this.logger.error(`Failed to write ORDER_PAID funnel event: ${err}`));
 
       const existing = await this.prisma.payment.findFirst({
         where: { intentId: intentReference }

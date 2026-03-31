@@ -51,6 +51,7 @@ export interface BarSettingsResponse {
   preset: string;
   fontFamily: string;
   logoLockupMode: string;
+  hideFromLeaderboard: boolean;
 }
 
 const DEFAULT_THEME: Record<string, string> = {
@@ -307,6 +308,7 @@ export class BarsService {
         ...(dto.preset !== undefined && { preset: dto.preset }),
         ...(dto.fontFamily !== undefined && { fontFamily: dto.fontFamily }),
         ...(dto.logoLockupMode !== undefined && { logoLockupMode: dto.logoLockupMode }),
+        ...(dto.hideFromLeaderboard !== undefined && { hideFromLeaderboard: dto.hideFromLeaderboard }),
       }
     });
 
@@ -420,7 +422,8 @@ export class BarsService {
       logoUrl: bar.settings.logoUrl ?? null,
       preset: bar.settings.preset ?? 'modern',
       fontFamily: bar.settings.fontFamily ?? 'inter',
-      logoLockupMode: bar.settings.logoLockupMode ?? 'symbol-only'
+      logoLockupMode: bar.settings.logoLockupMode ?? 'symbol-only',
+      hideFromLeaderboard: bar.settings.hideFromLeaderboard ?? false,
     };
   }
 

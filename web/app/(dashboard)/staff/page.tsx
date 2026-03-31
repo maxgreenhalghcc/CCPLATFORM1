@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { apiFetch, getApiBaseUrl } from '@/app/lib/api';
 import StaffOrdersClient, { type OrderSummary } from './staff-orders-client';
+import StaffPerformanceClient from './staff-performance-client';
 import { DashboardShell } from '@/app/components/DashboardShell';
 import { LiftIn, FadeIn } from '@/app/components/motion';
 
@@ -80,6 +81,9 @@ export default async function StaffDashboardPage() {
             </nav>
           </header>
         </LiftIn>
+        <FadeIn delay={0.12}>
+          <StaffPerformanceClient barId={barId} token={session.apiToken} />
+        </FadeIn>
         <FadeIn delay={0.15}>
           <Suspense
             fallback={

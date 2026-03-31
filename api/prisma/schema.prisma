@@ -25,6 +25,20 @@ enum QuizSessionStatus {
   submitted
 }
 
+enum PayoutStatus {
+  PENDING
+  PAID
+}
+
+enum FunnelEventType {
+  PAGE_LOAD
+  QUIZ_START
+  QUIZ_COMPLETE
+  ORDER_CREATED
+  ORDER_PAID
+  ORDER_FULFILLED
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -84,12 +98,15 @@ model Bar {
   active       Boolean  @default(true)
   staffPinHash String?
 
-  settings   BarSettings?
-  users      User[]
-  whitelist  BarIngredientWhitelist[]
-  sessions   QuizSession[]
-  recipes    Recipe[]
-  orders     Order[]
+  settings            BarSettings?
+  users               User[]
+  whitelist           BarIngredientWhitelist[]
+  sessions            QuizSession[]
+  recipes             Recipe[]
+  orders              Order[]
+  incentiveTiers      IncentiveTier[]
+  weeklyPerformances  WeeklyPerformance[]
+  funnelEvents        FunnelEvent[]
 }
 
 model BarSettings {
@@ -114,9 +131,11 @@ model BarSettings {
   stripeConnectLink String?
   brandPalette      Json?
   logoUrl           String?
-  preset         String?  @default("modern")
-  fontFamily     String?  @default("inter")
-  logoLockupMode String?  @default("symbol-only")
+  preset               String?  @default("modern")
+  fontFamily           String?  @default("inter")
+  logoLockupMode       String?  @default("symbol-only")
+  hideFromLeaderboard  Boolean  @default(false)
+  weeklyBaseline       Int?
 
   bar Bar @relation(fields: [barId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
@@ -226,4 +245,51 @@ model Payment {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([intentId])
+}
+
+model IncentiveTier {
+  id           String   @id @default(cuid())
+  barId        String
+  name         String
+  threshold    Int
+  payoutAmount Decimal  @db.Decimal(10, 2)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bar                Bar                 @relation(fields: [barId], references: [id], onDelete: Cascade)
+  weeklyPerformances WeeklyPerformance[]
+}
+
+model WeeklyPerformance {
+  id               String       @id @default(cuid())
+  barId            String
+  weekStart        DateTime     @db.Date
+  fulfilledCount   Int          @default(0)
+  baseline         Int          @default(0)
+  percentageChange Decimal      @db.Decimal(10, 2) @default(0)
+  tierAchievedId   String?
+  payoutAmount     Decimal      @db.Decimal(10, 2) @default(0)
+  payoutStatus     PayoutStatus @default(PENDING)
+  paidAt           DateTime?
+  createdAt        DateTime     @default(now())
+
+  bar          Bar            @relation(fields: [barId], references: [id], onDelete: Cascade)
+  tierAchieved IncentiveTier? @relation(fields: [tierAchievedId], references: [id], onDelete: SetNull)
+
+  @@unique([barId, weekStart])
+  @@index([barId, weekStart])
+}
+
+model FunnelEvent {
+  id        String          @id @default(cuid())
+  barId     String
+  sessionId String
+  eventType FunnelEventType
+  metadata  Json?
+  createdAt DateTime        @default(now())
+
+  bar Bar @relation(fields: [barId], references: [id], onDelete: Cascade)
+
+  @@index([barId, eventType, createdAt])
 }
